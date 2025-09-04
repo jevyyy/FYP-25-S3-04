@@ -2,17 +2,17 @@ import React from 'react';
 import { Image } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
-import HomePage from './HomePage';
+import Guest_HomePage from './screens/Guest/Guest_HomePage';
 
 const Stack = createNativeStackNavigator();
 
 export default function App() {
   return (
     <NavigationContainer>
-      <Stack.Navigator initialRouteName="Home">
+      <Stack.Navigator initialRouteName="Guest_Home">
         <Stack.Screen
-          name="Home"
-          component={HomePage}
+          name="Guest_Home"
+          component={Guest_HomePage}
           options={{
             headerShown: true,
             headerTitle: () => (
@@ -23,7 +23,7 @@ export default function App() {
               />
             ),
             headerStyle: {
-              backgroundColor: '#fff', // optional, adjust header background
+              backgroundColor: '#fff',
             },
           }}
         />
