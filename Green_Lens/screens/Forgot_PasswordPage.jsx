@@ -20,11 +20,11 @@ export default function Forgot_PasswordPage() {
       return;
     }
 
-    // Add your password reset logic here
-    Alert.alert('Success', 'Password updated successfully!', [
+    // Show success alert and redirect to User_Register
+    Alert.alert('Success', 'Password was reset successfully!', [
       {
-        text: 'Return to Login',
-        onPress: () => navigation.navigate('User_Login'),
+        text: 'Return to Register',
+        onPress: () => navigation.navigate('User_Register'),
       },
     ]);
   };
@@ -100,7 +100,7 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 30,
-    alignSelf: 'flex-start', // aligns title to left
+    alignSelf: 'flex-start',
   },
   label: {
     alignSelf: 'flex-start',
