@@ -3,7 +3,7 @@ import { Alert, Button, Image, StyleSheet, Text, TouchableOpacity, View } from '
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
-import { useIsFocused } from '@react-navigation/native';
+import { useDrawerStatus } from '@react-navigation/drawer';
 
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
@@ -48,8 +48,10 @@ export default function Guest_HomePage() {
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
-  const isFocused = useIsFocused();
   const [selectedImageUri, setSelectedImageUri] = useState(null);
+
+  const drawerStatus = useDrawerStatus(); // 'open' or 'closed'
+  const isDrawerOpen = drawerStatus === 'open';
 
   if (!permission) return <View />;
   if (!permission.granted) {
@@ -78,7 +80,8 @@ export default function Guest_HomePage() {
 
   return (
     <View style={styles.container}>
-      {isFocused && <CameraView style={styles.camera} facing={facing} ref={cameraRef} />}
+      {/* Only render camera when drawer is closed */}
+      {!isDrawerOpen && <CameraView style={styles.camera} facing={facing} ref={cameraRef} />}
 
       <View style={styles.overlay}>
         <ImagePreview onSelectImage={(uri) => setSelectedImageUri(uri)} />
