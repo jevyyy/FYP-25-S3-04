@@ -1,45 +1,66 @@
 // LoginSelectionPage.jsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 
 export default function LoginSelectionPage({ navigation }) {
   const handleUserLogin = () => {
-    console.log("Login as Green Lens User");
-    // navigation.navigate("UserLogin"); // if you have UserLogin screen
+    console.log("Green Lens User");
   };
 
   const handleAdminLogin = () => {
-    console.log("Login as Admin/Developer");
-    // navigation.navigate("AdminLogin"); // if you have AdminLogin screen
+    console.log("Admin/Developer");
   };
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.title}>Select Login Type</Text>
+    <View style={styles.outerContainer}>
+      {/* Logo + Title */}
+      <View style={styles.titleContainer}>
+        <Image
+          source={require('../assets/Green_Lens_logo.png')} // adjust path if necessary
+          style={styles.logo}
+        />
+        <Text style={styles.title}>Login as:</Text>
+      </View>
 
-      <TouchableOpacity style={styles.button} onPress={handleUserLogin}>
-        <Text style={styles.buttonText}>Login as Green Lens User</Text>
-      </TouchableOpacity>
+      {/* Buttons stacked below title */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.button} onPress={handleUserLogin}>
+          <Text style={styles.buttonText}>Login as Green Lens User</Text>
+        </TouchableOpacity>
 
-      <TouchableOpacity style={styles.button} onPress={handleAdminLogin}>
-        <Text style={styles.buttonText}>Login as Admin / Developer</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleAdminLogin}>
+          <Text style={styles.buttonText}>Login as Admin / Developer</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    paddingHorizontal: 20,
+    paddingTop: 60,
     backgroundColor: '#f9f9f9',
-    padding: 20,
+  },
+  titleContainer: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  logo: {
+    width: 200,   // increased width
+    height: 80,   // increased height
+    marginBottom: 15,
   },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
-    marginBottom: 40,
+    textAlign: 'center',
+  },
+  buttonContainer: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: 20,
   },
   button: {
     width: '80%',
@@ -47,11 +68,12 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     marginVertical: 10,
     alignItems: 'center',
-    borderWidth: 2,          // 👈 border only
-    borderColor: '#333',     // 👈 dark gray border
+    borderWidth: 2,
+    borderColor: '#333',
+    backgroundColor: '#000',
   },
   buttonText: {
-    color: '#333',           // 👈 matches border color
+    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
   },
