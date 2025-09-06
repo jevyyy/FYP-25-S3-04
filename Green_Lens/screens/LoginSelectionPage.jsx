@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 export default function LoginSelectionPage() {
@@ -10,6 +10,13 @@ export default function LoginSelectionPage() {
 
   return (
     <View style={styles.outerContainer}>
+      {/* Logo above the text */}
+      <Image
+        source={require('../assets/Green_Lens_logo.png')} // adjust path if necessary
+        style={styles.logo}
+        resizeMode="contain"
+      />
+
       <Text style={styles.title}>Login as:</Text>
 
       <TouchableOpacity style={styles.button} onPress={handleUserLogin}>
@@ -29,6 +36,12 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     backgroundColor: '#f9f9f9',
+    alignItems: 'center', // center everything horizontally
+  },
+  logo: {
+    width: 200,  // adjust size as needed
+    height: 80,
+    marginBottom: 20,
   },
   title: {
     fontSize: 22,
@@ -45,7 +58,6 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#333',
     backgroundColor: '#000',
-    alignSelf: 'center',
   },
   buttonText: {
     color: '#fff',

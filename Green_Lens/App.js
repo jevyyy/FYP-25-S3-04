@@ -8,6 +8,8 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import Guest_HomePage from './screens/Guest/Guest_HomePage';
 import LoginSelectionPage from './screens/LoginSelectionPage';
 import User_Login from './screens/User/User_Login';
+import User_Register from './screens/User/User_Register'; // make sure this exists
+import Forgot_PasswordPage from './screens/Forgot_PasswordPage'; // make sure this exists
 import Admin_Developer_Login from './screens/Admin_&_Developer_LoginPage';
 
 const Drawer = createDrawerNavigator();
@@ -33,6 +35,16 @@ function LoginStack() {
         name="User_Login"
         component={User_Login}
         options={{ title: 'User Login' }}
+      />
+      <Stack.Screen
+        name="User_Register"
+        component={User_Register}
+        options={{ title: 'Register' }}
+      />
+      <Stack.Screen
+        name="Forgot_PasswordPage"
+        component={Forgot_PasswordPage}
+        options={{ title: 'Forgot Password' }}
       />
       <Stack.Screen
         name="Admin_Developer_Login"
@@ -66,7 +78,7 @@ export default function App() {
           options={{ drawerLabel: 'Home' }}
         />
 
-        {/* LoginSelectionPage is visible in drawer */}
+        {/* LoginSelectionPage visible in drawer */}
         <Drawer.Screen
           name="LoginSelection"
           component={LoginStack} // stack containing LoginSelectionPage + hidden login screens
