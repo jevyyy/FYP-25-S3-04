@@ -15,12 +15,25 @@ export default function User_Register() {
       Alert.alert('Error', 'Please fill in all fields');
       return;
     }
-    // Add your registration logic here
-    Alert.alert('Registration', `Name: ${name}\nUsername: ${username}\nEmail: ${email}\nPassword: ${password}`);
+
+    Alert.alert(
+      'Success',
+      'Green Lens Account Registered Successfully!',
+      [
+        {
+          text: 'Return to Login',
+          onPress: () => navigation.navigate('User_Login'),
+        },
+      ],
+      { cancelable: false }
+    );
   };
 
   const handleCancel = () => {
-    navigation.goBack(); // Navigate back to previous screen
+    setName('');
+    setUsername('');
+    setEmail('');
+    setPassword('');
   };
 
   return (
@@ -70,10 +83,9 @@ export default function User_Register() {
         secureTextEntry
       />
 
-      {/* Buttons */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
-          <Text style={styles.buttonText}>Cancel</Text>
+          <Text style={[styles.buttonText, { color: '#000' }]}>Cancel</Text>
         </TouchableOpacity>
 
         <TouchableOpacity style={[styles.button, styles.submitButton]} onPress={handleSubmit}>
@@ -90,11 +102,11 @@ const styles = StyleSheet.create({
     paddingHorizontal: 20,
     paddingTop: 60,
     backgroundColor: '#f9f9f9',
+    alignItems: 'center',
   },
   logo: {
     width: 200,
     height: 80,
-    alignSelf: 'center',
     marginBottom: 20,
   },
   title: {
@@ -104,6 +116,7 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   label: {
+    alignSelf: 'flex-start',
     fontSize: 16,
     fontWeight: '600',
     marginBottom: 5,
@@ -116,13 +129,12 @@ const styles = StyleSheet.create({
     borderColor: '#333',
     borderRadius: 10,
     paddingHorizontal: 15,
-    marginBottom: 15,
+    marginBottom: 20,
     backgroundColor: '#fff',
   },
   buttonContainer: {
     flexDirection: 'row',
     justifyContent: 'space-between',
-    marginTop: 20,
   },
   button: {
     flex: 0.48,
@@ -131,14 +143,14 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   cancelButton: {
-    backgroundColor: '#000',
+    backgroundColor: '#ccc',
   },
   submitButton: {
     backgroundColor: '#000',
   },
   buttonText: {
-    color: '#fff',
     fontSize: 18,
     fontWeight: '600',
+    color: '#fff',
   },
 });
