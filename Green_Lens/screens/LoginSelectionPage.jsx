@@ -1,37 +1,24 @@
-// LoginSelectionPage.jsx
 import React from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 
-export default function LoginSelectionPage({ navigation }) {
-  const handleUserLogin = () => {
-    console.log("Green Lens User");
-  };
+export default function LoginSelectionPage() {
+  const navigation = useNavigation();
 
-  const handleAdminLogin = () => {
-    console.log("Admin/Developer");
-  };
+  const handleUserLogin = () => navigation.navigate('User_Login');
+  const handleAdminLogin = () => navigation.navigate('Admin_Developer_Login');
 
   return (
     <View style={styles.outerContainer}>
-      {/* Logo + Title */}
-      <View style={styles.titleContainer}>
-        <Image
-          source={require('../assets/Green_Lens_logo.png')} // adjust path if necessary
-          style={styles.logo}
-        />
-        <Text style={styles.title}>Login as:</Text>
-      </View>
+      <Text style={styles.title}>Login as:</Text>
 
-      {/* Buttons stacked below title */}
-      <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handleUserLogin}>
-          <Text style={styles.buttonText}>Green Lens User</Text>
-        </TouchableOpacity>
+      <TouchableOpacity style={styles.button} onPress={handleUserLogin}>
+        <Text style={styles.buttonText}>Green Lens User</Text>
+      </TouchableOpacity>
 
-        <TouchableOpacity style={styles.button} onPress={handleAdminLogin}>
-          <Text style={styles.buttonText}>Admin/Developer</Text>
-        </TouchableOpacity>
-      </View>
+      <TouchableOpacity style={styles.button} onPress={handleAdminLogin}>
+        <Text style={styles.buttonText}>Admin / Developer</Text>
+      </TouchableOpacity>
     </View>
   );
 }
@@ -43,24 +30,11 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     backgroundColor: '#f9f9f9',
   },
-  titleContainer: {
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logo: {
-    width: 200,   // increased width
-    height: 80,   // increased height
-    marginBottom: 15,
-  },
   title: {
     fontSize: 22,
     fontWeight: 'bold',
     textAlign: 'center',
-  },
-  buttonContainer: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginTop: 20,
+    marginBottom: 20,
   },
   button: {
     width: '80%',
@@ -71,6 +45,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#333',
     backgroundColor: '#000',
+    alignSelf: 'center',
   },
   buttonText: {
     color: '#fff',
