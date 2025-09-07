@@ -1,14 +1,40 @@
 // ./screens/User/User_QuizPage.jsx
-import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 export default function User_QuizPage() {
   const navigation = useNavigation();
+  const [quizVisible, setQuizVisible] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('');
+  const [quizResult, setQuizResult] = useState(null); // 'correct' | 'wrong' | null
+
+  // Define correct answers for each category
+  const correctAnswers = {
+    Flower: 'Rose',
+    Plant: 'PlantX', // placeholder
+    Architecture: 'ArchitectureX', // placeholder
+  };
+
+  const answerOptions = ['Rose', 'Marigold', 'Sunflower', 'Tulip'];
 
   const handlePressCategory = (category) => {
-    // Placeholder: Replace with your logic
-    console.log(`${category} button pressed`);
+    setSelectedCategory(category);
+    setQuizResult(null);
+    setQuizVisible(true);
+  };
+
+  const handleAnswer = (answer) => {
+    if (answer === correctAnswers[selectedCategory]) {
+      setQuizResult('correct');
+    } else {
+      setQuizResult('wrong');
+    }
+  };
+
+  const handleReturn = () => {
+    setQuizVisible(false);
+    setQuizResult(null);
   };
 
   return (
@@ -23,27 +49,69 @@ export default function User_QuizPage() {
 
       {/* Category buttons row */}
       <View style={styles.categoryContainer}>
-        <TouchableOpacity
-          style={styles.categoryButton}
-          onPress={() => handlePressCategory('Flower')}
-        >
-          <Text style={styles.categoryText}>Flower</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.categoryButton}
-          onPress={() => handlePressCategory('Plant')}
-        >
-          <Text style={styles.categoryText}>Plant</Text>
-        </TouchableOpacity>
-
-        <TouchableOpacity
-          style={styles.categoryButton}
-          onPress={() => handlePressCategory('Architecture')}
-        >
-          <Text style={styles.categoryText}>Architecture</Text>
-        </TouchableOpacity>
+        {['Flower', 'Plant', 'Architecture'].map((category) => (
+          <TouchableOpacity
+            key={category}
+            style={styles.categoryButton}
+            onPress={() => handlePressCategory(category)}
+          >
+            <Text style={styles.categoryText}>{category}</Text>
+          </TouchableOpacity>
+        ))}
       </View>
+
+      {/* Quiz Modal */}
+      <Modal
+        transparent
+        visible={quizVisible}
+        animationType="slide"
+        onRequestClose={handleReturn}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            {!quizResult ? (
+              <>
+                {/* Image placeholder */}
+                <View style={styles.imagePlaceholder}>
+                  <Text style={{ color: '#aaa' }}>Image Placeholder</Text>
+                </View>
+
+                {/* Question label */}
+                <Text style={styles.questionText}>What {selectedCategory.toLowerCase()} is this?</Text>
+
+                {/* 2x2 answer buttons */}
+                <View style={styles.answerContainer}>
+                  {answerOptions.map((answer) => (
+                    <TouchableOpacity
+                      key={answer}
+                      style={styles.answerButton}
+                      onPress={() => handleAnswer(answer)}
+                    >
+                      <Text style={styles.answerText}>{answer}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+              </>
+            ) : (
+              // Result screen
+              <>
+                <Text style={styles.resultText}>
+                  {quizResult === 'correct' ? 'Answer Correct!' : 'Answer Wrong!'}
+                </Text>
+                <Text style={styles.pointText}>
+                  {quizResult === 'correct' ? 'Point +3' : 'Point +0'}
+                </Text>
+                <TouchableOpacity
+                  style={[styles.rankingButton, { marginTop: 20 }]}
+                  onPress={handleReturn}
+                >
+                  <Text style={styles.rankingButtonText}>Return</Text>
+                </TouchableOpacity>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -63,7 +131,8 @@ const styles = StyleSheet.create({
   categoryContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 80, // increased spacing between ranking button and category buttons
+    marginTop: 100,
+    marginBottom: 50,
   },
   categoryButton: {
     width: 100,
@@ -74,4 +143,15 @@ const styles = StyleSheet.create({
     borderRadius: 12,
   },
   categoryText: { color: '#fff', fontWeight: '600', textAlign: 'center' },
+
+  // Modal styles
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
+  modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center' },
+  imagePlaceholder: { width: 250, height: 150, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginBottom: 15 },
+  questionText: { fontSize: 16, fontWeight: '600', marginBottom: 15, textAlign: 'center' },
+  answerContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
+  answerButton: { width: '48%', height: 50, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginBottom: 10 },
+  answerText: { color: '#fff', fontWeight: '600' },
+  resultText: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
+  pointText: { fontSize: 16, fontWeight: '600', color: '#333' },
 });
