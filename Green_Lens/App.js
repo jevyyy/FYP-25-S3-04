@@ -15,7 +15,7 @@ import User_HomePage from './screens/User/User_HomePage';
 import User_Explore from './screens/User/User_Explore';
 import User_RankingPage from './screens/User/User_RankingPage';
 import User_QuizPage from './screens/User/User_QuizPage';
-import ViewSummaryPage from './screens/ViewSummaryPage'; // ✅ updated path
+import ViewSummaryPage from './screens/ViewSummaryPage';
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -106,15 +106,57 @@ export default function App() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {/* Guest flow */}
-        <Stack.Screen name="GuestFlow" component={GuestDrawer} />
+        <Stack.Screen name="GuestFlow" component={GuestStack} />
         {/* User flow */}
         <Stack.Screen name="UserDrawer" component={UserDrawer} />
+        {/* Shared Summary Page */}
+        <Stack.Screen
+          name="ViewSummaryPage"
+          component={ViewSummaryPage}
+          options={({ navigation, route }) => {
+            const from = route.params?.from || 'guest'; // default to guest
+            return {
+              headerShown: true,
+              headerTitle: () => (
+                <Image
+                  source={require('./assets/Green_Lens_logo.png')}
+                  style={{ width: 120, height: 40 }}
+                  resizeMode="contain"
+                />
+              ),
+              headerRight: () => (
+                <TouchableOpacity
+                  onPress={() => {
+                    // Open the drawer based on the source
+                    if (from === 'guest') {
+                      navigation.getParent()?.getParent('GuestDrawer')?.openDrawer();
+                    } else {
+                      navigation.getParent()?.getParent('UserDrawer')?.openDrawer();
+                    }
+                  }}
+                  style={{ marginRight: 15 }}
+                >
+                  <Text style={{ fontSize: 24 }}>☰</Text>
+                </TouchableOpacity>
+              ),
+            };
+          }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
 }
 
-// Guest Drawer (with login stack + ViewSummaryPage)
+// Guest Stack (Drawer only)
+function GuestStack() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="GuestDrawer" component={GuestDrawer} />
+    </Stack.Navigator>
+  );
+}
+
+// Guest Drawer (only Home and Login/Register)
 function GuestDrawer() {
   return (
     <Drawer.Navigator
@@ -138,14 +180,6 @@ function GuestDrawer() {
           drawerLabel: 'Home',
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
-      />
-      <Drawer.Screen
-        name="ViewSummaryPage"
-        component={ViewSummaryPage}
-        options={{
-          drawerLabel: 'Summary',
-          headerShown: false,
-        }}
       />
       <Drawer.Screen
         name="LoginSelection"

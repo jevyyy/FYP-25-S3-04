@@ -1,5 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Alert, Button, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Button, Image, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
@@ -73,10 +73,9 @@ export default function Guest_HomePage() {
         const photo = await cameraRef.current.takePictureAsync();
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
-        Alert.alert('Photo taken!', `Photo URI: ${photo.uri}`);
-        
+
         // Redirect to ViewSummaryPage after taking photo
-        navigation.navigate('ViewSummaryPage', { photoUri: photo.uri }); // <-- pass photoUri as param
+        navigation.navigate('ViewSummaryPage', { photoUri: photo.uri });
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
       }

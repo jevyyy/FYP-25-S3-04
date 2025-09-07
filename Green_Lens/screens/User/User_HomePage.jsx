@@ -1,9 +1,10 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Alert, Button, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Button, Image, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { useDrawerStatus } from '@react-navigation/drawer';
+import { useNavigation } from '@react-navigation/native'; // <-- added for navigation
 
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
@@ -45,6 +46,7 @@ function ImagePreview({ onSelectImage }) {
 }
 
 export default function Guest_HomePage() {
+  const navigation = useNavigation(); // <-- initialize navigation
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
@@ -71,9 +73,11 @@ export default function Guest_HomePage() {
         const photo = await cameraRef.current.takePictureAsync();
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
-        Alert.alert('Photo taken!', `Photo URI: ${photo.uri}`);
+
+        // Redirect to ViewSummaryPage after taking photo
+        navigation.navigate('ViewSummaryPage', { photoUri: photo.uri });
       } catch (error) {
-        Alert.alert('Error', 'Failed to take photo: ' + error.message);
+        console.log('Failed to take photo: ', error.message);
       }
     }
   };
