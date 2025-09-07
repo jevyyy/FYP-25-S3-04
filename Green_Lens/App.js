@@ -12,6 +12,9 @@ import User_Register from './screens/User/User_Register';
 import Forgot_PasswordPage from './screens/Forgot_PasswordPage';
 import Admin_Developer_LoginPage from './screens/Admin_&_Developer_LoginPage';
 import User_HomePage from './screens/User/User_HomePage';
+import User_Explore from './screens/User/User_Explore';
+import User_RankingPage from './screens/User/User_RankingPage';
+import User_QuizPage from './screens/User/User_QuizPage'; // ✅ new page
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -65,6 +68,33 @@ function UserDrawer() {
         component={User_HomePage}
         options={({ navigation }) => ({
           drawerLabel: 'Home',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+
+      <Drawer.Screen
+        name="User_Explore"
+        component={User_Explore}
+        options={({ navigation }) => ({
+          drawerLabel: 'Explore',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+
+      <Drawer.Screen
+        name="User_RankingPage"
+        component={User_RankingPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Ranking',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+
+      <Drawer.Screen
+        name="User_QuizPage"
+        component={User_QuizPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Quiz', // ✅ added Quiz menu item
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
