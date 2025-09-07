@@ -13,7 +13,12 @@ export default function User_Login() {
       Alert.alert('Error', 'Please enter username and password');
       return;
     }
-    Alert.alert('Login', `Username: ${username}\nPassword: ${password}`);
+
+    // ✅ Redirect into UserDrawer → User_HomePage
+    navigation.replace('UserDrawer', {
+      screen: 'User_HomePage',
+      params: { username },
+    });
   };
 
   const goToRegister = () => {
@@ -88,11 +93,11 @@ const styles = StyleSheet.create({
     marginBottom: 20,
   },
   title: {
-  fontSize: 24,
-  fontWeight: 'bold',
-  marginBottom: 40,
-  textAlign: 'left',      // align text to the left
-  alignSelf: 'flex-start', // position it to the left edge of container
+    fontSize: 24,
+    fontWeight: 'bold',
+    marginBottom: 40,
+    textAlign: 'left',
+    alignSelf: 'flex-start',
   },
   label: {
     alignSelf: 'flex-start',

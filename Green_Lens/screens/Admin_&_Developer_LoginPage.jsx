@@ -1,10 +1,8 @@
 // ./screens/Admin_&_Developer_LoginPage.jsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
 
-export default function Admin_Developer_LoginPage() {
-  const navigation = useNavigation();
+export default function Admin_Developer_LoginPage({ navigation }) {
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
 
@@ -17,7 +15,7 @@ export default function Admin_Developer_LoginPage() {
   };
 
   const goToForgotPassword = () => {
-    navigation.navigate('Admin_Developer_ForgotPassword'); // optional
+    navigation.navigate('Forgot_PasswordPage'); // redirect to Forgot_PasswordPage
   };
 
   return (
