@@ -1,13 +1,12 @@
-// ./screens/Guest/ViewSummaryPage.jsx
 import React from 'react';
 import { View, Text, Image, StyleSheet } from 'react-native';
 
-export default function ViewSummaryPage({ route }) {
-  const { photoUri } = route.params || {}; // get photoUri from navigation params
+export default function User_ViewSummaryPage({ route }) {
+  const { photoUri } = route.params || {};
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Photo Summary</Text>
+      <Text style={styles.title}>User Photo Summary</Text>
 
       {photoUri ? (
         <Image source={{ uri: photoUri }} style={styles.image} />
@@ -16,7 +15,7 @@ export default function ViewSummaryPage({ route }) {
       )}
 
       <Text style={styles.placeholderText}>
-        This is a placeholder for additional summary details.
+        This is a placeholder for additional summary details for User.
       </Text>
     </View>
   );

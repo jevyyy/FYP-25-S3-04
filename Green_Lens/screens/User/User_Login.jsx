@@ -14,8 +14,8 @@ export default function User_Login() {
       return;
     }
 
-    // ✅ Redirect into UserDrawer → User_HomePage
-    navigation.replace('UserDrawer', {
+    // ✅ Correct navigation to nested drawer
+    navigation.replace('UserFlow', {
       screen: 'User_HomePage',
       params: { username },
     });

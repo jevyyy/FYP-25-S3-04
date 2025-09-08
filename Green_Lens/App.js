@@ -15,7 +15,8 @@ import User_HomePage from './screens/User/User_HomePage';
 import User_Explore from './screens/User/User_Explore';
 import User_RankingPage from './screens/User/User_RankingPage';
 import User_QuizPage from './screens/User/User_QuizPage';
-import ViewSummaryPage from './screens/ViewSummaryPage';
+import Guest_ViewSummaryPage from './screens/Guest/Guest_ViewSummaryPage';
+import User_ViewSummaryPage from './screens/User/User_ViewSummaryPage';
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -27,27 +28,52 @@ const BurgerMenu = ({ navigation }) => (
   </TouchableOpacity>
 );
 
-// Guest Stack (Login flow)
-function LoginStack() {
+// Guest Drawer
+function GuestDrawer() {
   return (
-    <Stack.Navigator>
-      <Stack.Screen
-        name="LoginSelectionPage"
-        component={LoginSelectionPage}
+    <Drawer.Navigator
+      initialRouteName="Guest_HomePage"
+      screenOptions={{
+        drawerPosition: 'right',
+        headerTitle: () => (
+          <Image
+            source={require('./assets/Green_Lens_logo.png')}
+            style={{ width: 120, height: 40 }}
+            resizeMode="contain"
+          />
+        ),
+        headerStyle: { backgroundColor: '#fff' },
+      }}
+    >
+      <Drawer.Screen
+        name="Guest_HomePage"
+        component={Guest_HomePage}
         options={({ navigation }) => ({
-          title: 'Login / Register',
+          drawerLabel: 'Home',
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
-      <Stack.Screen name="User_Login" component={User_Login} options={{ title: 'User Login' }} />
-      <Stack.Screen name="User_Register" component={User_Register} options={{ title: 'Register' }} />
-      <Stack.Screen name="Forgot_PasswordPage" component={Forgot_PasswordPage} options={{ title: 'Forgot Password' }} />
-      <Stack.Screen name="Admin_Developer_Login" component={Admin_Developer_LoginPage} options={{ title: 'Admin / Developer Login' }} />
-    </Stack.Navigator>
+      <Drawer.Screen
+        name="LoginSelection"
+        component={LoginStack}
+        options={{ drawerLabel: 'Login/Register', headerShown: false }}
+      />
+      {/* Guest Summary (hidden but still inside drawer) */}
+      <Drawer.Screen
+        name="Guest_ViewSummary"
+        component={Guest_ViewSummaryPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Hidden',
+          drawerItemStyle: { display: 'none' },
+          title: 'Summary',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+    </Drawer.Navigator>
   );
 }
 
-// User Drawer (after login)
+// User Drawer
 function UserDrawer() {
   return (
     <Drawer.Navigator
@@ -96,96 +122,59 @@ function UserDrawer() {
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
+      {/* User Summary (hidden but still inside drawer) */}
+      <Drawer.Screen
+        name="User_ViewSummary"
+        component={User_ViewSummaryPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Hidden',
+          drawerItemStyle: { display: 'none' },
+          title: 'Summary',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
     </Drawer.Navigator>
   );
 }
 
-// Top-level navigator
-export default function App() {
+// Guest Login stack
+function LoginStack() {
   return (
-    <NavigationContainer>
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* Guest flow */}
-        <Stack.Screen name="GuestFlow" component={GuestStack} />
-        {/* User flow */}
-        <Stack.Screen name="UserDrawer" component={UserDrawer} />
-        {/* Shared Summary Page */}
-        <Stack.Screen
-          name="ViewSummaryPage"
-          component={ViewSummaryPage}
-          options={({ navigation, route }) => {
-            const from = route.params?.from || 'guest'; // default to guest
-            return {
-              headerShown: true,
-              headerTitle: () => (
-                <Image
-                  source={require('./assets/Green_Lens_logo.png')}
-                  style={{ width: 120, height: 40 }}
-                  resizeMode="contain"
-                />
-              ),
-              headerRight: () => (
-                <TouchableOpacity
-                  onPress={() => {
-                    // Open the drawer based on the source
-                    if (from === 'guest') {
-                      navigation.getParent()?.getParent('GuestDrawer')?.openDrawer();
-                    } else {
-                      navigation.getParent()?.getParent('UserDrawer')?.openDrawer();
-                    }
-                  }}
-                  style={{ marginRight: 15 }}
-                >
-                  <Text style={{ fontSize: 24 }}>☰</Text>
-                </TouchableOpacity>
-              ),
-            };
-          }}
-        />
-      </Stack.Navigator>
-    </NavigationContainer>
-  );
-}
-
-// Guest Stack (Drawer only)
-function GuestStack() {
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="GuestDrawer" component={GuestDrawer} />
+    <Stack.Navigator>
+      <Stack.Screen
+        name="LoginSelectionPage"
+        component={LoginSelectionPage}
+        options={({ navigation }) => ({
+          title: 'Login / Register',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Stack.Screen name="User_Login" component={User_Login} options={{ title: 'User Login' }} />
+      <Stack.Screen name="User_Register" component={User_Register} options={{ title: 'Register' }} />
+      <Stack.Screen
+        name="Forgot_PasswordPage"
+        component={Forgot_PasswordPage}
+        options={{ title: 'Forgot Password' }}
+      />
+      <Stack.Screen
+        name="Admin_Developer_Login"
+        component={Admin_Developer_LoginPage}
+        options={{ title: 'Admin / Developer Login' }}
+      />
     </Stack.Navigator>
   );
 }
 
-// Guest Drawer (only Home and Login/Register)
-function GuestDrawer() {
+// App
+export default function App() {
   return (
-    <Drawer.Navigator
-      initialRouteName="Guest_HomePage"
-      screenOptions={{
-        drawerPosition: 'right',
-        headerTitle: () => (
-          <Image
-            source={require('./assets/Green_Lens_logo.png')}
-            style={{ width: 120, height: 40 }}
-            resizeMode="contain"
-          />
-        ),
-        headerStyle: { backgroundColor: '#fff' },
-      }}
-    >
-      <Drawer.Screen
-        name="Guest_HomePage"
-        component={Guest_HomePage}
-        options={({ navigation }) => ({
-          drawerLabel: 'Home',
-          headerRight: () => <BurgerMenu navigation={navigation} />,
-        })}
-      />
-      <Drawer.Screen
-        name="LoginSelection"
-        component={LoginStack}
-        options={{ drawerLabel: 'Login/Register', headerShown: false }}
-      />
-    </Drawer.Navigator>
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        {/* Guest Drawer flow */}
+        <Stack.Screen name="GuestFlow" component={GuestDrawer} />
+        {/* User Drawer flow */}
+        <Stack.Screen name="UserFlow" component={UserDrawer} />
+      </Stack.Navigator>
+    </NavigationContainer>
   );
 }

@@ -4,7 +4,7 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { useDrawerStatus } from '@react-navigation/drawer';
-import { useNavigation } from '@react-navigation/native'; // <-- import navigation hook
+import { useNavigation } from '@react-navigation/native';
 
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
@@ -46,13 +46,13 @@ function ImagePreview({ onSelectImage }) {
 }
 
 export default function Guest_HomePage() {
-  const navigation = useNavigation(); // <-- initialize navigation
+  const navigation = useNavigation();
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
   const [selectedImageUri, setSelectedImageUri] = useState(null);
 
-  const drawerStatus = useDrawerStatus(); // 'open' or 'closed'
+  const drawerStatus = useDrawerStatus();
   const isDrawerOpen = drawerStatus === 'open';
 
   if (!permission) return <View />;
@@ -74,8 +74,8 @@ export default function Guest_HomePage() {
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
 
-        // Redirect to ViewSummaryPage after taking photo
-        navigation.navigate('ViewSummaryPage', { photoUri: photo.uri });
+        // Pass 'from' as 'guest' so burger menu knows
+        navigation.navigate('Guest_ViewSummary', { photoUri: photo.uri });
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
       }
@@ -84,7 +84,6 @@ export default function Guest_HomePage() {
 
   return (
     <View style={styles.container}>
-      {/* Only render camera when drawer is closed */}
       {!isDrawerOpen && <CameraView style={styles.camera} facing={facing} ref={cameraRef} />}
 
       <View style={styles.overlay}>
@@ -119,10 +118,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 40,
   },
-  text: {
-    color: 'white',
-    fontSize: 20,
-  },
+  text: { color: 'white', fontSize: 20 },
   thumbnailContainer: {
     width: 60,
     height: 60,
@@ -131,8 +127,5 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
-  thumbnail: {
-    width: '100%',
-    height: '100%',
-  },
+  thumbnail: { width: '100%', height: '100%' },
 });
