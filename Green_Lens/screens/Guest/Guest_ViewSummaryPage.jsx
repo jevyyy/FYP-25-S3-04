@@ -1,50 +1,35 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Share } from 'react-native';
+import { Ionicons } from '@expo/vector-icons'; // expo install @expo/vector-icons
 
 export default function Guest_ViewSummaryPage({ route }) {
   const { photoUri } = route.params || {};
 
-  // Share photo function
+  // Share function
   const handleShare = async () => {
-    if (!photoUri) {
-      Alert.alert('No photo', 'There is no photo to share.');
-      return;
-    }
-
     try {
-      // For local files, we need to get file path
-      const localUri = photoUri.startsWith('file://') ? photoUri : FileSystem.cacheDirectory + 'temp.jpg';
-      
-      // If not local, download to cache first
-      if (!photoUri.startsWith('file://')) {
-        const download = await FileSystem.downloadAsync(photoUri, localUri);
-      }
-
-      if (!(await Sharing.isAvailableAsync())) {
-        Alert.alert('Error', 'Sharing is not available on this device');
-        return;
-      }
-
-      await Sharing.shareAsync(photoUri);
+      await Share.share({
+        message: 'Check out this photo from Green Lens!',
+        url: photoUri,
+      });
     } catch (error) {
-      console.log('Error sharing photo:', error);
-      Alert.alert('Error', 'Failed to share photo');
+      console.log('Error sharing:', error);
     }
   };
 
   return (
     <View style={styles.container}>
+      {/* Photo at the top */}
       {photoUri ? (
         <Image source={{ uri: photoUri }} style={styles.image} />
       ) : (
         <Text style={styles.noPhotoText}>No photo available</Text>
       )}
 
+      {/* Title below image */}
       <Text style={styles.title}>Guest Photo Summary</Text>
 
+      {/* Labels */}
       <View style={styles.labelColumn}>
         <Text style={styles.placeholderText}>
           This is a placeholder for additional summary details for Guest.
@@ -54,11 +39,14 @@ export default function Guest_ViewSummaryPage({ route }) {
         </Text>
       </View>
 
+      {/* Buttons below labels */}
       <View style={styles.buttonColumn}>
+        {/* "See More" button */}
         <TouchableOpacity style={styles.seeMoreButton}>
           <Text style={styles.seeMoreText}>See More</Text>
         </TouchableOpacity>
 
+        {/* Share button (round with icon) */}
         <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
           <Ionicons name="share-social-outline" size={22} color="#fff" />
         </TouchableOpacity>
