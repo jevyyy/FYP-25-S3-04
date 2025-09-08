@@ -70,7 +70,10 @@ export default function Guest_HomePage() {
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
-        const photo = await cameraRef.current.takePictureAsync();
+        const photo = await cameraRef.current.takePictureAsync({
+          skipProcessing: true, // prevents shutter sound on Android
+        });
+
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
 
@@ -81,6 +84,7 @@ export default function Guest_HomePage() {
       }
     }
   };
+
 
   return (
     <View style={styles.container}>

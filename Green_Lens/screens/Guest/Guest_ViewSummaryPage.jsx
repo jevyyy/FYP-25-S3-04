@@ -27,15 +27,17 @@ export default function Guest_ViewSummaryPage({ route }) {
       )}
 
       {/* Title below image */}
-      <Text style={styles.title}>Guest Photo Summary</Text>
+      <Text style={styles.title}>Rose</Text>
 
       {/* Labels */}
       <View style={styles.labelColumn}>
         <Text style={styles.placeholderText}>
-          This is a placeholder for additional summary details for Guest.
+          The rose is a woody perennial flowering plant admired for its beauty and fragrance. Its velvety petals form rounded blossoms in colors like red, pink, white, yellow, and orange, each symbolizing emotions such as love, friendship, or purity. With thorny stems and dark green leaves, roses are widely grown in gardens, used in bouquets and perfumes, and remain a universal symbol of love.
         </Text>
         <Text style={styles.secondaryLabel}>
-          More descriptive information can go here.
+          Family - Rosaceae{"\n"}
+          Colors - red, pink, white, yellow, orange, lavender, and more.{"\n"}
+          Poisonous - No
         </Text>
       </View>
 
