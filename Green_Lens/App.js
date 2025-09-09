@@ -17,6 +17,7 @@ import User_RankingPage from './screens/User/User_RankingPage';
 import User_QuizPage from './screens/User/User_QuizPage';
 import Guest_ViewSummaryPage from './screens/Guest/Guest_ViewSummaryPage';
 import User_ViewSummaryPage from './screens/User/User_ViewSummaryPage';
+import FeedbackPage from './screens/FeedbackPage'; // ✅ Added
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -130,6 +131,16 @@ function UserDrawer() {
           drawerLabel: 'Hidden',
           drawerItemStyle: { display: 'none' },
           title: 'Summary',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      {/* ✅ Feedback page added as "Rate Us" */}
+      <Drawer.Screen
+        name="FeedbackPage"
+        component={FeedbackPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Rate Us',
+          title: 'Rate Us',
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
