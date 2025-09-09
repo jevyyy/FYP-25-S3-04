@@ -20,11 +20,11 @@ export default function Forgot_PasswordPage() {
       return;
     }
 
-    // Show success alert and redirect to User_Register
+    // Show success alert and redirect to User_Login
     Alert.alert('Success', 'Password was reset successfully!', [
       {
-        text: 'Return to Register',
-        onPress: () => navigation.navigate('User_Register'),
+        text: 'Return to Login',
+        onPress: () => navigation.navigate('User_Login'),
       },
     ]);
   };

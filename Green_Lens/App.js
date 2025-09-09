@@ -17,14 +17,16 @@ import User_RankingPage from './screens/User/User_RankingPage';
 import User_QuizPage from './screens/User/User_QuizPage';
 import Guest_ViewSummaryPage from './screens/Guest/Guest_ViewSummaryPage';
 import User_ViewSummaryPage from './screens/User/User_ViewSummaryPage';
-import FeedbackPage from './screens/FeedbackPage'; // ✅ Added
+import FeedbackPage from './screens/FeedbackPage';
+import SettingPage from './screens/SettingPage';
+import User_ChangePasswordPage from './screens/User/User_ChangePasswordPage'; // ✅ Added
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
 
 // Burger menu button
 const BurgerMenu = ({ navigation }) => (
-  <TouchableOpacity onPress={() => navigation.openDrawer()} style={{ marginRight: 15 }}>
+  <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={{ marginRight: 15 }}>
     <Text style={{ fontSize: 24 }}>☰</Text>
   </TouchableOpacity>
 );
@@ -59,7 +61,6 @@ function GuestDrawer() {
         component={LoginStack}
         options={{ drawerLabel: 'Login/Register', headerShown: false }}
       />
-      {/* Guest Summary (hidden but still inside drawer) */}
       <Drawer.Screen
         name="Guest_ViewSummary"
         component={Guest_ViewSummaryPage}
@@ -123,7 +124,6 @@ function UserDrawer() {
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
-      {/* User Summary (hidden but still inside drawer) */}
       <Drawer.Screen
         name="User_ViewSummary"
         component={User_ViewSummaryPage}
@@ -134,13 +134,22 @@ function UserDrawer() {
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
-      {/* ✅ Feedback page added as "Rate Us" */}
       <Drawer.Screen
         name="FeedbackPage"
         component={FeedbackPage}
         options={({ navigation }) => ({
           drawerLabel: 'Rate Us',
           title: 'Rate Us',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      {/* Settings page */}
+      <Drawer.Screen
+        name="SettingPage"
+        component={SettingPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Settings',
+          title: 'Settings',
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
@@ -181,10 +190,16 @@ export default function App() {
   return (
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
-        {/* Guest Drawer flow */}
+        {/* Guest flow */}
         <Stack.Screen name="GuestFlow" component={GuestDrawer} />
-        {/* User Drawer flow */}
+        {/* User flow */}
         <Stack.Screen name="UserFlow" component={UserDrawer} />
+        {/* Change Password page */}
+        <Stack.Screen
+          name="User_ChangePasswordPage"
+          component={User_ChangePasswordPage}
+          options={{ headerShown: true, title: 'Change Password' }}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );

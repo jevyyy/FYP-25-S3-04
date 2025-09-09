@@ -2,12 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 
 export default function FeedbackPage() {
-  const [rating, setRating] = useState(0);
+  const [rating, setRating] = useState(1); // Default rating 1
   const [suggestion, setSuggestion] = useState('');
+  const [error, setError] = useState(''); // Track error state
 
   const handleSubmit = () => {
-    if (!rating && !suggestion.trim()) {
-      Alert.alert('Incomplete Feedback', 'Please provide at least a rating or feedback.');
+    if (!suggestion.trim()) {
+      setError('*This Box Cannot Be Empty.');
       return;
     }
 
@@ -15,8 +16,9 @@ export default function FeedbackPage() {
     console.log('User Suggestions:', suggestion);
 
     Alert.alert('Thank You!', 'Your feedback has been submitted.');
-    setRating(0);
+    setRating(1); // Reset to default 1
     setSuggestion('');
+    setError(''); // Reset error
   };
 
   return (
@@ -28,7 +30,10 @@ export default function FeedbackPage() {
       <Text style={styles.label}>How would you rate us?</Text>
       <View style={styles.starContainer}>
         {[1, 2, 3, 4, 5].map((star) => (
-          <TouchableOpacity key={star} onPress={() => setRating(star)}>
+          <TouchableOpacity
+            key={star}
+            onPress={() => setRating(Math.max(star, 1))} // Ensure rating >= 1
+          >
             <Text style={styles.star}>{star <= rating ? '★' : '☆'}</Text>
           </TouchableOpacity>
         ))}
@@ -44,9 +49,15 @@ export default function FeedbackPage() {
         placeholder="Add review..."
         placeholderTextColor="#888"
         value={suggestion}
-        onChangeText={setSuggestion}
+        onChangeText={(text) => {
+          setSuggestion(text);
+          if (text.trim()) setError(''); // Remove error when typing
+        }}
         multiline
       />
+
+      {/* Conditional Error Label */}
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
 
       {/* Submit Button */}
       <TouchableOpacity style={styles.button} onPress={handleSubmit}>
@@ -63,10 +74,10 @@ const styles = StyleSheet.create({
     backgroundColor: '#fff',
   },
   header: {
-    fontSize: 22,
+    fontSize: 27,
     fontWeight: 'bold',
     marginVertical: 15,
-    textAlign: 'left', // ⬅️ Changed from center to left
+    textAlign: 'left',
     color: '#222',
   },
   label: {
@@ -77,7 +88,7 @@ const styles = StyleSheet.create({
   },
   starContainer: {
     flexDirection: 'row',
-    justifyContent: 'flex-start', // ⬅️ Left aligned stars
+    justifyContent: 'flex-start',
     marginBottom: 20,
   },
   star: {
@@ -92,9 +103,15 @@ const styles = StyleSheet.create({
     padding: 12,
     fontSize: 16,
     textAlignVertical: 'top',
-    marginBottom: 20,
+    marginBottom: 5,
     color: '#000',
     minHeight: 250,
+  },
+  errorText: {
+    color: 'red',
+    fontSize: 14,
+    marginBottom: 15,
+    marginLeft: 5,
   },
   button: {
     backgroundColor: '#000',
