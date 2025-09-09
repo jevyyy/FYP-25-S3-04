@@ -1,7 +1,7 @@
 // ./screens/User/User_ChangePasswordPage.jsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
-import { useNavigation, CommonActions } from '@react-navigation/native';
+import { useNavigation } from '@react-navigation/native';
 
 export default function User_ChangePasswordPage() {
   const navigation = useNavigation();
@@ -21,30 +21,19 @@ export default function User_ChangePasswordPage() {
       return;
     }
 
-    // Show modal
+    // Clear input fields
+    setCurrentPassword('');
+    setNewPassword('');
+    setConfirmPassword('');
+
+    // Show success modal
     setModalVisible(true);
   };
 
-  const handleReturn = () => {
+  const handleReturnOrCancel = () => {
+    // Close modal and go to User Setting page
     setModalVisible(false);
-    // Redirect to SettingPage
-    navigation.dispatch(
-      CommonActions.reset({
-        index: 0,
-        routes: [
-          {
-            name: 'UserFlow',
-            state: {
-              routes: [{ name: 'SettingPage' }],
-            },
-          },
-        ],
-      })
-    );
-  };
-
-  const handleCancel = () => {
-    navigation.goBack();
+    navigation.navigate('SettingPage');
   };
 
   return (
@@ -90,11 +79,11 @@ export default function User_ChangePasswordPage() {
 
       {/* Cancel and Submit Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, styles.blackButton]} onPress={handleCancel}>
+        <TouchableOpacity style={styles.button} onPress={handleReturnOrCancel}>
           <Text style={styles.buttonText}>Cancel</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.button, styles.blackButton]} onPress={handleSubmit}>
+        <TouchableOpacity style={styles.button} onPress={handleSubmit}>
           <Text style={styles.buttonText}>Submit</Text>
         </TouchableOpacity>
       </View>
@@ -109,7 +98,7 @@ export default function User_ChangePasswordPage() {
         <View style={styles.modalBackground}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalText}>Password Has Been Changed</Text>
-            <TouchableOpacity style={[styles.button, styles.blackButton]} onPress={handleReturn}>
+            <TouchableOpacity style={styles.modalButton} onPress={handleReturnOrCancel}>
               <Text style={styles.buttonText}>Return</Text>
             </TouchableOpacity>
           </View>
@@ -120,30 +109,10 @@ export default function User_ChangePasswordPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    padding: 20,
-    backgroundColor: '#fff',
-    justifyContent: 'center',
-  },
-  logo: {
-    width: 150,
-    height: 50,
-    alignSelf: 'center',
-    marginBottom: 20,
-  },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    alignSelf: 'center',
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 5,
-    marginLeft: 5,
-  },
+  container: { flex: 1, padding: 20, backgroundColor: '#fff', justifyContent: 'center' },
+  logo: { width: 150, height: 50, alignSelf: 'center', marginBottom: 20 },
+  header: { fontSize: 28, fontWeight: 'bold', marginBottom: 30, alignSelf: 'center' },
+  label: { fontSize: 16, fontWeight: '600', marginBottom: 5, marginLeft: 5 },
   input: {
     borderWidth: 1,
     borderColor: '#ccc',
@@ -153,11 +122,7 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 15,
   },
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginTop: 20,
-  },
+  buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
   button: {
     flex: 0.48,
     paddingVertical: 15,
@@ -165,31 +130,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     backgroundColor: '#000',
   },
-  blackButton: {
-    backgroundColor: '#000',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  modalBackground: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContainer: {
-    width: '80%',
-    backgroundColor: '#fff',
-    padding: 25,
-    borderRadius: 10,
-    alignItems: 'center',
-  },
-  modalText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginBottom: 20,
-    textAlign: 'center',
-  },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  modalBackground: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' },
+  modalContainer: { width: '80%', backgroundColor: '#fff', padding: 25, borderRadius: 10, alignItems: 'center' },
+  modalText: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
+  modalButton: { width: '50%', paddingVertical: 15, borderRadius: 8, alignItems: 'center', backgroundColor: '#000' },
 });
