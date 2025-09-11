@@ -9,11 +9,8 @@ export default function User_QuizPage() {
   const [selectedCategory, setSelectedCategory] = useState('');
   const [quizResult, setQuizResult] = useState(null); // 'correct' | 'wrong' | null
 
-  // Define correct answers for each category
   const correctAnswers = {
     Flower: 'Rose',
-    Plant: 'PlantX', // placeholder
-    Architecture: 'ArchitectureX', // placeholder
   };
 
   const answerOptions = ['Rose', 'Marigold', 'Sunflower', 'Tulip'];
@@ -37,15 +34,19 @@ export default function User_QuizPage() {
     setQuizResult(null);
   };
 
+  const hasQuiz = correctAnswers[selectedCategory] !== undefined;
+
   return (
     <View style={styles.container}>
       {/* Ranking button at top right */}
-      <TouchableOpacity
-        style={styles.rankingButton}
-        onPress={() => navigation.navigate('User_RankingPage')}
-      >
-        <Text style={styles.rankingButtonText}>Ranking</Text>
-      </TouchableOpacity>
+      <View style={styles.rankingContainer}>
+        <TouchableOpacity
+          style={styles.rankingButton}
+          onPress={() => navigation.navigate('User_RankingPage')}
+        >
+          <Text style={styles.rankingButtonText}>Ranking</Text>
+        </TouchableOpacity>
+      </View>
 
       {/* Category buttons row */}
       <View style={styles.categoryContainer}>
@@ -69,17 +70,31 @@ export default function User_QuizPage() {
       >
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            {!quizResult ? (
+            {!hasQuiz ? (
+              // Coming soon screen
               <>
-                {/* Image placeholder */}
+                <Text style={styles.comingSoonTitle}>Coming Soon</Text>
+                <Text style={styles.comingSoonText}>No quiz available at this moment.</Text>
+
+                <View style={styles.returnButtonContainer}>
+                  <TouchableOpacity
+                    style={styles.rankingButton}
+                    onPress={handleReturn}
+                  >
+                    <Text style={styles.rankingButtonText}>Return</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            ) : !quizResult ? (
+              <>
                 <View style={styles.imagePlaceholder}>
                   <Text style={{ color: '#aaa' }}>Image Placeholder</Text>
                 </View>
 
-                {/* Question label */}
-                <Text style={styles.questionText}>What {selectedCategory.toLowerCase()} is this?</Text>
+                <Text style={styles.questionText}>
+                  What {selectedCategory.toLowerCase()} is this?
+                </Text>
 
-                {/* 2x2 answer buttons */}
                 <View style={styles.answerContainer}>
                   {answerOptions.map((answer) => (
                     <TouchableOpacity
@@ -101,12 +116,15 @@ export default function User_QuizPage() {
                 <Text style={styles.pointText}>
                   {quizResult === 'correct' ? 'Point +3' : 'Point +0'}
                 </Text>
-                <TouchableOpacity
-                  style={[styles.rankingButton, { marginTop: 20 }]}
-                  onPress={handleReturn}
-                >
-                  <Text style={styles.rankingButtonText}>Return</Text>
-                </TouchableOpacity>
+
+                <View style={styles.returnButtonContainer}>
+                  <TouchableOpacity
+                    style={styles.rankingButton}
+                    onPress={handleReturn}
+                  >
+                    <Text style={styles.rankingButtonText}>Return</Text>
+                  </TouchableOpacity>
+                </View>
               </>
             )}
           </View>
@@ -118,20 +136,24 @@ export default function User_QuizPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
+  
+  rankingContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    marginBottom: 20,
+  },
   rankingButton: {
-    position: 'absolute',
-    top: 10,
-    right: 10,
     backgroundColor: '#000',
     paddingVertical: 8,
     paddingHorizontal: 12,
     borderRadius: 8,
   },
   rankingButtonText: { color: '#fff', fontWeight: '600' },
+
   categoryContainer: {
     flexDirection: 'row',
     justifyContent: 'space-around',
-    marginTop: 100,
+    marginTop: 50,
     marginBottom: 50,
   },
   categoryButton: {
@@ -144,7 +166,6 @@ const styles = StyleSheet.create({
   },
   categoryText: { color: '#fff', fontWeight: '600', textAlign: 'center' },
 
-  // Modal styles
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center' },
   imagePlaceholder: { width: 250, height: 150, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginBottom: 15 },
@@ -154,4 +175,13 @@ const styles = StyleSheet.create({
   answerText: { color: '#fff', fontWeight: '600' },
   resultText: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
   pointText: { fontSize: 16, fontWeight: '600', color: '#333' },
+
+  comingSoonTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#333' },
+  comingSoonText: { fontSize: 16, color: '#666', textAlign: 'center' },
+
+  returnButtonContainer: {
+    width: '100%',
+    marginTop: 20,
+    alignItems: 'flex-end', // aligns button to the right
+  },
 });
