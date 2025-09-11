@@ -20,6 +20,7 @@ import User_ViewSummaryPage from './screens/User/User_ViewSummaryPage';
 import FeedbackPage from './screens/FeedbackPage';
 import SettingPage from './screens/SettingPage';
 import User_ChangePasswordPage from './screens/User/User_ChangePasswordPage';
+import User_RewardPage from './screens/User/User_RewardPage';
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
@@ -109,18 +110,18 @@ function UserDrawer() {
         })}
       />
       <Drawer.Screen
-        name="User_RankingPage"
-        component={User_RankingPage}
-        options={({ navigation }) => ({
-          drawerLabel: 'Ranking',
-          headerRight: () => <BurgerMenu navigation={navigation} />,
-        })}
-      />
-      <Drawer.Screen
         name="User_QuizPage"
         component={User_QuizPage}
         options={({ navigation }) => ({
           drawerLabel: 'Quiz',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
+        name="User_RankingPage"
+        component={User_RankingPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Ranking',
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
@@ -130,16 +131,6 @@ function UserDrawer() {
         options={({ navigation }) => ({
           drawerLabel: 'Rewards',
           title: 'Rewards',
-          headerRight: () => <BurgerMenu navigation={navigation} />,
-        })}
-      />
-      <Drawer.Screen
-        name="User_ViewSummary"
-        component={User_ViewSummaryPage}
-        options={({ navigation }) => ({
-          drawerLabel: 'Hidden',
-          drawerItemStyle: { display: 'none' },
-          title: 'Summary',
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
@@ -160,6 +151,14 @@ function UserDrawer() {
           title: 'Settings',
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
+      />
+      <Drawer.Screen
+        name="User_ViewSummary"
+        component={User_ViewSummaryPage}
+        options={{
+          drawerLabel: 'Hidden',
+          drawerItemStyle: { display: 'none' },
+        }}
       />
     </Drawer.Navigator>
   );
