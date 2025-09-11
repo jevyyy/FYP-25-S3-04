@@ -2,14 +2,49 @@
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, Alert } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
-import { useNavigation } from '@react-navigation/native'; // ✅ added
+import { useNavigation } from '@react-navigation/native';
 
 export default function User_Explore() {
-  const navigation = useNavigation(); // ✅ added
+  const navigation = useNavigation();
   const [modalDownloadVisible, setModalDownloadVisible] = useState(false);
   const [modalPreviewVisible, setModalPreviewVisible] = useState(false);
   const [modalUploadSuccessVisible, setModalUploadSuccessVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+
+  // ✅ Vote counters
+  const [votes, setVotes] = useState({
+    post1: { up: 0, down: 0 },
+    post2: { up: 0, down: 0 },
+  });
+
+  // ✅ Track user vote per post
+  const [userVotes, setUserVotes] = useState({
+    post1: null, // 'up', 'down', or null
+    post2: null,
+  });
+
+  const handleVote = (post, type) => {
+    const currentVote = userVotes[post];
+    if (currentVote === type) return; // already voted same, ignore
+
+    setVotes((prev) => {
+      let up = prev[post].up;
+      let down = prev[post].down;
+
+      // Remove previous vote if exists
+      if (currentVote === 'up') up -= 1;
+      if (currentVote === 'down') down -= 1;
+
+      // Apply new vote
+      if (type === 'up') up += 1;
+      if (type === 'down') down += 1;
+
+      return { ...prev, [post]: { up, down } };
+    });
+
+    // Save user vote
+    setUserVotes((prev) => ({ ...prev, [post]: type }));
+  };
 
   // Open phone media gallery
   const handleSelectPhoto = async () => {
@@ -30,13 +65,11 @@ export default function User_Explore() {
     }
   };
 
-  // Upload photo
   const handleUploadPhoto = () => {
     setModalPreviewVisible(false);
     setModalUploadSuccessVisible(true);
   };
 
-  // Download placeholder
   const handleDownload = () => {
     setModalDownloadVisible(true);
   };
@@ -54,13 +87,12 @@ export default function User_Explore() {
 
         <TouchableOpacity
           style={[styles.button, { backgroundColor: '#000' }]}
-          onPress={() => navigation.navigate('User_RankingPage')} // ✅ navigate to User_RankingPage
+          onPress={() => navigation.navigate('User_RankingPage')}
         >
           <Text style={styles.buttonText}>Ranking</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Recent Photos Label */}
       <Text style={styles.recentLabel}>Recent Photos</Text>
 
       {/* Post #1 */}
@@ -79,8 +111,12 @@ export default function User_Explore() {
         <View style={styles.postFooter}>
           <Text style={styles.username}>@user1</Text>
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.voteButton}><Text style={styles.voteText}>👍</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.voteButton}><Text style={styles.voteText}>👎</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.voteButton} onPress={() => handleVote('post1', 'up')}>
+              <Text style={styles.voteText}>👍 {votes.post1.up}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.voteButton} onPress={() => handleVote('post1', 'down')}>
+              <Text style={styles.voteText}>👎 {votes.post1.down}</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
               <Text style={styles.downloadText}>Download</Text>
             </TouchableOpacity>
@@ -97,8 +133,12 @@ export default function User_Explore() {
         <View style={styles.postFooter}>
           <Text style={styles.username}>@user2</Text>
           <View style={styles.actions}>
-            <TouchableOpacity style={styles.voteButton}><Text style={styles.voteText}>👍</Text></TouchableOpacity>
-            <TouchableOpacity style={styles.voteButton}><Text style={styles.voteText}>👎</Text></TouchableOpacity>
+            <TouchableOpacity style={styles.voteButton} onPress={() => handleVote('post2', 'up')}>
+              <Text style={styles.voteText}>👍 {votes.post2.up}</Text>
+            </TouchableOpacity>
+            <TouchableOpacity style={styles.voteButton} onPress={() => handleVote('post2', 'down')}>
+              <Text style={styles.voteText}>👎 {votes.post2.down}</Text>
+            </TouchableOpacity>
             <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
               <Text style={styles.downloadText}>Download</Text>
             </TouchableOpacity>

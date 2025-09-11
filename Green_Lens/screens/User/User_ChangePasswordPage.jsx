@@ -9,36 +9,55 @@ export default function User_ChangePasswordPage() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
+  const [errors, setErrors] = useState({});
 
-  const handleSubmit = () => {
-    if (!currentPassword || !newPassword || !confirmPassword) {
-      alert('Please fill in all fields.');
-      return;
+  // ✅ Password strength check using single regex
+  const validatePassword = (password) => {
+    const strongPassword =
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+
+    if (!strongPassword.test(password)) {
+      return '*Password too weak (at least 8 chars, include uppercase, lowercase, number & special character)';
     }
-
-    if (newPassword !== confirmPassword) {
-      alert('New password and confirm password do not match.');
-      return;
-    }
-
-    // Clear input fields
-    setCurrentPassword('');
-    setNewPassword('');
-    setConfirmPassword('');
-
-    // Show success modal
-    setModalVisible(true);
+    return null;
   };
 
-  const handleReturnOrCancel = () => {
-    // Close modal and go to User Setting page
-    setModalVisible(false);
-    navigation.navigate('SettingPage');
+  const handleSubmit = () => {
+    let newErrors = {};
+
+    // Dummy current password check
+    if (currentPassword !== '#User1234') {
+      newErrors.currentPassword = '*Incorrect Password';
+    }
+
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) newErrors.newPassword = passwordError;
+
+    if (newPassword !== confirmPassword) {
+      newErrors.confirmPassword = '*Password Do Not Match';
+    }
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length === 0) {
+      // Clear input fields
+      setCurrentPassword('');
+      setNewPassword('');
+      setConfirmPassword('');
+
+      // Show success modal
+      setModalVisible(true);
+    }
+  };
+
+  // ✅ Cancel / Return navigation
+  const handleCancelOrReturn = () => {
+    setModalVisible(false); // close modal if open
+    navigation.navigate('UserFlow', { screen: 'SettingPage' });
   };
 
   return (
     <View style={styles.container}>
-      {/* Green Lens Logo */}
       <Image
         source={require('../../assets/Green_Lens_logo.png')}
         style={styles.logo}
@@ -47,7 +66,6 @@ export default function User_ChangePasswordPage() {
 
       <Text style={styles.header}>Change Password</Text>
 
-      {/* Current Password */}
       <Text style={styles.label}>Current Password</Text>
       <TextInput
         style={styles.input}
@@ -56,8 +74,8 @@ export default function User_ChangePasswordPage() {
         value={currentPassword}
         onChangeText={setCurrentPassword}
       />
+      {errors.currentPassword && <Text style={styles.errorText}>{errors.currentPassword}</Text>}
 
-      {/* New Password */}
       <Text style={styles.label}>New Password</Text>
       <TextInput
         style={styles.input}
@@ -66,8 +84,8 @@ export default function User_ChangePasswordPage() {
         value={newPassword}
         onChangeText={setNewPassword}
       />
+      {errors.newPassword && <Text style={styles.errorText}>{errors.newPassword}</Text>}
 
-      {/* Confirm Password */}
       <Text style={styles.label}>Confirm Password</Text>
       <TextInput
         style={styles.input}
@@ -76,10 +94,10 @@ export default function User_ChangePasswordPage() {
         value={confirmPassword}
         onChangeText={setConfirmPassword}
       />
+      {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
 
-      {/* Cancel and Submit Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={styles.button} onPress={handleReturnOrCancel}>
+        <TouchableOpacity style={styles.button} onPress={handleCancelOrReturn}>
           <Text style={styles.buttonText}>Cancel</Text>
         </TouchableOpacity>
 
@@ -88,7 +106,6 @@ export default function User_ChangePasswordPage() {
         </TouchableOpacity>
       </View>
 
-      {/* Success Modal */}
       <Modal
         visible={modalVisible}
         transparent
@@ -98,7 +115,7 @@ export default function User_ChangePasswordPage() {
         <View style={styles.modalBackground}>
           <View style={styles.modalContainer}>
             <Text style={styles.modalText}>Password Has Been Changed</Text>
-            <TouchableOpacity style={styles.modalButton} onPress={handleReturnOrCancel}>
+            <TouchableOpacity style={styles.modalButton} onPress={handleCancelOrReturn}>
               <Text style={styles.buttonText}>Return</Text>
             </TouchableOpacity>
           </View>
@@ -120,7 +137,14 @@ const styles = StyleSheet.create({
     paddingHorizontal: 15,
     paddingVertical: 10,
     fontSize: 16,
-    marginBottom: 15,
+    marginBottom: 5,
+  },
+  errorText: {
+    alignSelf: 'flex-start',
+    color: 'red',
+    fontSize: 14,
+    marginBottom: 10,
+    marginLeft: 5,
   },
   buttonContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 20 },
   button: {

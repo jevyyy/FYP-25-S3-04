@@ -1,6 +1,6 @@
 // ./screens/User/User_Register.jsx
 import React, { useState } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 export default function User_Register() {
@@ -10,23 +10,34 @@ export default function User_Register() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
 
-  const handleSubmit = () => {
-    if (!name || !username || !email || !password) {
-      Alert.alert('Error', 'Please fill in all fields');
-      return;
-    }
+  const [errors, setErrors] = useState({});
+  const [modalVisible, setModalVisible] = useState(false);
 
-    Alert.alert(
-      'Success',
-      'Green Lens Account Registered Successfully!',
-      [
-        {
-          text: 'Return to Login',
-          onPress: () => navigation.navigate('User_Login'),
-        },
-      ],
-      { cancelable: false }
-    );
+  const validatePassword = (password) => {
+    const strongPassword =
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+
+    if (!strongPassword.test(password)) {
+      return '*Password too weak (at least 8 chars, include uppercase, lowercase, number & special character)';
+    }
+    return null;
+  };
+
+  const handleSubmit = () => {
+    let newErrors = {};
+
+    if (!name.trim()) newErrors.name = '*Name cannot be empty';
+    if (!username.trim()) newErrors.username = '*Username already in use';
+    if (!email.trim()) newErrors.email = '*Email has been registered with an existing account';
+
+    const passwordError = validatePassword(password);
+    if (passwordError) newErrors.password = passwordError;
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length === 0) {
+      setModalVisible(true);
+    }
   };
 
   const handleCancel = () => {
@@ -34,6 +45,13 @@ export default function User_Register() {
     setUsername('');
     setEmail('');
     setPassword('');
+    setErrors({});
+    navigation.navigate('User_Login');
+  };
+
+  const handleReturnToLogin = () => {
+    setModalVisible(false);
+    navigation.navigate('User_Login');
   };
 
   return (
@@ -47,6 +65,7 @@ export default function User_Register() {
 
       <Text style={styles.title}>Register for Green Lens</Text>
 
+      {/* Name */}
       <Text style={styles.label}>Name</Text>
       <TextInput
         style={styles.input}
@@ -54,7 +73,9 @@ export default function User_Register() {
         value={name}
         onChangeText={setName}
       />
+      {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
 
+      {/* Username */}
       <Text style={styles.label}>Username</Text>
       <TextInput
         style={styles.input}
@@ -63,7 +84,20 @@ export default function User_Register() {
         onChangeText={setUsername}
         autoCapitalize="none"
       />
+      {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
 
+      {/* Password */}
+      <Text style={styles.label}>Password</Text>
+      <TextInput
+        style={styles.input}
+        placeholder="Enter your password"
+        value={password}
+        onChangeText={setPassword}
+        secureTextEntry
+      />
+      {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+
+      {/* Email */}
       <Text style={styles.label}>Email</Text>
       <TextInput
         style={styles.input}
@@ -73,25 +107,35 @@ export default function User_Register() {
         keyboardType="email-address"
         autoCapitalize="none"
       />
+      {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
 
-      <Text style={styles.label}>Password</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
-
+      {/* Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, styles.cancelButton]} onPress={handleCancel}>
-          <Text style={[styles.buttonText, { color: '#000' }]}>Cancel</Text>
+        <TouchableOpacity style={[styles.button, styles.blackButton]} onPress={handleCancel}>
+          <Text style={styles.buttonText}>Cancel</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.button, styles.submitButton]} onPress={handleSubmit}>
+        <TouchableOpacity style={[styles.button, styles.blackButton]} onPress={handleSubmit}>
           <Text style={styles.buttonText}>Submit</Text>
         </TouchableOpacity>
       </View>
+
+      {/* Success Modal */}
+      <Modal
+        visible={modalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <View style={styles.modalBackground}>
+          <View style={styles.modalContainer}>
+            <Text style={styles.modalText}>Password Has Been Changed</Text>
+            <TouchableOpacity style={styles.modalButton} onPress={handleReturnToLogin}>
+              <Text style={styles.buttonText}>Return to Login</Text>
+            </TouchableOpacity>
+          </View>
+        </View>
+      </Modal>
     </View>
   );
 }
@@ -129,28 +173,63 @@ const styles = StyleSheet.create({
     borderColor: '#333',
     borderRadius: 10,
     paddingHorizontal: 15,
-    marginBottom: 20,
+    marginBottom: 10,
     backgroundColor: '#fff',
   },
+  errorText: {
+    alignSelf: 'flex-start',
+    color: 'red',
+    fontSize: 14,
+    marginBottom: 10,
+  },
+
+  // ✅ Updated Buttons (aligned right)
   buttonContainer: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    justifyContent: 'flex-end', // move to right side
+    marginTop: 20,
+    width: '100%', // make sure container spans full width
   },
   button: {
-    flex: 0.48,
     paddingVertical: 15,
+    paddingHorizontal: 25,
     borderRadius: 10,
     alignItems: 'center',
+    marginLeft: 10, // space between buttons
   },
-  cancelButton: {
-    backgroundColor: '#ccc',
-  },
-  submitButton: {
+  blackButton: {
     backgroundColor: '#000',
   },
   buttonText: {
     fontSize: 18,
     fontWeight: '600',
     color: '#fff',
+  },
+
+  modalBackground: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalContainer: {
+    width: '80%',
+    backgroundColor: '#fff',
+    padding: 25,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalText: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    marginBottom: 20,
+    textAlign: 'center',
+  },
+  modalButton: {
+    width: '70%',
+    paddingVertical: 15,
+    borderRadius: 8,
+    alignItems: 'center',
+    backgroundColor: '#000',
   },
 });

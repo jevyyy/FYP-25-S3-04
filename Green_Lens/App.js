@@ -125,6 +125,15 @@ function UserDrawer() {
         })}
       />
       <Drawer.Screen
+        name="User_RewardPage"
+        component={User_RewardPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Rewards',
+          title: 'Rewards',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
         name="User_ViewSummary"
         component={User_ViewSummaryPage}
         options={({ navigation }) => ({
@@ -149,16 +158,6 @@ function UserDrawer() {
         options={({ navigation }) => ({
           drawerLabel: 'Settings',
           title: 'Settings',
-          headerRight: () => <BurgerMenu navigation={navigation} />,
-        })}
-      />
-      {/* Add Change Password page to the drawer */}
-      <Drawer.Screen
-        name="User_ChangePasswordPage"
-        component={User_ChangePasswordPage}
-        options={({ navigation }) => ({
-          drawerLabel: 'Change Password',
-          title: 'Change Password',
           headerRight: () => <BurgerMenu navigation={navigation} />,
         })}
       />
@@ -203,6 +202,11 @@ export default function App() {
         <Stack.Screen name="GuestFlow" component={GuestDrawer} />
         {/* User flow */}
         <Stack.Screen name="UserFlow" component={UserDrawer} />
+        {/* Hidden pages not in drawer */}
+        <Stack.Screen
+          name="User_ChangePasswordPage"
+          component={User_ChangePasswordPage}
+        />
       </Stack.Navigator>
     </NavigationContainer>
   );
