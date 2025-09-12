@@ -1,11 +1,12 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, Platform } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system';
 
 export default function User_ViewSummaryPage({ route }) {
   const { photoUri } = route.params || {}; // Only camera photo
+  const objectName = "Sunflower"; // ✅ Renamed from plantName to objectName
 
   // Share function
   const handleShare = async () => {
@@ -40,6 +41,19 @@ export default function User_ViewSummaryPage({ route }) {
     }
   };
 
+  // Google search function
+  const handleGoogleSearch = () => {
+    if (!objectName) {
+      Alert.alert('No object name available');
+      return;
+    }
+    const query = encodeURIComponent(objectName);
+    const url = `https://www.google.com/search?q=${query}`;
+    Linking.openURL(url).catch((err) =>
+      Alert.alert('Error', 'Failed to open browser: ' + err.message)
+    );
+  };
+
   return (
     <View style={styles.container}>
       {photoUri ? (
@@ -48,21 +62,21 @@ export default function User_ViewSummaryPage({ route }) {
         <Text style={styles.noPhotoText}>No photo available</Text>
       )}
 
-      <Text style={styles.title}>Rose</Text>
+      <Text style={styles.title}>{objectName}</Text>
 
       <View style={styles.labelColumn}>
         <Text style={styles.placeholderText}>
-          The rose is a woody perennial flowering plant admired for its beauty and fragrance. Its velvety petals form rounded blossoms in colors like red, pink, white, yellow, and orange, each symbolizing emotions such as love, friendship, or purity. With thorny stems and dark green leaves, roses are widely grown in gardens, used in bouquets and perfumes, and remain a universal symbol of love.
+          The sunflower is a tall, bright, and cheerful flowering plant known for its large yellow blooms that follow the sun’s movement across the sky. Its broad petals surround a central disk packed with seeds, which are edible and used for oil production. Sunflowers symbolize adoration, loyalty, and positivity, and they are often grown in fields, gardens, and as ornamental plants that attract pollinators.
         </Text>
         <Text style={styles.secondaryLabel}>
-          Family - Rosaceae{"\n"}
-          Colors - red, pink, white, yellow, orange, lavender, and more.{"\n"}
+          Family - Asteraceae{"\n"}
+          Colors - Yellow (most common), red, orange, maroon, and bi-colored varieties.{"\n"}
           Poisonous - No
         </Text>
       </View>
 
       <View style={styles.buttonColumn}>
-        <TouchableOpacity style={styles.seeMoreButton}>
+        <TouchableOpacity style={styles.seeMoreButton} onPress={handleGoogleSearch}>
           <Text style={styles.seeMoreText}>See More</Text>
         </TouchableOpacity>
 

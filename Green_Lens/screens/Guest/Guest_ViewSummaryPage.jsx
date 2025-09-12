@@ -6,7 +6,7 @@ import * as FileSystem from 'expo-file-system';
 
 export default function Guest_ViewSummaryPage({ route }) {
   const { photoUri } = route.params || {}; // Only camera/photo URL
-  const plantName = "Sunflower"; // ✅ First label (dynamic if needed)
+  const objectName = "Sunflower"; // ✅ Renamed from plantName to objectName
 
   // Share function
   const handleShare = async () => {
@@ -43,13 +43,15 @@ export default function Guest_ViewSummaryPage({ route }) {
 
   // Google search function
   const handleGoogleSearch = () => {
-    if (!plantName) {
-      Alert.alert('No plant name available');
+    if (!objectName) {
+      Alert.alert('No object name available');
       return;
     }
-    const query = encodeURIComponent(plantName);
+    const query = encodeURIComponent(objectName);
     const url = `https://www.google.com/search?q=${query}`;
-    Linking.openURL(url).catch((err) => Alert.alert('Error', 'Failed to open browser: ' + err.message));
+    Linking.openURL(url).catch((err) => 
+      Alert.alert('Error', 'Failed to open browser: ' + err.message)
+    );
   };
 
   return (
@@ -60,19 +62,18 @@ export default function Guest_ViewSummaryPage({ route }) {
         <Text style={styles.noPhotoText}>No photo available</Text>
       )}
 
-      <Text style={styles.title}>{plantName}</Text>
+      <Text style={styles.title}>{objectName}</Text>
 
-    <View style={styles.labelColumn}>
-      <Text style={styles.placeholderText}>
-        The sunflower is a tall, bright, and cheerful flowering plant known for its large yellow blooms that follow the sun’s movement across the sky. Its broad petals surround a central disk packed with seeds, which are edible and used for oil production. Sunflowers symbolize adoration, loyalty, and positivity, and they are often grown in fields, gardens, and as ornamental plants that attract pollinators.
-      </Text>
-      <Text style={styles.secondaryLabel}>
-        Family - Asteraceae{"\n"}
-        Colors - Yellow (most common), red, orange, maroon, and bi-colored varieties.{"\n"}
-        Poisonous - No
-      </Text>
-    </View>
-
+      <View style={styles.labelColumn}>
+        <Text style={styles.placeholderText}>
+          The sunflower is a tall, bright, and cheerful flowering plant known for its large yellow blooms that follow the sun’s movement across the sky. Its broad petals surround a central disk packed with seeds, which are edible and used for oil production. Sunflowers symbolize adoration, loyalty, and positivity, and they are often grown in fields, gardens, and as ornamental plants that attract pollinators.
+        </Text>
+        <Text style={styles.secondaryLabel}>
+          Family - Asteraceae{"\n"}
+          Colors - Yellow (most common), red, orange, maroon, and bi-colored varieties.{"\n"}
+          Poisonous - No
+        </Text>
+      </View>
 
       <View style={styles.buttonColumn}>
         <TouchableOpacity style={styles.seeMoreButton} onPress={handleGoogleSearch}>
