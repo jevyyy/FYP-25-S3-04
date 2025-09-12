@@ -1,52 +1,52 @@
 // ./screens/User/User_Explore.jsx
-import React, { useState } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, Alert } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, Alert, FlatList } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getAuth } from 'firebase/auth';
+import { app } from '../../firebaseConfig'; 
+
+const db = getFirestore(app);
+const storage = getStorage(app);
+const auth = getAuth(app);
 
 export default function User_Explore() {
   const navigation = useNavigation();
-  const [modalDownloadVisible, setModalDownloadVisible] = useState(false);
   const [modalPreviewVisible, setModalPreviewVisible] = useState(false);
   const [modalUploadSuccessVisible, setModalUploadSuccessVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+  const [posts, setPosts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  // ✅ Vote counters
-  const [votes, setVotes] = useState({
-    post1: { up: 0, down: 0 },
-    post2: { up: 0, down: 0 },
-  });
-
-  // ✅ Track user vote per post
-  const [userVotes, setUserVotes] = useState({
-    post1: null, // 'up', 'down', or null
-    post2: null,
-  });
-
-  const handleVote = (post, type) => {
-    const currentVote = userVotes[post];
-    if (currentVote === type) return; // already voted same, ignore
-
-    setVotes((prev) => {
-      let up = prev[post].up;
-      let down = prev[post].down;
-
-      // Remove previous vote if exists
-      if (currentVote === 'up') up -= 1;
-      if (currentVote === 'down') down -= 1;
-
-      // Apply new vote
-      if (type === 'up') up += 1;
-      if (type === 'down') down += 1;
-
-      return { ...prev, [post]: { up, down } };
+  // Listen for auth changes
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(u => {
+      setCurrentUser(u);
+      console.log("👤 Current user:", u?.email);
     });
+    return unsubscribe;
+  }, []);
 
-    // Save user vote
-    setUserVotes((prev) => ({ ...prev, [post]: type }));
+  // Fetch posts
+  const fetchPosts = async () => {
+    try {
+      const snapshot = await getDocs(collection(db, 'posts'));
+      const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      setPosts(data);
+    } catch (error) {
+      console.error('Error fetching posts:', error);
+    }
+    setLoading(false);
   };
 
-  // Open phone media gallery
+  useEffect(() => {
+    fetchPosts();
+  }, []);
+
+  // Select image
   const handleSelectPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -59,123 +59,159 @@ export default function User_Explore() {
       allowsEditing: false,
     });
 
-    if (!result.canceled) {
+    if (!result.canceled && result.assets?.length > 0) {
       setSelectedImage(result.assets[0].uri);
       setModalPreviewVisible(true);
     }
   };
 
-  const handleUploadPhoto = () => {
-    setModalPreviewVisible(false);
-    setModalUploadSuccessVisible(true);
+  // Helper: get username from Firestore (using UID as document ID)
+  const getUsername = async (uid) => {
+    try {
+      const userRef = doc(db, 'users', uid);
+      const userSnap = await getDoc(userRef);
+
+      if (userSnap.exists()) {
+        return userSnap.data().username || userSnap.data().name || 'anonymous';
+      }
+      return 'anonymous';
+    } catch (error) {
+      console.error('Error fetching username:', error);
+      return 'anonymous';
+    }
   };
 
-  const handleDownload = () => {
-    setModalDownloadVisible(true);
+  // Upload photo
+  const handleUploadPhoto = async () => {
+    if (!selectedImage) {
+      Alert.alert('Error', 'No image selected.');
+      return;
+    }
+    if (!currentUser) {
+      Alert.alert('Error', 'User not ready yet. Try again.');
+      return;
+    }
+
+    try {
+      const response = await fetch(selectedImage);
+      const blob = await response.blob();
+
+      const filename = `uploads/${Date.now()}_${currentUser.uid}.jpg`;
+      const storageRef = ref(storage, filename);
+
+      await uploadBytes(storageRef, blob);
+      const downloadUrl = await getDownloadURL(storageRef);
+
+      const username = await getUsername(currentUser.uid); // use username instead of email
+
+      await addDoc(collection(db, 'posts'), {
+        imageUrl: downloadUrl,
+        uploadedBy: username,
+        createdAt: new Date(),
+        votesUp: 0,
+        votesDown: 0,
+      });
+
+      setModalPreviewVisible(false);
+      setModalUploadSuccessVisible(true);
+      fetchPosts();
+    } catch (error) {
+      console.error('Upload error:', error);
+      Alert.alert('Error', 'Failed to upload image');
+    }
   };
+
+  // Voting
+  const handleVote = async (postId, type) => {
+    if (!currentUser) return;
+
+    try {
+      const q = query(
+        collection(db, 'votes'),
+        where('postId', '==', postId),
+        where('userId', '==', currentUser.uid)
+      );
+      const snapshot = await getDocs(q);
+
+      if (!snapshot.empty) {
+        Alert.alert('Error', 'You already voted on this post!');
+        return;
+      }
+
+      await addDoc(collection(db, 'votes'), {
+        postId,
+        userId: currentUser.uid,
+        type,
+      });
+
+      const postRef = doc(db, 'posts', postId);
+      const post = posts.find(p => p.id === postId);
+      await updateDoc(postRef, {
+        votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp,
+        votesDown: type === 'down' ? post.votesDown + 1 : post.votesDown,
+      });
+
+      fetchPosts();
+    } catch (error) {
+      console.error('Vote error:', error);
+      Alert.alert('Error', 'Failed to vote');
+    }
+  };
+
+  // Render post
+  const renderPost = ({ item }) => (
+    <View style={styles.postContainer}>
+      <View style={styles.imagePlaceholder}>
+        <Image source={{ uri: item.imageUrl }} style={{ width: '100%', height: '100%', borderRadius: 8 }} />
+      </View>
+
+      <View style={styles.postFooter}>
+        <Text style={styles.username}>@{item.uploadedBy}</Text>
+        <View style={styles.actions}>
+          <TouchableOpacity style={styles.voteButton} onPress={() => handleVote(item.id, 'up')}>
+            <Text style={styles.voteText}>👍 {item.votesUp}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={styles.voteButton} onPress={() => handleVote(item.id, 'down')}>
+            <Text style={styles.voteText}>👎 {item.votesDown}</Text>
+          </TouchableOpacity>
+        </View>
+      </View>
+    </View>
+  );
 
   return (
     <View style={styles.container}>
-      {/* Buttons Row */}
+      {/* Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity
-          style={[styles.button, { marginRight: 15, backgroundColor: '#000' }]}
-          onPress={handleSelectPhoto}
-        >
+        <TouchableOpacity style={[styles.button, { marginRight: 15, backgroundColor: '#000' }]} onPress={handleSelectPhoto}>
           <Text style={styles.buttonText}>Upload</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity
-          style={[styles.button, { backgroundColor: '#000' }]}
-          onPress={() => navigation.navigate('User_RankingPage')}
-        >
+        <TouchableOpacity style={[styles.button, { backgroundColor: '#000' }]} onPress={() => navigation.navigate('User_RankingPage')}>
           <Text style={styles.buttonText}>Ranking</Text>
         </TouchableOpacity>
       </View>
 
       <Text style={styles.recentLabel}>Recent Photos</Text>
 
-      {/* Post #1 */}
-      <View style={styles.postContainer}>
-        <View style={styles.imagePlaceholder}>
-          {selectedImage ? (
-            <Image
-              source={{ uri: selectedImage }}
-              style={{ width: '100%', height: '100%', borderRadius: 8 }}
-            />
-          ) : (
-            <Text style={{ color: '#aaa' }}>Image Placeholder</Text>
-          )}
-        </View>
-
-        <View style={styles.postFooter}>
-          <Text style={styles.username}>@user1</Text>
-          <View style={styles.actions}>
-            <TouchableOpacity style={styles.voteButton} onPress={() => handleVote('post1', 'up')}>
-              <Text style={styles.voteText}>👍 {votes.post1.up}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.voteButton} onPress={() => handleVote('post1', 'down')}>
-              <Text style={styles.voteText}>👎 {votes.post1.down}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
-              <Text style={styles.downloadText}>Download</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Post #2 */}
-      <View style={styles.postContainer}>
-        <View style={styles.imagePlaceholder}>
-          <Text style={{ color: '#aaa' }}>Image Placeholder</Text>
-        </View>
-
-        <View style={styles.postFooter}>
-          <Text style={styles.username}>@user2</Text>
-          <View style={styles.actions}>
-            <TouchableOpacity style={styles.voteButton} onPress={() => handleVote('post2', 'up')}>
-              <Text style={styles.voteText}>👍 {votes.post2.up}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.voteButton} onPress={() => handleVote('post2', 'down')}>
-              <Text style={styles.voteText}>👎 {votes.post2.down}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.downloadButton} onPress={handleDownload}>
-              <Text style={styles.downloadText}>Download</Text>
-            </TouchableOpacity>
-          </View>
-        </View>
-      </View>
-
-      {/* Download Modal */}
-      <Modal transparent visible={modalDownloadVisible} animationType="fade" onRequestClose={() => setModalDownloadVisible(false)}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            <TouchableOpacity style={styles.closeButtonTop} onPress={() => setModalDownloadVisible(false)}>
-              <Text style={styles.closeText}>✖</Text>
-            </TouchableOpacity>
-            <Text style={styles.modalText}>Image Has Been Downloaded!</Text>
-          </View>
-        </View>
-      </Modal>
+      {loading ? <Text>Loading...</Text> : (
+        <FlatList
+          data={posts}
+          keyExtractor={(item) => item.id}
+          renderItem={renderPost}
+        />
+      )}
 
       {/* Preview Modal */}
       <Modal transparent visible={modalPreviewVisible} animationType="slide" onRequestClose={() => setModalPreviewVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            {selectedImage && (
-              <Image source={{ uri: selectedImage }} style={{ width: 250, height: 250, borderRadius: 10, marginBottom: 20 }} />
-            )}
+            {selectedImage && <Image source={{ uri: selectedImage }} style={{ width: 250, height: 250, borderRadius: 10, marginBottom: 20 }} />}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-              <TouchableOpacity
-                style={[styles.button, { marginRight: 10, backgroundColor: '#000', flex: 1 }]}
-                onPress={() => setModalPreviewVisible(false)}
-              >
+              <TouchableOpacity style={[styles.button, { marginRight: 10, backgroundColor: '#000', flex: 1 }]} onPress={() => setModalPreviewVisible(false)}>
                 <Text style={[styles.buttonText, { textAlign: 'center' }]}>Back</Text>
               </TouchableOpacity>
-              <TouchableOpacity
-                style={[styles.button, { backgroundColor: '#000', flex: 1 }]}
-                onPress={handleUploadPhoto}
-              >
+              <TouchableOpacity style={[styles.button, { backgroundColor: '#000', flex: 1 }]} onPress={handleUploadPhoto}>
                 <Text style={[styles.buttonText, { textAlign: 'center' }]}>Upload</Text>
               </TouchableOpacity>
             </View>
@@ -184,22 +220,11 @@ export default function User_Explore() {
       </Modal>
 
       {/* Upload Success Modal */}
-      <Modal
-        transparent
-        visible={modalUploadSuccessVisible}
-        animationType="fade"
-        onRequestClose={() => setModalUploadSuccessVisible(false)}
-      >
+      <Modal transparent visible={modalUploadSuccessVisible} animationType="fade" onRequestClose={() => setModalUploadSuccessVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            <TouchableOpacity style={styles.closeButtonTop} onPress={() => setModalUploadSuccessVisible(false)}>
-              <Text style={styles.closeText}>✖</Text>
-            </TouchableOpacity>
             <Text style={styles.modalText}>Photo Uploaded Successfully!</Text>
-            <TouchableOpacity
-              style={[styles.button, { marginTop: 20, backgroundColor: '#000', alignSelf: 'flex-end' }]}
-              onPress={() => setModalUploadSuccessVisible(false)}
-            >
+            <TouchableOpacity style={[styles.button, { marginTop: 20, backgroundColor: '#000', alignSelf: 'flex-end' }]} onPress={() => setModalUploadSuccessVisible(false)}>
               <Text style={styles.buttonText}>Ok</Text>
             </TouchableOpacity>
           </View>
@@ -222,11 +247,7 @@ const styles = StyleSheet.create({
   actions: { flexDirection: 'row', alignItems: 'center' },
   voteButton: { marginHorizontal: 5 },
   voteText: { fontSize: 18 },
-  downloadButton: { backgroundColor: '#000', paddingVertical: 6, paddingHorizontal: 12, borderRadius: 6, marginLeft: 10 },
-  downloadText: { color: '#fff', fontWeight: '600' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center', position: 'relative' },
-  closeButtonTop: { position: 'absolute', top: 8, right: 8 },
-  closeText: { fontSize: 20, fontWeight: 'bold', color: '#333' },
   modalText: { marginTop: 20, fontSize: 16, fontWeight: '600', color: '#333', textAlign: 'center' },
 });
