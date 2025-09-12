@@ -2,10 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image } from 'react-native';
 import { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { app } from '../../firebaseConfig';
 
 const db = getFirestore(app);
 const auth = getAuth(app);
+const storage = getStorage(app);
 
 export default function User_QuizPage() {
   const [quizVisible, setQuizVisible] = useState(false);
@@ -19,16 +21,46 @@ export default function User_QuizPage() {
     return unsubscribe;
   }, []);
 
-  // Fetch a random question from Firestore by category
+  // Convert gs:// path to HTTPS download URL
+  const resolveImageUrl = async (imagePath) => {
+    if (!imagePath) return null;
+
+    // If already a HTTPS URL, just return
+    if (imagePath.startsWith('http')) {
+      console.log('Image already HTTPS URL:', imagePath);
+      return imagePath;
+    }
+
+    try {
+      // Remove "gs://<bucket>/" part
+      const cleanPath = imagePath.replace(/^gs:\/\/[^/]+\//, '');
+      const pathRef = ref(storage, cleanPath);
+      const url = await getDownloadURL(pathRef);
+      console.log('Original gs:// path:', imagePath);
+      console.log('Resolved HTTPS URL:', url);
+      return url;
+    } catch (err) {
+      console.error('Error resolving image URL:', err);
+      return null;
+    }
+  };
+
+  // Fetch a random question by category
   const fetchQuestion = async (category) => {
-    const q = query(collection(db, 'quizQuestions'), where('category', '==', category));
-    const snapshot = await getDocs(q);
-    if (!snapshot.empty) {
-      const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-      const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-      setQuestion(randomQuestion);
-    } else {
-      setQuestion(null);
+    try {
+      const q = query(collection(db, 'quizQuestions'), where('category', '==', category));
+      const snapshot = await getDocs(q);
+      if (!snapshot.empty) {
+        const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+        const fixedUrl = await resolveImageUrl(randomQuestion.imageUrl);
+        setQuestion({ ...randomQuestion, imageUrl: fixedUrl });
+      } else {
+        setQuestion(null);
+      }
+    } catch (err) {
+      console.error('Error fetching question:', err);
+      Alert.alert('Error', 'Could not fetch quiz question.');
     }
   };
 
@@ -72,7 +104,6 @@ export default function User_QuizPage() {
 
   return (
     <View style={styles.container}>
-      {/* Category buttons */}
       <View style={styles.categoryContainer}>
         {['Flower', 'Plant', 'Architecture'].map((cat) => (
           <TouchableOpacity key={cat} style={styles.categoryButton} onPress={() => handlePressCategory(cat)}>
@@ -81,7 +112,6 @@ export default function User_QuizPage() {
         ))}
       </View>
 
-      {/* Quiz Modal */}
       <Modal transparent visible={quizVisible} animationType="slide" onRequestClose={handleReturn}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -89,7 +119,9 @@ export default function User_QuizPage() {
               <Text>No questions available for {selectedCategory}</Text>
             ) : !quizResult ? (
               <>
-                {question.imageUrl && <Image source={{ uri: question.imageUrl }} style={{ width: 250, height: 150, marginBottom: 15 }} />}
+                {question.imageUrl ? (
+                  <Image source={{ uri: question.imageUrl }} style={{ width: 250, height: 150, marginBottom: 15 }} />
+                ) : null}
                 <Text style={styles.questionText}>{question.question}</Text>
                 {question.options.map((opt) => (
                   <TouchableOpacity key={opt} style={styles.answerButton} onPress={() => handleAnswer(opt)}>
