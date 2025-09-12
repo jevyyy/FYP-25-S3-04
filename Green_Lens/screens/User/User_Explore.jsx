@@ -3,7 +3,9 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, Alert, FlatList } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where } from 'firebase/firestore';
+import { 
+  getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc 
+} from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 import { app } from '../../firebaseConfig'; 
@@ -103,37 +105,72 @@ export default function User_Explore() {
     }
   };
 
-  // Voting
+  // Voting with undo & switch logic
   const handleVote = async (postId, type) => {
     if (!currentUser) return;
 
     try {
-      const q = query(
-        collection(db, 'votes'),
-        where('postId', '==', postId),
-        where('userId', '==', currentUser.uid)
-      );
+      const votesRef = collection(db, 'votes');
+      const postRef = doc(db, 'posts', postId);
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
+
+      // Check if user has voted on this post
+      const q = query(votesRef, where('postId', '==', postId), where('userId', '==', currentUser.uid));
       const snapshot = await getDocs(q);
 
       if (!snapshot.empty) {
-        Alert.alert('Error', 'You already voted on this post!');
-        return;
+        const existingVote = snapshot.docs[0];
+        const prevType = existingVote.data().type;
+        const voteDocRef = doc(db, 'votes', existingVote.id);
+
+        if (prevType === type) {
+          // Undo vote
+          await deleteDoc(voteDocRef);
+          await updateDoc(postRef, {
+            votesUp: type === 'up' ? post.votesUp - 1 : post.votesUp,
+            votesDown: type === 'down' ? post.votesDown - 1 : post.votesDown,
+          });
+        } else {
+          // Switch vote
+          await updateDoc(voteDocRef, { type });
+          await updateDoc(postRef, {
+            votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp - 1,
+            votesDown: type === 'down' ? post.votesDown + 1 : post.votesDown - 1,
+          });
+        }
+      } else {
+        // First-time vote
+        await addDoc(votesRef, { postId, userId: currentUser.uid, type });
+        await updateDoc(postRef, {
+          votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp,
+          votesDown: type === 'down' ? post.votesDown + 1 : post.votesDown,
+        });
       }
 
-      await addDoc(collection(db, 'votes'), {
-        postId,
-        userId: currentUser.uid,
-        type,
-      });
+      // Update local state immediately
+      setPosts(prevPosts => prevPosts.map(p => {
+        if (p.id !== postId) return p;
 
-      const postRef = doc(db, 'posts', postId);
-      const post = posts.find(p => p.id === postId);
-      await updateDoc(postRef, {
-        votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp,
-        votesDown: type === 'down' ? post.votesDown + 1 : post.votesDown,
-      });
+        let votesUp = p.votesUp;
+        let votesDown = p.votesDown;
 
-      fetchPosts();
+        if (!snapshot.empty) {
+          if (snapshot.docs[0].data().type === type) {
+            // Undo
+            if (type === 'up') votesUp--; else votesDown--;
+          } else {
+            // Switch
+            if (type === 'up') { votesUp++; votesDown--; } else { votesDown++; votesUp--; }
+          }
+        } else {
+          // First-time vote
+          if (type === 'up') votesUp++; else votesDown++;
+        }
+
+        return { ...p, votesUp, votesDown };
+      }));
+
     } catch (error) {
       console.error('Vote error:', error);
       Alert.alert('Error', 'Failed to vote');
