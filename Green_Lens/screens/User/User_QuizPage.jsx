@@ -9,7 +9,7 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
-export default function User_QuizPage() {
+export default function User_QuizPage({ navigation }) {
   const [quizVisible, setQuizVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
   const [question, setQuestion] = useState(null);
@@ -21,31 +21,20 @@ export default function User_QuizPage() {
     return unsubscribe;
   }, []);
 
-  // Convert gs:// path to HTTPS download URL
   const resolveImageUrl = async (imagePath) => {
     if (!imagePath) return null;
-
-    // If already a HTTPS URL, just return
-    if (imagePath.startsWith('http')) {
-      console.log('Image already HTTPS URL:', imagePath);
-      return imagePath;
-    }
+    if (imagePath.startsWith('http')) return imagePath;
 
     try {
-      // Remove "gs://<bucket>/" part
-      const cleanPath = imagePath.replace(/^gs:\/\/[^/]+\//, '');
+      const cleanPath = imagePath.replace(/^gs:\/\/green-lens-47e9b\.appspot\.com\//, '');
       const pathRef = ref(storage, cleanPath);
       const url = await getDownloadURL(pathRef);
-      console.log('Original gs:// path:', imagePath);
-      console.log('Resolved HTTPS URL:', url);
       return url;
-    } catch (err) {
-      console.error('Error resolving image URL:', err);
+    } catch {
       return null;
     }
   };
 
-  // Fetch a random question by category
   const fetchQuestion = async (category) => {
     try {
       const q = query(collection(db, 'quizQuestions'), where('category', '==', category));
@@ -58,8 +47,7 @@ export default function User_QuizPage() {
       } else {
         setQuestion(null);
       }
-    } catch (err) {
-      console.error('Error fetching question:', err);
+    } catch {
       Alert.alert('Error', 'Could not fetch quiz question.');
     }
   };
@@ -90,8 +78,7 @@ export default function User_QuizPage() {
         points,
         createdAt: serverTimestamp(),
       });
-    } catch (err) {
-      console.error('Error saving quiz result:', err);
+    } catch {
       Alert.alert('Error', 'Failed to save your quiz result.');
     }
   };
@@ -102,8 +89,21 @@ export default function User_QuizPage() {
     setQuizResult(null);
   };
 
+  const goToRanking = () => {
+    navigation.navigate('User_RankingPage');
+  };
+
   return (
     <View style={styles.container}>
+
+      {/* Top Right Ranking Button */}
+      <View style={styles.topRow}>
+        <TouchableOpacity style={styles.rankingButton} onPress={goToRanking}>
+          <Text style={styles.rankingButtonText}>Ranking</Text>
+        </TouchableOpacity>
+      </View>
+
+      {/* Category Buttons */}
       <View style={styles.categoryContainer}>
         {['Flower', 'Plant', 'Architecture'].map((cat) => (
           <TouchableOpacity key={cat} style={styles.categoryButton} onPress={() => handlePressCategory(cat)}>
@@ -116,12 +116,12 @@ export default function User_QuizPage() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             {!question ? (
-              <Text>No questions available for {selectedCategory}</Text>
+              <Text>Coming Soon{'\n'}No quiz available at this moment. </Text>
             ) : !quizResult ? (
               <>
-                {question.imageUrl ? (
+                {question.imageUrl && (
                   <Image source={{ uri: question.imageUrl }} style={{ width: 250, height: 150, marginBottom: 15 }} />
-                ) : null}
+                )}
                 <Text style={styles.questionText}>{question.question}</Text>
                 {question.options.map((opt) => (
                   <TouchableOpacity key={opt} style={styles.answerButton} onPress={() => handleAnswer(opt)}>
@@ -147,7 +147,10 @@ export default function User_QuizPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
-  categoryContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 50, marginBottom: 50 },
+  topRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 },
+  rankingButton: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#000', borderRadius: 10 },
+  rankingButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
+  categoryContainer: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 50 },
   categoryButton: { width: 100, height: 100, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', borderRadius: 12 },
   categoryText: { color: '#fff', fontWeight: '600', textAlign: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
