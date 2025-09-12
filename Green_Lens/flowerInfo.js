@@ -1,5 +1,5 @@
 import { app, db } from './firebaseConfig.js';
-import { getFirestore, collection, addDoc, setDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, setDoc, doc } from 'firebase/firestore';
 
 // const db = getFirestore(app);
 
@@ -65,19 +65,6 @@ const flowersInfo =[
     "characteristics": "Fragrant layered petals, thorny stems, various colors, symbolic meaning"
   }
 ]
-
-// async function loadFlowerIntoDB() {
-//   const collectionRef = db.collection('flowersInfo');
-  
-//   for (const flower of flowersInfo) {
-//     await collectionRef.doc(flower.id).set(flower);
-//     console.log(`Added ${flower.name} to Firestore`);
-//   }
-  
-//   console.log('All flowers uploaded successfully!');
-// }
-
-// loadFlowerIntoDB().catch(console.error);
 
 async function loadFlowerIntoDB() {
   try {
