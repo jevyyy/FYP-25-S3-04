@@ -1,5 +1,5 @@
 // seedQuestions.js
-import { app } from './firebaseConfig.js';
+import { app } from '../firebaseConfig.js';
 import { getFirestore, collection, addDoc } from 'firebase/firestore';
 
 const db = getFirestore(app);

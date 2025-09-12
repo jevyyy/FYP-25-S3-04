@@ -1,18 +1,13 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, Modal, Image, Dimensions, Alert } from 'react-native';
-import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, addDoc } from 'firebase/firestore';
+import { getFirestore, doc, setDoc, getDoc, updateDoc, increment, collection, addDoc, getDocs } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
+import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { app } from '../../firebaseConfig';
 
 const db = getFirestore(app);
 const auth = getAuth(app);
-
-const rewardsData = [
-  { id: '1', title: 'SBG Postcard', cost: 100, description: 'A beautifully designed postcard featuring the iconic scenery of the Singapore Botanic Gardens.', image: require('../../assets/Reward1.png') },
-  { id: '2', title: 'SBG Postcard', cost: 200, description: 'A limited-edition postcard showcasing unique flora found in the Singapore Botanic Gardens.', image: require('../../assets/Reward2.png') },
-  { id: '3', title: 'Postcard Set', cost: 150, description: 'A curated set of postcards, perfect for collectors or sharing memories of the Gardens.', image: require('../../assets/Reward3.png') },
-  { id: '4', title: 'Bookmark', cost: 250, description: 'A stylish and durable bookmark inspired by nature, ideal for your favorite books.', image: require('../../assets/Reward4.png') },
-];
+const storage = getStorage(app);
 
 export default function User_RewardPage() {
   const [points, setPoints] = useState(0);
@@ -40,7 +35,6 @@ export default function User_RewardPage() {
       if (userSnap.exists()) {
         setPoints(userSnap.data().totalPoints || 0);
       } else {
-        // Initialize user doc if not exists
         await setDoc(userRef, { totalPoints: 0, username: auth.currentUser.displayName || auth.currentUser.email });
         setPoints(0);
       }
@@ -49,20 +43,41 @@ export default function User_RewardPage() {
     }
   };
 
+  // Helper: Resolve Firebase Storage URL
+  const resolveImageUrl = async (imagePath) => {
+    if (!imagePath) return 'https://via.placeholder.com/150';
+    if (imagePath.startsWith('http')) return imagePath;
+    try {
+      const cleanPath = imagePath.replace(/^gs:\/\/green-lens-47e9b\.appspot\.com\//, '');
+      const pathRef = ref(storage, cleanPath);
+      const url = await getDownloadURL(pathRef);
+      return url;
+    } catch {
+      return 'https://via.placeholder.com/150';
+    }
+  };
+
   const fetchRewards = async () => {
     try {
-      // For demo, we store initial quantity in Firestore too
-      const rewardsWithQuantity = await Promise.all(rewardsData.map(async r => {
-        const rewardRef = doc(db, 'rewards', r.id);
-        const snap = await getDoc(rewardRef);
-        if (snap.exists()) return { ...r, quantity: snap.data().quantity };
-        // Initialize in DB if not exists
-        await setDoc(rewardRef, { quantity: 5 });
-        return { ...r, quantity: 5 };
-      }));
-      setRewardsState(rewardsWithQuantity);
+      const rewardsCollection = await getDocs(collection(db, 'rewards'));
+      const rewards = await Promise.all(
+        rewardsCollection.docs.map(async docSnap => {
+          const data = docSnap.data();
+          const imageUrl = await resolveImageUrl(data.image);
+
+          return {
+            id: docSnap.id,
+            title: data.title,
+            cost: data.cost,
+            description: data.description,
+            quantity: data.quantity,
+            image: { uri: imageUrl }
+          };
+        })
+      );
+      setRewardsState(rewards);
     } catch (err) {
-      console.error(err);
+      console.error('Error fetching rewards:', err);
     }
   };
 
@@ -98,16 +113,13 @@ export default function User_RewardPage() {
       const rewardRef = doc(db, 'rewards', selectedReward.id);
       const userRef = doc(db, 'users', currentUser.uid);
 
-      // Atomically update points and reward quantity
       await updateDoc(userRef, { totalPoints: increment(-selectedReward.cost) });
       await updateDoc(rewardRef, { quantity: increment(-1) });
 
-      // Generate voucher
       const newCode = generateVoucherCode();
       setVoucherCode(newCode);
       setPoints(prev => prev - selectedReward.cost);
 
-      // Save redemption record
       await addDoc(collection(db, 'redemptions'), {
         userId: currentUser.uid,
         rewardId: selectedReward.id,
@@ -115,7 +127,6 @@ export default function User_RewardPage() {
         redeemedAt: new Date()
       });
 
-      // Update local state
       const updatedRewards = rewardsState.map(r =>
         r.id === selectedReward.id ? { ...r, quantity: r.quantity - 1 } : r
       );
@@ -123,7 +134,6 @@ export default function User_RewardPage() {
       setSelectedReward(updatedRewards.find(r => r.id === selectedReward.id));
 
       Alert.alert(`You redeemed ${selectedReward.title}!`);
-
     } catch (err) {
       console.error(err);
       Alert.alert('Error', 'Failed to redeem reward.');
