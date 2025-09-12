@@ -1,6 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image } from 'react-native';
-import { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, doc, setDoc, updateDoc, increment } from 'firebase/firestore';
+import { 
+  getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, doc, setDoc, updateDoc, increment, getDoc 
+} from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { app } from '../../firebaseConfig';
@@ -61,16 +63,26 @@ export default function User_QuizPage({ navigation }) {
 
   const handleAnswer = async (answer) => {
     if (!currentUser || !question) return;
+
     const result = answer === question.correctAnswer ? 'correct' : 'wrong';
     setQuizResult(result);
     const points = result === 'correct' ? 3 : 0;
 
     try {
-      // Save quiz result
+      const userRef = doc(db, 'users', currentUser.uid);
+
+      // Fetch existing username from Firestore
+      const userSnap = await getDoc(userRef);
+      const savedUsername = userSnap.exists() && userSnap.data().username
+        ? userSnap.data().username
+        : currentUser.displayName || currentUser.email || 'Anonymous';
+
+      // Save quiz result in 'quizResults' collection
       await addDoc(collection(db, 'quizResults'), {
         userId: currentUser.uid,
-        username: currentUser.displayName || currentUser.email || 'Anonymous',
         email: currentUser.email || 'anonymous@example.com',
+        name: currentUser.displayName || '',
+        username: savedUsername,  // preserve original username
         category: selectedCategory,
         questionId: question.id,
         answer,
@@ -80,10 +92,11 @@ export default function User_QuizPage({ navigation }) {
         createdAt: serverTimestamp(),
       });
 
-      // Ensure user doc exists (username only)
-      const userRef = doc(db, 'users', currentUser.uid);
+      // Ensure user document exists in 'users' collection
       await setDoc(userRef, {
-        username: currentUser.displayName || currentUser.email || 'Anonymous',
+        email: currentUser.email || 'anonymous@example.com',
+        name: currentUser.displayName || '',
+        totalPoints: 0, // initialize if missing
       }, { merge: true });
 
       // Increment totalPoints safely
