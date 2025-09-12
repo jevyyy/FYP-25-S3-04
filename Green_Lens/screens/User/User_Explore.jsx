@@ -3,7 +3,7 @@ import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, Alert, FlatList } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { useNavigation } from '@react-navigation/native';
-import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, getDoc } from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
 import { app } from '../../firebaseConfig'; 
@@ -65,22 +65,6 @@ export default function User_Explore() {
     }
   };
 
-  // Helper: get username from Firestore (using UID as document ID)
-  const getUsername = async (uid) => {
-    try {
-      const userRef = doc(db, 'users', uid);
-      const userSnap = await getDoc(userRef);
-
-      if (userSnap.exists()) {
-        return userSnap.data().username || userSnap.data().name || 'anonymous';
-      }
-      return 'anonymous';
-    } catch (error) {
-      console.error('Error fetching username:', error);
-      return 'anonymous';
-    }
-  };
-
   // Upload photo
   const handleUploadPhoto = async () => {
     if (!selectedImage) {
@@ -102,11 +86,9 @@ export default function User_Explore() {
       await uploadBytes(storageRef, blob);
       const downloadUrl = await getDownloadURL(storageRef);
 
-      const username = await getUsername(currentUser.uid); // use username instead of email
-
       await addDoc(collection(db, 'posts'), {
         imageUrl: downloadUrl,
-        uploadedBy: username,
+        uploadedBy: currentUser.email || 'anonymous',
         createdAt: new Date(),
         votesUp: 0,
         votesDown: 0,
