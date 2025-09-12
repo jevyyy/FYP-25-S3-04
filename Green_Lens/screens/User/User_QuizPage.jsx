@@ -1,130 +1,109 @@
-// ./screens/User/User_QuizPage.jsx
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image } from 'react-native';
+import { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { app } from '../../firebaseConfig';
+
+const db = getFirestore(app);
+const auth = getAuth(app);
 
 export default function User_QuizPage() {
-  const navigation = useNavigation();
   const [quizVisible, setQuizVisible] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('');
-  const [quizResult, setQuizResult] = useState(null); // 'correct' | 'wrong' | null
+  const [question, setQuestion] = useState(null);
+  const [quizResult, setQuizResult] = useState(null);
+  const [currentUser, setCurrentUser] = useState(null);
 
-  const correctAnswers = {
-    Flower: 'Rose',
+  useEffect(() => {
+    const unsubscribe = auth.onAuthStateChanged(user => setCurrentUser(user));
+    return unsubscribe;
+  }, []);
+
+  // Fetch a random question from Firestore by category
+  const fetchQuestion = async (category) => {
+    const q = query(collection(db, 'quizQuestions'), where('category', '==', category));
+    const snapshot = await getDocs(q);
+    if (!snapshot.empty) {
+      const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+      const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
+      setQuestion(randomQuestion);
+    } else {
+      setQuestion(null);
+    }
   };
 
-  const answerOptions = ['Rose', 'Marigold', 'Sunflower', 'Tulip'];
-
-  const handlePressCategory = (category) => {
+  const handlePressCategory = async (category) => {
     setSelectedCategory(category);
     setQuizResult(null);
+    await fetchQuestion(category);
     setQuizVisible(true);
   };
 
-  const handleAnswer = (answer) => {
-    if (answer === correctAnswers[selectedCategory]) {
-      setQuizResult('correct');
-    } else {
-      setQuizResult('wrong');
+  const handleAnswer = async (answer) => {
+    if (!currentUser || !question) return;
+    const result = answer === question.correctAnswer ? 'correct' : 'wrong';
+    setQuizResult(result);
+    const points = result === 'correct' ? 3 : 0;
+
+    try {
+      await addDoc(collection(db, 'quizResults'), {
+        userId: currentUser.uid,
+        username: currentUser.displayName || currentUser.email || 'Anonymous',
+        email: currentUser.email || 'anonymous@example.com',
+        category: selectedCategory,
+        questionId: question.id,
+        answer,
+        correctAnswer: question.correctAnswer,
+        result,
+        points,
+        createdAt: serverTimestamp(),
+      });
+    } catch (err) {
+      console.error('Error saving quiz result:', err);
+      Alert.alert('Error', 'Failed to save your quiz result.');
     }
   };
 
   const handleReturn = () => {
     setQuizVisible(false);
+    setQuestion(null);
     setQuizResult(null);
   };
 
-  const hasQuiz = correctAnswers[selectedCategory] !== undefined;
-
   return (
     <View style={styles.container}>
-      {/* Ranking button at top right */}
-      <View style={styles.rankingContainer}>
-        <TouchableOpacity
-          style={styles.rankingButton}
-          onPress={() => navigation.navigate('User_RankingPage')}
-        >
-          <Text style={styles.rankingButtonText}>Ranking</Text>
-        </TouchableOpacity>
-      </View>
-
-      {/* Category buttons row */}
+      {/* Category buttons */}
       <View style={styles.categoryContainer}>
-        {['Flower', 'Plant', 'Architecture'].map((category) => (
-          <TouchableOpacity
-            key={category}
-            style={styles.categoryButton}
-            onPress={() => handlePressCategory(category)}
-          >
-            <Text style={styles.categoryText}>{category}</Text>
+        {['Flower', 'Plant', 'Architecture'].map((cat) => (
+          <TouchableOpacity key={cat} style={styles.categoryButton} onPress={() => handlePressCategory(cat)}>
+            <Text style={styles.categoryText}>{cat}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
       {/* Quiz Modal */}
-      <Modal
-        transparent
-        visible={quizVisible}
-        animationType="slide"
-        onRequestClose={handleReturn}
-      >
+      <Modal transparent visible={quizVisible} animationType="slide" onRequestClose={handleReturn}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
-            {!hasQuiz ? (
-              // Coming soon screen
-              <>
-                <Text style={styles.comingSoonTitle}>Coming Soon</Text>
-                <Text style={styles.comingSoonText}>No quiz available at this moment.</Text>
-
-                <View style={styles.returnButtonContainer}>
-                  <TouchableOpacity
-                    style={styles.rankingButton}
-                    onPress={handleReturn}
-                  >
-                    <Text style={styles.rankingButtonText}>Return</Text>
-                  </TouchableOpacity>
-                </View>
-              </>
+            {!question ? (
+              <Text>No questions available for {selectedCategory}</Text>
             ) : !quizResult ? (
               <>
-                <View style={styles.imagePlaceholder}>
-                  <Text style={{ color: '#aaa' }}>Image Placeholder</Text>
-                </View>
-
-                <Text style={styles.questionText}>
-                  What {selectedCategory.toLowerCase()} is this?
-                </Text>
-
-                <View style={styles.answerContainer}>
-                  {answerOptions.map((answer) => (
-                    <TouchableOpacity
-                      key={answer}
-                      style={styles.answerButton}
-                      onPress={() => handleAnswer(answer)}
-                    >
-                      <Text style={styles.answerText}>{answer}</Text>
-                    </TouchableOpacity>
-                  ))}
-                </View>
+                {question.imageUrl && <Image source={{ uri: question.imageUrl }} style={{ width: 250, height: 150, marginBottom: 15 }} />}
+                <Text style={styles.questionText}>{question.question}</Text>
+                {question.options.map((opt) => (
+                  <TouchableOpacity key={opt} style={styles.answerButton} onPress={() => handleAnswer(opt)}>
+                    <Text style={styles.answerText}>{opt}</Text>
+                  </TouchableOpacity>
+                ))}
               </>
             ) : (
-              // Result screen
               <>
-                <Text style={styles.resultText}>
-                  {quizResult === 'correct' ? 'Answer Correct!' : 'Answer Wrong!'}
-                </Text>
-                <Text style={styles.pointText}>
-                  {quizResult === 'correct' ? 'Point +3' : 'Point +0'}
-                </Text>
-
-                <View style={styles.returnButtonContainer}>
-                  <TouchableOpacity
-                    style={styles.rankingButton}
-                    onPress={handleReturn}
-                  >
-                    <Text style={styles.rankingButtonText}>Return</Text>
-                  </TouchableOpacity>
-                </View>
+                <Text style={styles.resultText}>{quizResult === 'correct' ? 'Correct!' : 'Wrong!'}</Text>
+                <Text style={styles.pointText}>Points: {quizResult === 'correct' ? 3 : 0}</Text>
+                <TouchableOpacity style={styles.returnButton} onPress={handleReturn}>
+                  <Text style={styles.returnButtonText}>Return</Text>
+                </TouchableOpacity>
               </>
             )}
           </View>
@@ -136,52 +115,16 @@ export default function User_QuizPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
-  
-  rankingContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    marginBottom: 20,
-  },
-  rankingButton: {
-    backgroundColor: '#000',
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: 8,
-  },
-  rankingButtonText: { color: '#fff', fontWeight: '600' },
-
-  categoryContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-around',
-    marginTop: 50,
-    marginBottom: 50,
-  },
-  categoryButton: {
-    width: 100,
-    height: 100,
-    backgroundColor: '#000',
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 12,
-  },
+  categoryContainer: { flexDirection: 'row', justifyContent: 'space-around', marginTop: 50, marginBottom: 50 },
+  categoryButton: { width: 100, height: 100, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', borderRadius: 12 },
   categoryText: { color: '#fff', fontWeight: '600', textAlign: 'center' },
-
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center' },
-  imagePlaceholder: { width: 250, height: 150, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginBottom: 15 },
   questionText: { fontSize: 16, fontWeight: '600', marginBottom: 15, textAlign: 'center' },
-  answerContainer: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' },
-  answerButton: { width: '48%', height: 50, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', borderRadius: 8, marginBottom: 10 },
+  answerButton: { width: '100%', padding: 12, backgroundColor: '#000', borderRadius: 8, marginBottom: 10, alignItems: 'center' },
   answerText: { color: '#fff', fontWeight: '600' },
-  resultText: { fontSize: 18, fontWeight: 'bold', marginBottom: 10, color: '#333' },
-  pointText: { fontSize: 16, fontWeight: '600', color: '#333' },
-
-  comingSoonTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#333' },
-  comingSoonText: { fontSize: 16, color: '#666', textAlign: 'center' },
-
-  returnButtonContainer: {
-    width: '100%',
-    marginTop: 20,
-    alignItems: 'flex-end', // aligns button to the right
-  },
+  resultText: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
+  pointText: { fontSize: 16, fontWeight: '600', marginBottom: 15 },
+  returnButton: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#000', borderRadius: 8 },
+  returnButtonText: { color: '#fff', fontWeight: '600' },
 });

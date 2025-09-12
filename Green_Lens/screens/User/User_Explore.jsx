@@ -23,23 +23,20 @@ export default function User_Explore() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Listen for auth changes
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(u => {
       setCurrentUser(u);
-      console.log("👤 Current user:", u?.email);
     });
     return unsubscribe;
   }, []);
 
-  // Fetch posts
   const fetchPosts = async () => {
     try {
       const snapshot = await getDocs(collection(db, 'posts'));
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPosts(data);
     } catch (error) {
-      console.error('Error fetching posts:', error);
+      Alert.alert('Error', 'Failed to fetch posts');
     }
     setLoading(false);
   };
@@ -48,7 +45,6 @@ export default function User_Explore() {
     fetchPosts();
   }, []);
 
-  // Select image
   const handleSelectPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -67,7 +63,6 @@ export default function User_Explore() {
     }
   };
 
-  // Upload photo
   const handleUploadPhoto = async () => {
     if (!selectedImage) {
       Alert.alert('Error', 'No image selected.');
@@ -100,12 +95,10 @@ export default function User_Explore() {
       setModalUploadSuccessVisible(true);
       fetchPosts();
     } catch (error) {
-      console.error('Upload error:', error);
       Alert.alert('Error', 'Failed to upload image');
     }
   };
 
-  // Voting with undo & switch logic
   const handleVote = async (postId, type) => {
     if (!currentUser) return;
 
@@ -115,7 +108,6 @@ export default function User_Explore() {
       const post = posts.find(p => p.id === postId);
       if (!post) return;
 
-      // Check if user has voted on this post
       const q = query(votesRef, where('postId', '==', postId), where('userId', '==', currentUser.uid));
       const snapshot = await getDocs(q);
 
@@ -125,14 +117,12 @@ export default function User_Explore() {
         const voteDocRef = doc(db, 'votes', existingVote.id);
 
         if (prevType === type) {
-          // Undo vote
           await deleteDoc(voteDocRef);
           await updateDoc(postRef, {
             votesUp: type === 'up' ? post.votesUp - 1 : post.votesUp,
             votesDown: type === 'down' ? post.votesDown - 1 : post.votesDown,
           });
         } else {
-          // Switch vote
           await updateDoc(voteDocRef, { type });
           await updateDoc(postRef, {
             votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp - 1,
@@ -140,7 +130,6 @@ export default function User_Explore() {
           });
         }
       } else {
-        // First-time vote
         await addDoc(votesRef, { postId, userId: currentUser.uid, type });
         await updateDoc(postRef, {
           votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp,
@@ -148,7 +137,6 @@ export default function User_Explore() {
         });
       }
 
-      // Update local state immediately
       setPosts(prevPosts => prevPosts.map(p => {
         if (p.id !== postId) return p;
 
@@ -157,14 +145,11 @@ export default function User_Explore() {
 
         if (!snapshot.empty) {
           if (snapshot.docs[0].data().type === type) {
-            // Undo
             if (type === 'up') votesUp--; else votesDown--;
           } else {
-            // Switch
             if (type === 'up') { votesUp++; votesDown--; } else { votesDown++; votesUp--; }
           }
         } else {
-          // First-time vote
           if (type === 'up') votesUp++; else votesDown++;
         }
 
@@ -172,12 +157,10 @@ export default function User_Explore() {
       }));
 
     } catch (error) {
-      console.error('Vote error:', error);
       Alert.alert('Error', 'Failed to vote');
     }
   };
 
-  // Render post
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <View style={styles.imagePlaceholder}>
@@ -200,7 +183,6 @@ export default function User_Explore() {
 
   return (
     <View style={styles.container}>
-      {/* Buttons */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={[styles.button, { marginRight: 15, backgroundColor: '#000' }]} onPress={handleSelectPhoto}>
           <Text style={styles.buttonText}>Upload</Text>
@@ -221,7 +203,6 @@ export default function User_Explore() {
         />
       )}
 
-      {/* Preview Modal */}
       <Modal transparent visible={modalPreviewVisible} animationType="slide" onRequestClose={() => setModalPreviewVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
@@ -238,7 +219,6 @@ export default function User_Explore() {
         </View>
       </Modal>
 
-      {/* Upload Success Modal */}
       <Modal transparent visible={modalUploadSuccessVisible} animationType="fade" onRequestClose={() => setModalUploadSuccessVisible(false)}>
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
