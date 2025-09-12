@@ -21,7 +21,6 @@ export default function User_Register() {
   const validatePassword = (password) => {
     const strongPassword =
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
-
     if (!strongPassword.test(password)) {
       return '*Password too weak (at least 8 chars, include uppercase, lowercase, number & special character)';
     }
@@ -30,7 +29,6 @@ export default function User_Register() {
 
   const handleSubmit = async () => {
     let newErrors = {};
-
     if (!name.trim()) newErrors.name = '*Name cannot be empty';
     if (!username.trim()) newErrors.username = '*Username cannot be empty';
     if (!email.trim()) newErrors.email = '*Email cannot be empty';
@@ -46,13 +44,13 @@ export default function User_Register() {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
-        // Update display name
+        // Update displayName in Auth
         await updateProfile(user, { displayName: name });
 
-        // Save username in Firestore
+        // Save info in Firestore
         await setDoc(doc(db, 'users', user.uid), {
+          name: name,
           username: username,
-          displayName: name,
           email: email,
         });
 

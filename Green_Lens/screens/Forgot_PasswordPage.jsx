@@ -2,36 +2,84 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { auth } from '../firebaseConfig';
+import { sendPasswordResetEmail, confirmPasswordReset } from 'firebase/auth';
 
-export default function Forgot_PasswordPage() {
+export default function Forgot_PasswordPage({ route }) {
   const navigation = useNavigation();
-  const [username, setUsername] = useState('');
-  const [oldPassword, setOldPassword] = useState('');
+  const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
-  const [confirmPassword, setConfirmPassword] = useState('');
 
-  const handleResetPassword = () => {
-    if (!username || !oldPassword || !newPassword || !confirmPassword) {
-      Alert.alert('Error', 'Please fill in all fields');
+  // If your app handles deep links, the oobCode can be passed via route.params
+  const { oobCode } = route.params || {}; 
+
+  const validatePassword = (password) => {
+    const strongPassword =
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+    if (!strongPassword.test(password)) {
+      return '*Password too weak (at least 8 chars, include uppercase, lowercase, number & special character)';
+    }
+    return null;
+  };
+
+  // Step 1: Send reset email
+  const handleSendResetEmail = async () => {
+    if (!email.trim()) {
+      Alert.alert('Error', 'Please enter your email');
       return;
     }
-    if (newPassword !== confirmPassword) {
-      Alert.alert('Error', 'New passwords do not match');
+
+    try {
+      await sendPasswordResetEmail(auth, email);
+
+      // Show alert and navigate back to login
+      Alert.alert(
+        'Success',
+        'Password reset link sent to your email!',
+        [
+          {
+            text: 'Return to Login',
+            onPress: () => navigation.navigate('User_Login'),
+          },
+        ],
+        { cancelable: false }
+      );
+    } catch (error) {
+      if (error.code === 'auth/user-not-found') {
+        Alert.alert('Error', 'No user found with this email');
+      } else if (error.code === 'auth/invalid-email') {
+        Alert.alert('Error', 'Invalid email address');
+      } else {
+        Alert.alert('Error', error.message);
+      }
+    }
+  };
+
+  // Step 2: Set new password (after clicking link)
+  const handleSetNewPassword = async () => {
+    const passwordError = validatePassword(newPassword);
+    if (passwordError) {
+      Alert.alert('Error', passwordError);
       return;
     }
 
-    // Show success alert and redirect to User_Login
-    Alert.alert('Success', 'Password was reset successfully!', [
-      {
-        text: 'Return to Login',
-        onPress: () => navigation.navigate('User_Login'),
-      },
-    ]);
+    if (!oobCode) {
+      Alert.alert('Error', 'Invalid or missing reset code.');
+      return;
+    }
+
+    try {
+      await confirmPasswordReset(auth, oobCode, newPassword);
+      Alert.alert('Success', 'Password has been reset!', [
+        { text: 'Return to Login', onPress: () => navigation.navigate('User_Login') },
+      ]);
+    } catch (error) {
+      Alert.alert('Error', error.message);
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
       <Image
         source={require('../assets/Green_Lens_logo.png')}
         style={styles.logo}
@@ -40,45 +88,40 @@ export default function Forgot_PasswordPage() {
 
       <Text style={styles.title}>Forgot Password</Text>
 
-      <Text style={styles.label}>Username</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your username"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-      />
+      {!oobCode ? (
+        <>
+          {/* Step 1: Ask for email only */}
+          <Text style={styles.label}>Email</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter your email"
+            value={email}
+            onChangeText={setEmail}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
 
-      <Text style={styles.label}>Old Password</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your old password"
-        value={oldPassword}
-        onChangeText={setOldPassword}
-        secureTextEntry
-      />
+          <TouchableOpacity style={styles.button} onPress={handleSendResetEmail}>
+            <Text style={styles.buttonText}>Send Reset Link</Text>
+          </TouchableOpacity>
+        </>
+      ) : (
+        <>
+          {/* Step 2: Set new password */}
+          <Text style={styles.label}>New Password</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Enter new password"
+            value={newPassword}
+            onChangeText={setNewPassword}
+            secureTextEntry
+          />
 
-      <Text style={styles.label}>New Password</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter new password"
-        value={newPassword}
-        onChangeText={setNewPassword}
-        secureTextEntry
-      />
-
-      <Text style={styles.label}>Confirm New Password</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Confirm new password"
-        value={confirmPassword}
-        onChangeText={setConfirmPassword}
-        secureTextEntry
-      />
-
-      <TouchableOpacity style={styles.button} onPress={handleResetPassword}>
-        <Text style={styles.buttonText}>Reset Password</Text>
-      </TouchableOpacity>
+          <TouchableOpacity style={styles.button} onPress={handleSetNewPassword}>
+            <Text style={styles.buttonText}>Set New Password</Text>
+          </TouchableOpacity>
+        </>
+      )}
     </View>
   );
 }
