@@ -2,6 +2,8 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, Alert, FlatList } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
+import * as FileSystem from 'expo-file-system';
+import * as MediaLibrary from 'expo-media-library';
 import { useNavigation } from '@react-navigation/native';
 import { 
   getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, getDoc
@@ -23,7 +25,6 @@ export default function User_Explore() {
   const [loading, setLoading] = useState(true);
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Listen for auth changes
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(u => {
       setCurrentUser(u);
@@ -32,7 +33,6 @@ export default function User_Explore() {
     return unsubscribe;
   }, []);
 
-  // Fetch posts
   const fetchPosts = async () => {
     try {
       const snapshot = await getDocs(collection(db, 'posts'));
@@ -48,7 +48,6 @@ export default function User_Explore() {
     fetchPosts();
   }, []);
 
-  // Select image
   const handleSelectPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -67,7 +66,6 @@ export default function User_Explore() {
     }
   };
 
-  // Upload photo
   const handleUploadPhoto = async () => {
     if (!selectedImage) {
       Alert.alert('Error', 'No image selected.');
@@ -88,7 +86,6 @@ export default function User_Explore() {
       await uploadBytes(storageRef, blob);
       const downloadUrl = await getDownloadURL(storageRef);
 
-      // Fetch username from 'users' collection
       const userRef = doc(db, 'users', currentUser.uid);
       const userSnap = await getDoc(userRef);
       const username = userSnap.exists() && userSnap.data().username
@@ -97,7 +94,7 @@ export default function User_Explore() {
 
       await addDoc(collection(db, 'posts'), {
         imageUrl: downloadUrl,
-        uploadedBy: username, // <-- Use username here
+        uploadedBy: username,
         createdAt: new Date(),
         votesUp: 0,
         votesDown: 0,
@@ -112,7 +109,6 @@ export default function User_Explore() {
     }
   };
 
-  // Voting with undo & switch logic
   const handleVote = async (postId, type) => {
     if (!currentUser) return;
 
@@ -122,7 +118,6 @@ export default function User_Explore() {
       const post = posts.find(p => p.id === postId);
       if (!post) return;
 
-      // Check if user has voted on this post
       const q = query(votesRef, where('postId', '==', postId), where('userId', '==', currentUser.uid));
       const snapshot = await getDocs(q);
 
@@ -132,14 +127,12 @@ export default function User_Explore() {
         const voteDocRef = doc(db, 'votes', existingVote.id);
 
         if (prevType === type) {
-          // Undo vote
           await deleteDoc(voteDocRef);
           await updateDoc(postRef, {
             votesUp: type === 'up' ? post.votesUp - 1 : post.votesUp,
             votesDown: type === 'down' ? post.votesDown - 1 : post.votesDown,
           });
         } else {
-          // Switch vote
           await updateDoc(voteDocRef, { type });
           await updateDoc(postRef, {
             votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp - 1,
@@ -147,7 +140,6 @@ export default function User_Explore() {
           });
         }
       } else {
-        // First-time vote
         await addDoc(votesRef, { postId, userId: currentUser.uid, type });
         await updateDoc(postRef, {
           votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp,
@@ -155,7 +147,6 @@ export default function User_Explore() {
         });
       }
 
-      // Update local state immediately
       setPosts(prevPosts => prevPosts.map(p => {
         if (p.id !== postId) return p;
 
@@ -164,14 +155,11 @@ export default function User_Explore() {
 
         if (!snapshot.empty) {
           if (snapshot.docs[0].data().type === type) {
-            // Undo
             if (type === 'up') votesUp--; else votesDown--;
           } else {
-            // Switch
             if (type === 'up') { votesUp++; votesDown--; } else { votesDown++; votesUp--; }
           }
         } else {
-          // First-time vote
           if (type === 'up') votesUp++; else votesDown++;
         }
 
@@ -184,7 +172,24 @@ export default function User_Explore() {
     }
   };
 
-  // Render post
+  const handleDownload = async (imageUrl) => {
+    try {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Permission Denied', 'Cannot save image without permission.');
+        return;
+      }
+
+      const fileUri = FileSystem.cacheDirectory + `${Date.now()}.jpg`;
+      const download = await FileSystem.downloadAsync(imageUrl, fileUri);
+      await MediaLibrary.saveToLibraryAsync(download.uri);
+      Alert.alert('Download Complete', 'Image has been saved to your gallery.');
+    } catch (error) {
+      console.error('Download error:', error);
+      Alert.alert('Error', 'Failed to download image.');
+    }
+  };
+
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <View style={styles.imagePlaceholder}>
@@ -192,13 +197,18 @@ export default function User_Explore() {
       </View>
 
       <View style={styles.postFooter}>
-        <Text style={styles.username}>@{item.uploadedBy}</Text>
+        <Text style={styles.username}>
+          @{item.uploadedBy}
+        </Text>
         <View style={styles.actions}>
           <TouchableOpacity style={styles.voteButton} onPress={() => handleVote(item.id, 'up')}>
             <Text style={styles.voteText}>👍 {item.votesUp}</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.voteButton} onPress={() => handleVote(item.id, 'down')}>
             <Text style={styles.voteText}>👎 {item.votesDown}</Text>
+          </TouchableOpacity>
+          <TouchableOpacity style={[styles.button, { paddingVertical: 6, paddingHorizontal: 12 }]} onPress={() => handleDownload(item.imageUrl)}>
+            <Text style={[styles.buttonText, { fontSize: 14 }]}>Download</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -209,11 +219,11 @@ export default function User_Explore() {
     <View style={styles.container}>
       {/* Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, { marginRight: 15, backgroundColor: '#000' }]} onPress={handleSelectPhoto}>
+        <TouchableOpacity style={[styles.button, { marginRight: 15 }]} onPress={handleSelectPhoto}>
           <Text style={styles.buttonText}>Upload</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity style={[styles.button, { backgroundColor: '#000' }]} onPress={() => navigation.navigate('User_RankingPage')}>
+        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('User_RankingPage')}>
           <Text style={styles.buttonText}>Ranking</Text>
         </TouchableOpacity>
       </View>
@@ -234,10 +244,10 @@ export default function User_Explore() {
           <View style={styles.modalBox}>
             {selectedImage && <Image source={{ uri: selectedImage }} style={{ width: 250, height: 250, borderRadius: 10, marginBottom: 20 }} />}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', width: '100%' }}>
-              <TouchableOpacity style={[styles.button, { marginRight: 10, backgroundColor: '#000', flex: 1 }]} onPress={() => setModalPreviewVisible(false)}>
+              <TouchableOpacity style={[styles.button, { marginRight: 10, flex: 1 }]} onPress={() => setModalPreviewVisible(false)}>
                 <Text style={[styles.buttonText, { textAlign: 'center' }]}>Back</Text>
               </TouchableOpacity>
-              <TouchableOpacity style={[styles.button, { backgroundColor: '#000', flex: 1 }]} onPress={handleUploadPhoto}>
+              <TouchableOpacity style={[styles.button, { flex: 1 }]} onPress={handleUploadPhoto}>
                 <Text style={[styles.buttonText, { textAlign: 'center' }]}>Upload</Text>
               </TouchableOpacity>
             </View>
@@ -250,7 +260,7 @@ export default function User_Explore() {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             <Text style={styles.modalText}>Photo Uploaded Successfully!</Text>
-            <TouchableOpacity style={[styles.button, { marginTop: 20, backgroundColor: '#000', alignSelf: 'flex-end' }]} onPress={() => setModalUploadSuccessVisible(false)}>
+            <TouchableOpacity style={[styles.button, { marginTop: 20, alignSelf: 'flex-end' }]} onPress={() => setModalUploadSuccessVisible(false)}>
               <Text style={styles.buttonText}>Ok</Text>
             </TouchableOpacity>
           </View>
@@ -269,9 +279,9 @@ const styles = StyleSheet.create({
   postContainer: { marginBottom: 20, backgroundColor: '#fff', borderRadius: 10, padding: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, elevation: 2 },
   imagePlaceholder: { width: '100%', height: 200, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
   postFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-  username: { fontSize: 16, fontWeight: '600', color: '#333' },
+  username: { fontSize: 16, fontWeight: '600', color: '#333', flex: 1 },
   actions: { flexDirection: 'row', alignItems: 'center' },
-  voteButton: { marginHorizontal: 5 },
+  voteButton: { marginHorizontal: 5, alignItems: 'center' },
   voteText: { fontSize: 18 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center', position: 'relative' },
