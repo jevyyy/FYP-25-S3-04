@@ -183,7 +183,7 @@ export default function User_Explore() {
       const fileUri = FileSystem.cacheDirectory + `${Date.now()}.jpg`;
       const download = await FileSystem.downloadAsync(imageUrl, fileUri);
       await MediaLibrary.saveToLibraryAsync(download.uri);
-      Alert.alert('Download Complete', 'Image has been saved to your gallery.');
+      Alert.alert('Download', 'Image Has Been Downloaded!');
     } catch (error) {
       console.error('Download error:', error);
       Alert.alert('Error', 'Failed to download image.');
