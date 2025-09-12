@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image } from 'react-native';
-import { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, doc, setDoc, updateDoc, increment } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { app } from '../../firebaseConfig';
@@ -66,6 +66,7 @@ export default function User_QuizPage({ navigation }) {
     const points = result === 'correct' ? 3 : 0;
 
     try {
+      // Save quiz result
       await addDoc(collection(db, 'quizResults'), {
         userId: currentUser.uid,
         username: currentUser.displayName || currentUser.email || 'Anonymous',
@@ -78,7 +79,20 @@ export default function User_QuizPage({ navigation }) {
         points,
         createdAt: serverTimestamp(),
       });
-    } catch {
+
+      // Ensure user doc exists (username only)
+      const userRef = doc(db, 'users', currentUser.uid);
+      await setDoc(userRef, {
+        username: currentUser.displayName || currentUser.email || 'Anonymous',
+      }, { merge: true });
+
+      // Increment totalPoints safely
+      await updateDoc(userRef, {
+        totalPoints: increment(points)
+      });
+
+    } catch (err) {
+      console.error(err);
       Alert.alert('Error', 'Failed to save your quiz result.');
     }
   };
@@ -95,7 +109,6 @@ export default function User_QuizPage({ navigation }) {
 
   return (
     <View style={styles.container}>
-
       {/* Top Right Ranking Button */}
       <View style={styles.topRow}>
         <TouchableOpacity style={styles.rankingButton} onPress={goToRanking}>
@@ -116,7 +129,7 @@ export default function User_QuizPage({ navigation }) {
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             {!question ? (
-              <Text>Coming Soon{'\n'}No quiz available at this moment. </Text>
+              <Text>Coming Soon{'\n'}No quiz available at this moment.</Text>
             ) : !quizResult ? (
               <>
                 {question.imageUrl && (

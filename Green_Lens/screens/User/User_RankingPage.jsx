@@ -1,7 +1,7 @@
 // ./screens/User/User_RankingPage.jsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator } from 'react-native';
-import { getFirestore, collection, query, orderBy, getDocs } from 'firebase/firestore';
+import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
 import { app } from '../../firebaseConfig';
 
 const db = getFirestore(app);
@@ -11,50 +11,30 @@ export default function User_RankingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const fetchLeaderboard = async () => {
-      try {
-        // Assume you store each quiz result in 'quizResults' collection with a 'points' field
-        const resultsSnapshot = await getDocs(collection(db, 'quizResults'));
+    const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
+      const users = snapshot.docs.map(doc => ({
+        userId: doc.id,
+        username: doc.data().username || 'Anonymous',
+        pt: doc.data().totalPoints || 0,
+      }));
 
-        // Aggregate total points per user
-        const userScores = {};
-        resultsSnapshot.forEach(doc => {
-          const data = doc.data();
-          const userId = data.userId;
-          if (!userScores[userId]) {
-            userScores[userId] = {
-              username: data.username || 'Anonymous',
-              totalPoints: 0,
-            };
-          }
-          userScores[userId].totalPoints += data.points || 0;
-        });
+      // Sort by points descending
+      users.sort((a, b) => b.pt - a.pt);
 
-        // Convert object to array and sort by totalPoints descending
-        const sortedUsers = Object.entries(userScores)
-          .map(([userId, info], index) => ({
-            rank: 0, // temporary, will update below
-            userId,
-            username: info.username,
-            pt: info.totalPoints,
-          }))
-          .sort((a, b) => b.pt - a.pt);
+      // Assign rank
+      users.forEach((user, index) => {
+        user.rank = index + 1;
+      });
 
-        // Assign rank based on sorted order
-        sortedUsers.forEach((user, idx) => {
-          user.rank = idx + 1;
-        });
+      // Only top 10
+      setTopUsers(users.slice(0, 10));
+      setLoading(false);
+    }, (error) => {
+      console.error('Error fetching leaderboard:', error);
+      setLoading(false);
+    });
 
-        // Only top 10 users
-        setTopUsers(sortedUsers.slice(0, 10));
-      } catch (err) {
-        console.error('Error fetching leaderboard:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchLeaderboard();
+    return () => unsubscribe(); // Cleanup on unmount
   }, []);
 
   const renderItem = ({ item }) => (
@@ -75,7 +55,7 @@ export default function User_RankingPage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.title}>Leaderboard</Text>
+      <Text style={styles.title}>Ranking</Text>
       <FlatList
         data={topUsers}
         keyExtractor={(item) => item.userId}
