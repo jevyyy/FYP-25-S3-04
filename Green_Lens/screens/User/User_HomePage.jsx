@@ -8,6 +8,7 @@ import { useNavigation } from '@react-navigation/native';
 
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
+  const navigation = useNavigation(); // ✅ navigation access
 
   useEffect(() => {
     (async () => {
@@ -35,6 +36,9 @@ function ImagePreview({ onSelectImage }) {
       const uri = result.assets[0].uri;
       setLastPhotoUri(uri);
       onSelectImage(uri);
+
+      // ✅ Navigate to User_ViewSummaryPage
+      navigation.navigate('User_ViewSummary', { photoUri: uri });
     }
   };
 
@@ -74,7 +78,7 @@ export default function User_HomePage() {
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
 
-        // Pass 'from' as 'user' so burger menu knows
+        // ✅ Navigate to User_ViewSummaryPage
         navigation.navigate('User_ViewSummary', { photoUri: photo.uri });
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
