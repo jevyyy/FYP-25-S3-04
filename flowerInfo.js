@@ -1,7 +1,7 @@
-import { app } from './firebaseConfig.js';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import { app, db } from './firebaseConfig.js';
+import { getFirestore, collection, addDoc, setDoc } from 'firebase/firestore';
 
-const db = getFirestore(app);
+// const db = getFirestore(app);
 
 const flowersInfo =[
   {
@@ -66,15 +66,32 @@ const flowersInfo =[
   }
 ]
 
+// async function loadFlowerIntoDB() {
+//   const collectionRef = db.collection('flowersInfo');
+  
+//   for (const flower of flowersInfo) {
+//     await collectionRef.doc(flower.id).set(flower);
+//     console.log(`Added ${flower.name} to Firestore`);
+//   }
+  
+//   console.log('All flowers uploaded successfully!');
+// }
+
+// loadFlowerIntoDB().catch(console.error);
+
 async function loadFlowerIntoDB() {
-  const collectionRef = db.collection('flowersInfo');
-  
-  for (const flower of flowersInfo) {
-    await collectionRef.doc(flower.id).set(flower);
-    console.log(`Added ${flower.name} to Firestore`);
+  try {
+    for (const flower of flowersInfo) {
+      // Create a reference to the document with the custom ID
+      const docRef = doc(db, 'flowersInfo', flower.id);
+      // Set the document data
+      await setDoc(docRef, flower);
+      console.log(`Added ${flower.name} to Firestore`);
+    }
+    console.log('🎉 All flowers uploaded successfully!');
+  } catch (error) {
+    console.error('❌ Error uploading flowers:', error);
   }
-  
-  console.log('All flowers uploaded successfully!');
 }
 
-loadFlowerIntoDB().catch(console.error);
+loadFlowerIntoDB();

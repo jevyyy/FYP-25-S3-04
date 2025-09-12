@@ -2,6 +2,7 @@
 import { initializeApp } from 'firebase/app';
 import { getStorage } from 'firebase/storage';
 import { getAuth } from 'firebase/auth'; // <-- add this
+import { getFirestore } from 'firebase/firestore'; // <-- Import Firestore
 
 const firebaseConfig = {
   apiKey: "AIzaSyCmkDsnfj2oUaL5Sm4xY4uBvS-mH6flA1g",
@@ -15,9 +16,10 @@ const firebaseConfig = {
 const app = initializeApp(firebaseConfig);
 const storage = getStorage(app);
 const auth = getAuth(app); // <-- initialize auth
+const db = getFirestore(app); // <-- Initialize Firestore
 
-export { storage, auth }; // <-- export auth too
-
+// export { storage, auth }; // <-- export auth too
+export { app, storage, auth, db }; // <-- Export 'app' and 'db'
 
 
 /* // use it when want to push question into database
