@@ -73,16 +73,17 @@ export default function User_QuizPage({ navigation }) {
 
       // Fetch existing username from Firestore
       const userSnap = await getDoc(userRef);
-      const savedUsername = userSnap.exists() && userSnap.data().username
-        ? userSnap.data().username
-        : currentUser.displayName || currentUser.email || 'Anonymous';
+      const savedUsername =
+        userSnap.exists() && userSnap.data().username
+          ? userSnap.data().username
+          : currentUser.displayName || currentUser.email || 'Anonymous';
 
       // Save quiz result in 'quizResults' collection
       await addDoc(collection(db, 'quizResults'), {
         userId: currentUser.uid,
         email: currentUser.email || 'anonymous@example.com',
         name: currentUser.displayName || '',
-        username: savedUsername,  // preserve original username
+        username: savedUsername, // preserve username
         category: selectedCategory,
         questionId: question.id,
         answer,
@@ -92,18 +93,23 @@ export default function User_QuizPage({ navigation }) {
         createdAt: serverTimestamp(),
       });
 
-      // Ensure user document exists in 'users' collection
-      await setDoc(userRef, {
-        email: currentUser.email || 'anonymous@example.com',
-        name: currentUser.displayName || '',
-        totalPoints: 0, // initialize if missing
-      }, { merge: true });
+      // Ensure user document exists but DON'T reset totalPoints
+      await setDoc(
+        userRef,
+        {
+          email: currentUser.email || 'anonymous@example.com',
+          name: currentUser.displayName || '',
+          username: savedUsername,
+        },
+        { merge: true }
+      );
 
       // Increment totalPoints safely
-      await updateDoc(userRef, {
-        totalPoints: increment(points)
-      });
-
+      if (points > 0) {
+        await updateDoc(userRef, {
+          totalPoints: increment(points),
+        });
+      }
     } catch (err) {
       console.error(err);
       Alert.alert('Error', 'Failed to save your quiz result.');
@@ -122,14 +128,12 @@ export default function User_QuizPage({ navigation }) {
 
   return (
     <View style={styles.container}>
-      {/* Top Right Ranking Button */}
       <View style={styles.topRow}>
         <TouchableOpacity style={styles.rankingButton} onPress={goToRanking}>
           <Text style={styles.rankingButtonText}>Ranking</Text>
         </TouchableOpacity>
       </View>
 
-      {/* Category Buttons */}
       <View style={styles.categoryContainer}>
         {['Flower', 'Plant', 'Architecture'].map((cat) => (
           <TouchableOpacity key={cat} style={styles.categoryButton} onPress={() => handlePressCategory(cat)}>
