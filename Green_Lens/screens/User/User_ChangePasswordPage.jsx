@@ -2,44 +2,56 @@
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { getAuth, EmailAuthProvider, reauthenticateWithCredential, updatePassword } from 'firebase/auth';
 
 export default function User_ChangePasswordPage() {
   const navigation = useNavigation();
+  const auth = getAuth();
+
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
   const [modalVisible, setModalVisible] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // ✅ Password strength check using single regex
+  // ✅ Password strength check
   const validatePassword = (password) => {
     const strongPassword =
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
 
     if (!strongPassword.test(password)) {
-      return '*Password too weak (at least 8 chars, include uppercase, lowercase, number & special character)';
+      return '*Password too weak (min 8 chars, uppercase, lowercase, number & special char)';
     }
     return null;
   };
 
-  const handleSubmit = () => {
+  const handleSubmit = async () => {
     let newErrors = {};
 
-    // Dummy current password check
-    if (currentPassword !== '#User1234') {
-      newErrors.currentPassword = '*Incorrect Password';
-    }
-
+    // Validate new password
     const passwordError = validatePassword(newPassword);
     if (passwordError) newErrors.newPassword = passwordError;
 
     if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = '*Password Do Not Match';
+      newErrors.confirmPassword = '*Passwords do not match';
     }
 
     setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
 
-    if (Object.keys(newErrors).length === 0) {
+    if (!auth.currentUser || !auth.currentUser.email) {
+      alert('No logged-in user found.');
+      return;
+    }
+
+    try {
+      // Re-authenticate user
+      const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+      await reauthenticateWithCredential(auth.currentUser, credential);
+
+      // Update password
+      await updatePassword(auth.currentUser, newPassword);
+
       // Clear input fields
       setCurrentPassword('');
       setNewPassword('');
@@ -47,12 +59,18 @@ export default function User_ChangePasswordPage() {
 
       // Show success modal
       setModalVisible(true);
+    } catch (err) {
+      console.error(err);
+      if (err.code === 'auth/wrong-password') {
+        setErrors({ currentPassword: '*Incorrect current password' });
+      } else {
+        alert('Error changing password: ' + err.message);
+      }
     }
   };
 
-  // ✅ Cancel / Return navigation
   const handleCancelOrReturn = () => {
-    setModalVisible(false); // close modal if open
+    setModalVisible(false);
     navigation.navigate('UserFlow', { screen: 'SettingPage' });
   };
 
@@ -114,7 +132,7 @@ export default function User_ChangePasswordPage() {
       >
         <View style={styles.modalBackground}>
           <View style={styles.modalContainer}>
-            <Text style={styles.modalText}>Password Has Been Changed</Text>
+            <Text style={styles.modalText}>Password Has Been Changed Successfully</Text>
             <TouchableOpacity style={styles.modalButton} onPress={handleCancelOrReturn}>
               <Text style={styles.buttonText}>Return</Text>
             </TouchableOpacity>
