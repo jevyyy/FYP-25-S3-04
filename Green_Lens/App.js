@@ -18,7 +18,7 @@ import User_QuizPage from './screens/User/User_QuizPage';
 import Guest_ViewSummaryPage from './screens/Guest/Guest_ViewSummaryPage';
 import User_ViewSummaryPage from './screens/User/User_ViewSummaryPage';
 import FeedbackPage from './screens/FeedbackPage';
-import SettingPage from './screens/SettingPage';
+import SettingPage from './screens/User/User_SettingsPage';
 import User_ChangePasswordPage from './screens/User/User_ChangePasswordPage';
 import User_RewardPage from './screens/User/User_RewardPage';
 
