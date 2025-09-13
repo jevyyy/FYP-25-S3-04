@@ -1,6 +1,6 @@
 // ./screens/User/Forgot_PasswordPage.jsx
-import React, { useState, useEffect } from 'react';
-import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image, Linking } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { auth } from '../firebaseConfig';
 import { sendPasswordResetEmail, confirmPasswordReset } from 'firebase/auth';
@@ -11,7 +11,7 @@ export default function Forgot_PasswordPage({ route }) {
   const [newPassword, setNewPassword] = useState('');
 
   // If your app handles deep links, the oobCode can be passed via route.params
-  const { oobCode } = route.params || {};
+  const { oobCode } = route.params || {}; 
 
   const validatePassword = (password) => {
     const strongPassword =
@@ -32,6 +32,7 @@ export default function Forgot_PasswordPage({ route }) {
     try {
       await sendPasswordResetEmail(auth, email);
 
+      // Show alert and navigate back to login
       Alert.alert(
         'Success',
         'Password reset link sent to your email!',
@@ -76,22 +77,6 @@ export default function Forgot_PasswordPage({ route }) {
       Alert.alert('Error', error.message);
     }
   };
-
-  // Optional: handle deep link (if user opens "greenlens://reset-password?oobCode=...")
-  useEffect(() => {
-    const handleLink = (event) => {
-      const url = event.url;
-      const match = url.match(/oobCode=([^&]+)/);
-      if (match && match[1]) {
-        const code = match[1];
-        // Pass code to route params or state
-        // You can update state or navigate to this page with oobCode
-      }
-    };
-
-    Linking.addEventListener('url', handleLink);
-    return () => Linking.removeEventListener('url', handleLink);
-  }, []);
 
   return (
     <View style={styles.container}>
