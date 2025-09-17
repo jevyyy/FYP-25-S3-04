@@ -1,14 +1,12 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, Platform, Linking } from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, Platform, Linking, Share } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import * as Sharing from 'expo-sharing';
-import * as FileSystem from 'expo-file-system';
 
 export default function Guest_ViewSummaryPage({ route }) {
   const { photoUri } = route.params || {}; // Only camera/photo URL
   const objectName = "Sunflower"; // ✅ Renamed from plantName to objectName
 
-  // Share function
+  // Share function (text + photo link)
   const handleShare = async () => {
     if (!photoUri) {
       Alert.alert('No photo available to share');
@@ -16,28 +14,12 @@ export default function Guest_ViewSummaryPage({ route }) {
     }
 
     try {
-      const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        Alert.alert('Sharing is not available on this device');
-        return;
-      }
-
-      let shareUri = photoUri;
-
-      // On Android, copy to cache to avoid permission issues
-      if (Platform.OS === 'android' && !photoUri.startsWith(FileSystem.cacheDirectory)) {
-        const fileName = photoUri.split('/').pop();
-        const cacheUri = FileSystem.cacheDirectory + fileName;
-        await FileSystem.copyAsync({ from: photoUri, to: cacheUri });
-        shareUri = cacheUri;
-      }
-
-      await Sharing.shareAsync(shareUri, {
-        dialogTitle: 'Check out this photo from Green Lens!',
+      await Share.share({
+        message: `🌻 Check out this ${objectName} I identified with Green Lens!\n\n${photoUri}`,
       });
     } catch (error) {
       console.log('Error sharing:', error);
-      Alert.alert('Error sharing photo', error.message);
+      Alert.alert('Error sharing', error.message);
     }
   };
 
@@ -49,7 +31,7 @@ export default function Guest_ViewSummaryPage({ route }) {
     }
     const query = encodeURIComponent(objectName);
     const url = `https://www.google.com/search?q=${query}`;
-    Linking.openURL(url).catch((err) => 
+    Linking.openURL(url).catch((err) =>
       Alert.alert('Error', 'Failed to open browser: ' + err.message)
     );
   };
