@@ -30,6 +30,13 @@ export default function User_Login() {
       }
 
       const userData = querySnapshot.docs[0].data();
+
+      // ✅ Check role
+      if (!userData.role || userData.role !== 'user') {
+        Alert.alert('Access Denied', 'Your account does not have user access');
+        return;
+      }
+
       const email = userData.email;
 
       // Sign in with Firebase Auth

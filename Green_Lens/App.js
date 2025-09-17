@@ -11,6 +11,8 @@ import User_Login from './screens/User/User_Login';
 import User_Register from './screens/User/User_Register';
 import Forgot_PasswordPage from './screens/Forgot_PasswordPage';
 import Admin_Developer_LoginPage from './screens/Admin_&_Developer_LoginPage';
+import Admin_HomePage from './screens/Admin/Admin_HomePage'; 
+import Developer_HomePage from './screens/Developer/Developer_HomePage'; // add developer page
 import User_HomePage from './screens/User/User_HomePage';
 import User_Explore from './screens/User/User_Explore';
 import User_RankingPage from './screens/User/User_RankingPage';
@@ -32,7 +34,7 @@ const BurgerMenu = ({ navigation }) => (
   </TouchableOpacity>
 );
 
-// Guest Drawer
+// --- Guest Drawer ---
 function GuestDrawer() {
   return (
     <Drawer.Navigator
@@ -40,11 +42,7 @@ function GuestDrawer() {
       screenOptions={{
         drawerPosition: 'right',
         headerTitle: () => (
-          <Image
-            source={require('./assets/Green_Lens_logo.png')}
-            style={{ width: 120, height: 40 }}
-            resizeMode="contain"
-          />
+          <Image source={require('./assets/Green_Lens_logo.png')} style={{ width: 120, height: 40 }} resizeMode="contain" />
         ),
         headerStyle: { backgroundColor: '#fff' },
       }}
@@ -76,7 +74,7 @@ function GuestDrawer() {
   );
 }
 
-// User Drawer
+// --- User Drawer ---
 function UserDrawer() {
   return (
     <Drawer.Navigator
@@ -84,11 +82,7 @@ function UserDrawer() {
       screenOptions={{
         drawerPosition: 'right',
         headerTitle: () => (
-          <Image
-            source={require('./assets/Green_Lens_logo.png')}
-            style={{ width: 120, height: 40 }}
-            resizeMode="contain"
-          />
+          <Image source={require('./assets/Green_Lens_logo.png')} style={{ width: 120, height: 40 }} resizeMode="contain" />
         ),
         headerStyle: { backgroundColor: '#fff' },
       }}
@@ -164,7 +158,7 @@ function UserDrawer() {
   );
 }
 
-// Guest Login stack
+// --- Guest Login stack ---
 function LoginStack() {
   return (
     <Stack.Navigator>
@@ -192,7 +186,35 @@ function LoginStack() {
   );
 }
 
-// App
+// --- Admin Stack ---
+function AdminStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Admin_HomePage"
+        component={Admin_HomePage}
+        options={{ title: 'Admin Home' }}
+      />
+      {/* add other admin screens if needed */}
+    </Stack.Navigator>
+  );
+}
+
+// --- Developer Stack ---
+function DeveloperStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Developer_HomePage"
+        component={Developer_HomePage}
+        options={{ title: 'Developer Home' }}
+      />
+      {/* add other developer screens if needed */}
+    </Stack.Navigator>
+  );
+}
+
+// --- App ---
 export default function App() {
   return (
     <NavigationContainer>
@@ -201,6 +223,9 @@ export default function App() {
         <Stack.Screen name="GuestFlow" component={GuestDrawer} />
         {/* User flow */}
         <Stack.Screen name="UserFlow" component={UserDrawer} />
+        {/* Admin / Developer flow */}
+        <Stack.Screen name="AdminFlow" component={AdminStack} />
+        <Stack.Screen name="DeveloperFlow" component={DeveloperStack} />
         {/* Hidden pages not in drawer */}
         <Stack.Screen
           name="User_ChangePasswordPage"
