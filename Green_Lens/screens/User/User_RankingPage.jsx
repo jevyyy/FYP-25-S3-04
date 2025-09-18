@@ -12,11 +12,15 @@ export default function User_RankingPage() {
 
   useEffect(() => {
     const unsubscribe = onSnapshot(collection(db, 'users'), (snapshot) => {
-      const users = snapshot.docs.map(doc => ({
-        userId: doc.id,
-        username: doc.data().username || 'Anonymous',
-        pt: doc.data().totalPoints || 0,
-      }));
+      // Map and filter by role = "user"
+      const users = snapshot.docs
+        .map(doc => ({
+          userId: doc.id,
+          username: doc.data().username || 'Anonymous',
+          pt: doc.data().totalPoints || 0,
+          role: doc.data().role || 'user',
+        }))
+        .filter(user => user.role === 'user'); // <-- only include users with role "user"
 
       // Sort by points descending
       users.sort((a, b) => b.pt - a.pt);
