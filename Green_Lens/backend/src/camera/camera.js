@@ -316,24 +316,93 @@ let model = null;
 //   }
 // }
 
+// async function loadModel() {
+//   try {
+//     // Load from local path
+//     const modelPath = path.join(__dirname, 'tfjs_flower_model', 'model.json');
+//     model = await tf.loadLayersModel(`file://${modelPath}`);
+//     console.log('Model loaded successfully from local path');
+//     return model;
+//   } catch (error) {
+//     console.error('Error loading model:', error);
+//     throw error;
+//   }
+// }
+
+// // Load model when server starts
+// loadModel().catch(console.error);
+
+// // ...existing code for image processing and classification...
+
+// router.get('/test', async (req, res) => {
+//   if (!model) {
+//     return res.status(500).json({ error: 'Model not loaded yet' });
+//   }
+//   res.json({ status: 'Model loaded and ready' });
+// });
+
+// const path = require('path');
+
+
+
+
+
+
+
+
+// option 1 server can run but model just not loaded somehow, idek how its not loading everything is seemingly correct
+
+// async function loadModel() {
+//   const modelPath = path.join(__dirname, 'models', 'tfjs_flower_model', 'model.json');
+//   model = await tf.loadLayersModel(`file://${modelPath}`);
+//   return model;
+// }
+
+// const express = require('express');
+// const tf = require('@tensorflow/tfjs');
+// const path = require('path');
+
+// const router = express.Router();
+// let model = null;
+
+
+
+
+// option 2 but will have fetch error just from running server, idk how to fix
+
 async function loadModel() {
   try {
-    // Load from local path
     const modelPath = path.join(__dirname, 'tfjs_flower_model', 'model.json');
+    console.log('Attempting to load model from:', modelPath);
+    
     model = await tf.loadLayersModel(`file://${modelPath}`);
     console.log('Model loaded successfully from local path');
     return model;
   } catch (error) {
-    console.error('Error loading model:', error);
+    console.error('Detailed error:', error);
     throw error;
   }
 }
 
-// Load model when server starts
-loadModel().catch(console.error);
+// Load model immediately when this file is required
+(async () => {
+  try {
+    await loadModel();
+    console.log('Model initialization complete');
+  } catch (error) {
+    console.error('Model initialization failed:', error);
+  }
+})();
 
-// ...existing code for image processing and classification...
 
+
+
+
+
+
+
+
+// Add test endpoint
 router.get('/test', async (req, res) => {
   if (!model) {
     return res.status(500).json({ error: 'Model not loaded yet' });
