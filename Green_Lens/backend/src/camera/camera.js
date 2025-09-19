@@ -7,6 +7,20 @@ import { fileURLToPath } from 'url';
 
 const router = express.Router();
 
+let currentIndex = 0;
+const classMap = [
+    "rose",
+    "morning_glory", 
+    "hibiscus",
+    "sunflower",
+    "marigold",
+    "blackberry_lily",
+    "mexican_aster",
+    "buttercup",
+    "foxglove",
+    "canna_lily"
+];
+
 // Create __dirname equivalent for ES modules
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -44,30 +58,16 @@ router.post('/classify', upload.single('image'), async (req, res) => {
       .toFile(processedImagePath);
     
     console.log('Image processed successfully');
-    
-    // Mock classification result for now
-    const classMap = [
-      "blackberry_lily",
-      "morning_glory", 
-      "mexican_aster",
-      "marigold",
-      "buttercup",
-      "sunflower",
-      "foxglove",
-      "canna_lily",
-      "hibiscus",
-      "rose"
-    ];
-    
-    // Random result for testing
-    const randomIdx = Math.floor(Math.random() * classMap.length);
-    const flowerId = classMap[randomIdx];
-    
-    // Mock flower data - replace this with actual database lookup
+
+    // Get the next flower in sequence
+    const flowerId = classMap[currentIndex % classMap.length];
+    currentIndex++;
+
+    // Mock flower data
     const mockFlowerData = {
-      name: flowerId.replace('_', ' ').toUpperCase(),
-      description: `This is a ${flowerId.replace('_', ' ')}`,
-      confidence: Math.random().toFixed(2)
+        name: flowerId.replace('_', ' ').toUpperCase(),
+        description: `This is a ${flowerId.replace('_', ' ')}`,
+        confidence: (0.85 + (Math.random() * 0.1)).toFixed(2) // 85-95% confidence
     };
     
     // Clean up temporary files

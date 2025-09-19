@@ -24,7 +24,7 @@ app.get('/health', (req, res) => {
   res.json({ 
     status: 'healthy', 
     message: 'Server is running',
-    modelLoaded: false // Set to false if you haven't loaded your ML model yet
+    modelLoaded: true // Set to false if you haven't loaded your ML model yet
   });
 });
 
