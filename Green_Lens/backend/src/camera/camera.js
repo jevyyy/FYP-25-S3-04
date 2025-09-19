@@ -299,16 +299,29 @@ let model = null;
 //   }
 // }
 
+// async function loadModel() {
+//   try {
+//     const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/green-lens-47e9b.firebasestorage.app/o';
+    
+//     // Pass the input shape directly to the loading function
+//     model = await tf.loadLayersModel(`${baseUrl}/tfjs_flower_model%2Fmodel.json?alt=media`, {
+//       inputShapes: [[null, 224, 224, 3]]  // [batch_size, height, width, channels]
+//     });
+    
+//     console.log('Model loaded successfully from Firebase Storage');
+//     return model;
+//   } catch (error) {
+//     console.error('Error loading model:', error);
+//     throw error;
+//   }
+// }
+
 async function loadModel() {
   try {
-    const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/green-lens-47e9b.firebasestorage.app/o';
-    
-    // Pass the input shape directly to the loading function
-    model = await tf.loadLayersModel(`${baseUrl}/tfjs_flower_model%2Fmodel.json?alt=media`, {
-      inputShapes: [[null, 224, 224, 3]]  // [batch_size, height, width, channels]
-    });
-    
-    console.log('Model loaded successfully from Firebase Storage');
+    // Load from local path
+    const modelPath = path.join(__dirname, 'tfjs_flower_model', 'model.json');
+    model = await tf.loadLayersModel(`file://${modelPath}`);
+    console.log('Model loaded successfully from local path');
     return model;
   } catch (error) {
     console.error('Error loading model:', error);
