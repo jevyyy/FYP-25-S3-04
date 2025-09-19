@@ -249,14 +249,63 @@ let model = null;
 //   }
 // }
 
+// async function loadModel() {
+//   try {
+//     const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/green-lens-47e9b.firebasestorage.app/o';
+    
+//     // Specify input shape when loading model
+//     model = await tf.loadLayersModel(`${baseUrl}/tfjs_flower_model%2Fmodel.json?alt=media`, {
+//       strict: false,
+//       batchInputShape: [null, 224, 224, 3] // [batch_size, height, width, channels]
+//     });
+    
+//     console.log('Model loaded successfully from Firebase Storage');
+//     return model;
+//   } catch (error) {
+//     console.error('Error loading model:', error);
+//     throw error;
+//   }
+// }
+
+// async function loadModel() {
+//   try {
+//     const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/green-lens-47e9b.firebasestorage.app/o';
+    
+//     // Create a model first with input shape defined
+//     const inputShape = [224, 224, 3]; // height, width, channels
+//     const input = tf.input({shape: inputShape});
+    
+//     // Load weights from the model JSON
+//     model = await tf.loadLayersModel(`${baseUrl}/tfjs_flower_model%2Fmodel.json?alt=media`, {
+//       strict: false
+//     });
+    
+//     console.log('Model loaded successfully from Firebase Storage');
+//     return model;
+//   } catch (error) {
+//     console.error('Error loading model:', error);
+    
+//     // Try loading from local path as fallback
+//     try {
+//       console.log('Attempting to load model from local path...');
+//       const modelPath = path.join(__dirname, 'tfjs_flower_model', 'model.json');
+//       model = await tf.loadLayersModel(`file://${modelPath}`);
+//       console.log('Model loaded successfully from local path');
+//       return model;
+//     } catch (localError) {
+//       console.error('Error loading local model:', localError);
+//       throw error; // Throw the original error
+//     }
+//   }
+// }
+
 async function loadModel() {
   try {
     const baseUrl = 'https://firebasestorage.googleapis.com/v0/b/green-lens-47e9b.firebasestorage.app/o';
     
-    // Specify input shape when loading model
+    // Pass the input shape directly to the loading function
     model = await tf.loadLayersModel(`${baseUrl}/tfjs_flower_model%2Fmodel.json?alt=media`, {
-      strict: false,
-      batchInputShape: [null, 224, 224, 3] // [batch_size, height, width, channels]
+      inputShapes: [[null, 224, 224, 3]]  // [batch_size, height, width, channels]
     });
     
     console.log('Model loaded successfully from Firebase Storage');
