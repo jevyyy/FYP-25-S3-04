@@ -8,5 +8,5 @@ import tensorflowjs as tfjs
 model = tf.keras.models.load_model('flower_img_classifier.keras')
 
 # Convert and save as TFJS format
-tfjs.converters.save_keras_model(model, 'tfjs_model.keras')
+tfjs.converters.save_keras_model(model, 'tfjs_flower_model')
 print("Model converted and saved to ../tfjs_model")

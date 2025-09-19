@@ -90,42 +90,42 @@
 
 
 
-const admin = require('firebase-admin');
-const fs = require('fs');
-const path = require('path');
+// const admin = require('firebase-admin');
+// const fs = require('fs');
+// const path = require('path');
 
-admin.initializeApp({
-  credential: admin.credential.applicationDefault(),
-  storageBucket: 'gs://green-lens-47e9b.firebasestorage.app', 
-});
+// admin.initializeApp({
+//   credential: admin.credential.applicationDefault(),
+//   storageBucket: 'gs://green-lens-47e9b.firebasestorage.app', 
+// });
 
-const bucket = admin.storage().bucket();
-const modelDir = path.join(__dirname, 'tfjs_flower_model');
+// const bucket = admin.storage().bucket();
+// const modelDir = path.join(__dirname, '../camera/tfjs_flower_model');
 
-async function uploadModel() {
-  const files = fs.readdirSync(modelDir);
-  for (const file of files) {
-    const filePath = path.join(modelDir, file);
-    await bucket.upload(filePath, {
-      destination: `tfjs_model/${file}`,
-      public: true, // Optional: make public for easy access
-    });
-    console.log(`Uploaded ${file}`);
-  }
-}
+// async function uploadModel() {
+//   const files = fs.readdirSync(modelDir);
+//   for (const file of files) {
+//     const filePath = path.join(modelDir, file);
+//     await bucket.upload(filePath, {
+//       destination: `tfjs_flower_model/${file}`,
+//       public: true, // Optional: make public for easy access
+//     });
+//     console.log(`Uploaded ${file}`);
+//   }
+// }
 
-uploadModel().catch(console.error);
+// uploadModel().catch(console.error);
 
 // the one above is another file: upload_model_to_storage.js
 
-// Download model files from Firebase Storage if not present or if a new version is available.
-// Load the model from the downloaded files.
-// Use the loaded model for prediction.
-// Key points:
+Download model files from Firebase Storage if not present or if a new version is available.
+Load the model from the downloaded files.
+Use the loaded model for prediction.
+Key points:
 
-// Use a local cache directory for the model.
-// On server start or when a new version is detected, download from Firebase Storage.
-// This prevents model theft from the client, as the model is never sent to the frontend.
+Use a local cache directory for the model.
+On server start or when a new version is detected, download from Firebase Storage.
+This prevents model theft from the client, as the model is never sent to the frontend.
 
 const express = require('express');
 const multer = require('multer');

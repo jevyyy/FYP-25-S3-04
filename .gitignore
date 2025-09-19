@@ -1,1 +1,85 @@
-node_modules
+# Dependencies
+node_modules/
+package-lock.json
+
+# Environment Variables
+.env
+.env.local
+.env.*
+.env.development.local
+.env.test.local
+.env.production.local
+
+# Firebase Credentials
+*firebase-adminsdk*.json
+*green-lens-47e9b-firebase-adminsdk-fbsvc-a06f0c947b.json
+*green-lens-*.json
+firebaseConfig.js
+
+# Expo
+.expo/
+.expo-shared/
+dist/
+web-build/
+expo-env.d.ts
+
+# Native
+.kotlin/
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+
+# Debug & Logs
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+*.log
+.metro-health-check*
+
+# IDE - VSCode
+.vscode/*
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+
+# OS Generated
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+develop-eggs/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ML Models (optional - uncomment if you don't want to track model files)
+# *.keras
+# *.h5
+# backend/src/camera/tfjs_flower_model/
+
+# TypeScript
+*.tsbuildinfo
