@@ -1,6 +1,11 @@
 {
   "dependencies": {
     "@react-native-firebase/app": "^23.3.1",
-    "@react-native-firebase/storage": "^23.3.1"
+    "@react-native-firebase/storage": "^23.3.1",
+    "@tensorflow/tfjs": "^4.22.0",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.5.0",
+    "multer": "^2.0.2",
+    "sharp": "^0.34.4"
   }
 }
