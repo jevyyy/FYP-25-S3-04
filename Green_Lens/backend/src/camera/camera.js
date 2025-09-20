@@ -394,7 +394,21 @@ async function loadModel() {
   }
 })();
 
+// option 3 havent test yet but its after c++ development build
+// npm install @tensorflow/tfjs-node
 
+async function loadModel() {
+  try {
+    // Load from local path
+    const modelPath = path.join(__dirname, 'tfjs_flower_model', 'model.json');
+    model = await tf.loadLayersModel(`file://${modelPath}`);
+    console.log('Model loaded successfully from local path');
+    return model;
+  } catch (error) {
+    console.error('Error loading model:', error);
+    throw error;
+  }
+}
 
 
 
