@@ -639,21 +639,154 @@
 
 
 
+// const express = require('express');
+// const tf = require('@tensorflow/tfjs-node'); // Using the C++ accelerated version
+// const admin = require('firebase-admin');
+// const axios = require('axios');
+// const path = require('path');
+// const fs = require('fs');
+
+// const router = express.Router();
+// let model = null;
+
+// // --- 1. SECURELY INITIALIZE FIREBASE ADMIN ---
+// try {
+//     const serviceAccountPath = path.join(__dirname, '..', '..', 'service-account.json');
+//     if (!fs.existsSync(serviceAccountPath)) {
+//         throw new Error(`'service-account.json' not found in the 'backend' folder. Please download it from your Firebase project settings.`);
+//     }
+//     const serviceAccount = require(serviceAccountPath);
+//     admin.initializeApp({
+//         credential: admin.credential.cert(serviceAccount),
+//         storageBucket: 'green-lens-47e9b.firebasestorage.app'
+//     });
+// } catch (e) {
+//     console.error("FATAL: Firebase Admin SDK initialization failed.", e.message);
+// }
+
+// // --- 2. SECURELY LOAD THE MODEL ON THE SERVER AT STARTUP ---
+// async function loadModelFromServer() {
+//     if (!admin.apps.length) {
+//         console.error("Cannot load model, Firebase Admin is not initialized.");
+//         return;
+//     }
+//     try {
+//         console.log('Loading model from Firebase Storage into server memory...');
+//         const bucket = admin.storage().bucket();
+        
+//         // Download model files into memory buffers
+//         const modelJsonPromise = bucket.file('tfjs_flower_model/model.json').download();
+//         const weights1Promise = bucket.file('tfjs_flower_model/group1-shard1of3.bin').download();
+//         const weights2Promise = bucket.file('tfjs_flower_model/group1-shard2of3.bin').download();
+//         const weights3Promise = bucket.file('tfjs_flower_model/group1-shard3of3.bin').download();
+
+//         const [
+//             modelJsonBuffer,
+//             weights1Buffer,
+//             weights2Buffer,
+//             weights3Buffer
+//         ] = await Promise.all([modelJsonPromise, weights1Promise, weights2Promise, weights3Promise]);
+
+//         // Create an in-memory IO handler for TensorFlow.js
+//         const modelJson = JSON.parse(modelJsonBuffer[0].toString());
+//         const weights = [
+//             weights1Buffer[0].buffer,
+//             weights2Buffer[0].buffer,
+//             weights3Buffer[0].buffer
+//         ];
+//         const memoryHandler = tf.io.fromMemory(modelJson, weights);
+        
+//         // Load the model from the in-memory handler
+//         model = await tf.loadLayersModel(memoryHandler);
+//         console.log('Model loaded successfully and is ready for predictions.');
+
+//     } catch (error) {
+//         console.error('CRITICAL: Failed to load model from Firebase Storage.', error);
+//     }
+// }
+
+// // --- 3. PREPROCESS THE USER'S IMAGE ---
+// async function preprocessImage(imageBuffer) {
+//     const tensor = tf.node.decodeImage(imageBuffer, 3) // Decode image to a tensor
+//         .resizeNearestNeighbor([224, 224]) // Resize to model's expected input size
+//         .toFloat()
+//         .div(tf.scalar(255.0)) // Normalize pixel values to [0, 1]
+//         .expandDims(); // Add a batch dimension
+//     return tensor;
+// }
+
+// // --- 4. THE CLASSIFICATION API ENDPOINT ---
+// router.post('/classify', async (req, res) => {
+//     if (!model) {
+//         return res.status(503).json({ error: 'Model is not ready, please try again later.' });
+//     }
+//     const { imageUri } = req.body;
+//     if (!imageUri) {
+//         return res.status(400).json({ error: 'Missing "imageUri" in request body.' });
+//     }
+
+//     try {
+//         // Download the user's image from the provided URI
+//         const imageResponse = await axios.get(imageUri, { responseType: 'arraybuffer' });
+//         const imageBuffer = Buffer.from(imageResponse.data, 'binary');
+
+//         // Preprocess the image
+//         const inputTensor = await preprocessImage(imageBuffer);
+
+//         // Make a prediction
+//         const prediction = model.predict(inputTensor);
+        
+//         // Get the result
+//         const scores = await prediction.data();
+//         const predictedIndex = prediction.argMax(-1).dataSync()[0];
+//         const confidence = scores[predictedIndex];
+
+//         // Map the index to your flower names
+//         const classMap = [
+//             "blackberry_lily", "morning_glory", "mexican_aster", "marigold",
+//             "buttercup", "sunflower", "foxglove", "canna_lily", "hibiscus", "rose"
+//         ];
+//         const flowerName = classMap[predictedIndex];
+
+//         // Clean up tensors
+//         inputTensor.dispose();
+//         prediction.dispose();
+
+//         // Send the response
+//         res.json({
+//             flowerName: flowerName,
+//             confidence: confidence
+//         });
+
+//     } catch (err) {
+//         console.error("Error during classification:", err);
+//         res.status(500).json({ error: 'Failed to classify image.', details: err.message });
+//     }
+// });
+
+// // Start loading the model as soon as the server starts
+// loadModelFromServer();
+
+// module.exports = router;
+
+
+
+
 const express = require('express');
-const tf = require('@tensorflow/tfjs-node'); // Using the C++ accelerated version
+const tf = require('@tensorflow/tfjs');
 const admin = require('firebase-admin');
 const axios = require('axios');
 const path = require('path');
 const fs = require('fs');
+const sharp = require('sharp');
 
-const router = express.Router();
 let model = null;
 
 // --- 1. SECURELY INITIALIZE FIREBASE ADMIN ---
 try {
     const serviceAccountPath = path.join(__dirname, '..', '..', 'service-account.json');
     if (!fs.existsSync(serviceAccountPath)) {
-        throw new Error(`'service-account.json' not found in the 'backend' folder. Please download it from your Firebase project settings.`);
+        throw new Error(`'service-account.json' not found in the 'backend' folder.`);
     }
     const serviceAccount = require(serviceAccountPath);
     admin.initializeApp({
@@ -664,58 +797,60 @@ try {
     console.error("FATAL: Firebase Admin SDK initialization failed.", e.message);
 }
 
-// --- 2. SECURELY LOAD THE MODEL ON THE SERVER AT STARTUP ---
-async function loadModelFromServer() {
-    if (!admin.apps.length) {
-        console.error("Cannot load model, Firebase Admin is not initialized.");
-        return;
-    }
+// --- 2. FUNCTION TO LOAD THE MODEL ---
+// This will be called from server.js AFTER the server has started.
+async function initializeModel() {
+    if (model) return model; // If already loaded, do nothing.
+    if (!admin.apps.length) return null;
+
+    const tempDir = path.join(__dirname, 'temp_model_storage');
+    const modelJsonPath = path.join(tempDir, 'model.json');
+
     try {
-        console.log('Loading model from Firebase Storage into server memory...');
+        if (!fs.existsSync(tempDir)) fs.mkdirSync(tempDir, { recursive: true });
+
+        console.log('Downloading model files from Firebase to server...');
         const bucket = admin.storage().bucket();
         
-        // Download model files into memory buffers
-        const modelJsonPromise = bucket.file('tfjs_flower_model/model.json').download();
-        const weights1Promise = bucket.file('tfjs_flower_model/group1-shard1of3.bin').download();
-        const weights2Promise = bucket.file('tfjs_flower_model/group1-shard2of3.bin').download();
-        const weights3Promise = bucket.file('tfjs_flower_model/group1-shard3of3.bin').download();
+        await bucket.file('tfjs_flower_model/model.json').download({ destination: modelJsonPath });
+        const modelJson = JSON.parse(fs.readFileSync(modelJsonPath, 'utf8'));
 
-        const [
-            modelJsonBuffer,
-            weights1Buffer,
-            weights2Buffer,
-            weights3Buffer
-        ] = await Promise.all([modelJsonPromise, weights1Promise, weights2Promise, weights3Promise]);
+        for (const manifest of modelJson.weightsManifest) {
+            for (const weightPath of manifest.paths) {
+                const localWeightPath = path.join(tempDir, weightPath);
+                if (!fs.existsSync(localWeightPath)) { // Download only if it doesn't exist
+                    await bucket.file(`tfjs_flower_model/${weightPath}`).download({ destination: localWeightPath });
+                }
+            }
+        }
 
-        // Create an in-memory IO handler for TensorFlow.js
-        const modelJson = JSON.parse(modelJsonBuffer[0].toString());
-        const weights = [
-            weights1Buffer[0].buffer,
-            weights2Buffer[0].buffer,
-            weights3Buffer[0].buffer
-        ];
-        const memoryHandler = tf.io.fromMemory(modelJson, weights);
+        console.log('Files downloaded. Loading model from local HTTP endpoint...');
+        // THIS IS THE FIX: Load from the URL that server.js will create.
+        model = await tf.loadLayersModel('http://localhost:3000/model-files/model.json');
         
-        // Load the model from the in-memory handler
-        model = await tf.loadLayersModel(memoryHandler);
-        console.log('Model loaded successfully and is ready for predictions.');
+        console.log('SUCCESS: Model is loaded and ready for predictions.');
+        return model;
 
     } catch (error) {
-        console.error('CRITICAL: Failed to load model from Firebase Storage.', error);
+        console.error('CRITICAL: Failed to load model.', error);
+        return null;
     }
 }
 
 // --- 3. PREPROCESS THE USER'S IMAGE ---
 async function preprocessImage(imageBuffer) {
-    const tensor = tf.node.decodeImage(imageBuffer, 3) // Decode image to a tensor
-        .resizeNearestNeighbor([224, 224]) // Resize to model's expected input size
+    const { data, info } = await sharp(imageBuffer).raw().toBuffer({ resolveWithObject: true });
+    const tensor = tf.tensor3d(data, [info.height, info.width, info.channels])
+        .resizeNearestNeighbor([224, 224])
         .toFloat()
-        .div(tf.scalar(255.0)) // Normalize pixel values to [0, 1]
-        .expandDims(); // Add a batch dimension
+        .div(tf.scalar(255.0))
+        .expandDims();
     return tensor;
 }
 
-// --- 4. THE CLASSIFICATION API ENDPOINT ---
+// --- 4. CREATE THE ROUTER ---
+const router = express.Router();
+
 router.post('/classify', async (req, res) => {
     if (!model) {
         return res.status(503).json({ error: 'Model is not ready, please try again later.' });
@@ -726,37 +861,22 @@ router.post('/classify', async (req, res) => {
     }
 
     try {
-        // Download the user's image from the provided URI
         const imageResponse = await axios.get(imageUri, { responseType: 'arraybuffer' });
         const imageBuffer = Buffer.from(imageResponse.data, 'binary');
 
-        // Preprocess the image
         const inputTensor = await preprocessImage(imageBuffer);
-
-        // Make a prediction
         const prediction = model.predict(inputTensor);
-        
-        // Get the result
         const scores = await prediction.data();
         const predictedIndex = prediction.argMax(-1).dataSync()[0];
-        const confidence = scores[predictedIndex];
-
-        // Map the index to your flower names
-        const classMap = [
-            "blackberry_lily", "morning_glory", "mexican_aster", "marigold",
-            "buttercup", "sunflower", "foxglove", "canna_lily", "hibiscus", "rose"
-        ];
-        const flowerName = classMap[predictedIndex];
-
-        // Clean up tensors
-        inputTensor.dispose();
-        prediction.dispose();
-
-        // Send the response
+        
+        const classMap = ["blackberry_lily", "morning_glory", "mexican_aster", "marigold", "buttercup", "sunflower", "foxglove", "canna_lily", "hibiscus", "rose"];
+        
         res.json({
-            flowerName: flowerName,
-            confidence: confidence
+            flowerName: classMap[predictedIndex],
+            confidence: scores[predictedIndex]
         });
+
+        tf.dispose([inputTensor, prediction]);
 
     } catch (err) {
         console.error("Error during classification:", err);
@@ -764,7 +884,5 @@ router.post('/classify', async (req, res) => {
     }
 });
 
-// Start loading the model as soon as the server starts
-loadModelFromServer();
-
-module.exports = router;
+// Export both the function to load the model and the router itself
+module.exports = { initializeModel, cameraRoutes: router };

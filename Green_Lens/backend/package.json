@@ -9,5 +9,15 @@
   },
   "keywords": [],
   "author": "",
-  "license": "ISC"
+  "license": "ISC",
+  "dependencies": {
+    "@tensorflow/tfjs": "^4.22.0",
+    "@tensorflow/tfjs-node": "^4.22.0",
+    "axios": "^1.12.2",
+    "express": "^5.1.0",
+    "firebase-admin": "^13.5.0",
+    "install": "^0.13.0",
+    "npm": "^11.6.0",
+    "sharp": "^0.34.4"
+  }
 }
