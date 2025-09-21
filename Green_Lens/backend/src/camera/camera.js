@@ -163,27 +163,110 @@
 // // Load model when server starts
 // loadModel().catch(console.error);
 
-const express = require('express');
-const tf = require('@tensorflow/tfjs');
-const admin = require('firebase-admin');
-const multer = require('multer');
-const sharp = require('sharp');
-const path = require('path');
-const fs = require('fs');
 
-const router = express.Router();
 
 // Initialize Firebase Admin if not already initialized
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.applicationDefault(),
-    // storageBucket: 'green-lens-47e9b.appspot.com' // gs://green-lens-47e9b.firebasestorage.app
-    // storageBucket: 'green-lens-47e9b.firebasestorage.app' // gs://green-lens-47e9b.firebasestorage.app
-    storageBucket: 'green-lens-47e9b.firebasestorage.app'
-  });
-}
+// if (!admin.apps.length) {
+//   admin.initializeApp({
+//     credential: admin.credential.applicationDefault(),
+//     // storageBucket: 'green-lens-47e9b.appspot.com' // gs://green-lens-47e9b.firebasestorage.app
+//     // storageBucket: 'green-lens-47e9b.firebasestorage.app' // gs://green-lens-47e9b.firebasestorage.app
+//     storageBucket: 'green-lens-47e9b.firebasestorage.app'
+//   });
+// }
 
-let model = null;
+// Initialize Firebase Admin SDK with your service account
+// if (!admin.apps.length) {
+//   const serviceAccount = require(path.join(__dirname, '../..', 'service-account.json'));
+//   admin.initializeApp({
+//     credential: admin.credential.cert(serviceAccount),
+//     storageBucket: 'green-lens-47e9b.firebasestorage.app'
+//   });
+// }
+
+// const express = require('express');
+// const tf = require('@tensorflow/tfjs');
+// const admin = require('firebase-admin');
+// const multer = require('multer');
+// const sharp = require('sharp');
+// const path = require('path');
+// const fs = require('fs');
+// const tfnode = require('@tensorflow/tfjs-node');
+// // const tf = require('@tensorflow/tfjs-node');
+// const axios = require('axios');
+// const cors = require('cors');
+
+// const router = express.Router();
+// router.use(cors());
+// let model = null;
+
+// // Initialize Firebase Admin SDK
+// if (!admin.apps.length) {
+//   try {
+//     // Check for existing config in firebaseConfig.js
+//     const firebaseConfigPath = path.join(__dirname, '../../../firebaseConfig.js');
+//     const firebaseConfig = require(firebaseConfigPath);
+    
+//     admin.initializeApp({
+//       credential: admin.credential.cert(firebaseConfig.serviceAccount || {
+//         projectId: "green-lens-47e9b",
+//         clientEmail: process.env.FIREBASE_CLIENT_EMAIL,
+//         privateKey: process.env.FIREBASE_PRIVATE_KEY?.replace(/\\n/g, '\n')
+//       }),
+//       storageBucket: "green-lens-47e9b.firebasestorage.app"
+//     });
+//   } catch (error) {
+//     console.error("Firebase admin initialization error:", error);
+    
+//     // Fallback to applicationDefault if available
+//     admin.initializeApp({
+//       credential: admin.credential.applicationDefault(),
+//       storageBucket: "green-lens-47e9b.firebasestorage.app"
+//     });
+//   }
+// }
+
+// async function getSignedUrls() {
+//   try {
+//     const bucket = admin.storage().bucket();
+    
+//     // Get model.json file
+//     const modelJsonFile = bucket.file('tfjs_flower_model/model.json');
+//     const [modelJsonUrl] = await modelJsonFile.getSignedUrl({
+//       action: 'read',
+//       expires: Date.now() + 1000 * 60 * 60, // 1 hour
+//     });
+    
+//     console.log("Model JSON URL:", modelJsonUrl);
+    
+//     // Get model.json content to find weight files
+//     const modelJsonResponse = await axios.get(modelJsonUrl);
+//     const modelJson = modelJsonResponse.data;
+    
+//     // Create a modified model.json with signed URLs for each weight file
+//     const weightFilePromises = [];
+    
+//     for (const group of modelJson.weightsManifest) {
+//       const newPaths = [];
+//       for (const weightPath of group.paths) {
+//         const weightFile = bucket.file(`tfjs_flower_model/${weightPath}`);
+//         const [weightUrl] = await weightFile.getSignedUrl({
+//           action: 'read',
+//           expires: Date.now() + 1000 * 60 * 60, // 1 hour
+//         });
+        
+//         console.log(`Weight file ${weightPath} URL:`, weightUrl);
+//         newPaths.push(weightUrl);
+//       }
+//       group.paths = newPaths;
+//     }
+    
+//     return { modelJson, modelJsonUrl };
+//   } catch (error) {
+//     console.error("Error getting signed URLs:", error);
+//     throw error;
+//   }
+// }
 
 // async function loadModel() {
 //   try {
@@ -370,61 +453,93 @@ let model = null;
 
 // option 2 but will have fetch error just from running server, idk how to fix
 
-async function loadModel() {
-  try {
-    const modelPath = path.join(__dirname, 'tfjs_flower_model', 'model.json');
-    console.log('Attempting to load model from:', modelPath);
+// async function loadModel() {
+//   try {
+//     const modelPath = path.join(__dirname, 'tfjs_flower_model', 'model.json');
+//     console.log('Attempting to load model from:', modelPath);
     
-    model = await tf.loadLayersModel(`file://${modelPath}`);
-    console.log('Model loaded successfully from local path');
-    return model;
-  } catch (error) {
-    console.error('Detailed error:', error);
-    throw error;
-  }
-}
+//     model = await tf.loadLayersModel(`file://${modelPath}`);
+//     console.log('Model loaded successfully from local path');
+//     return model;
+//   } catch (error) {
+//     console.error('Detailed error:', error);
+//     throw error;
+//   }
+// }
 
-// Load model immediately when this file is required
-(async () => {
-  try {
-    await loadModel();
-    console.log('Model initialization complete');
-  } catch (error) {
-    console.error('Model initialization failed:', error);
-  }
-})();
+// // Load model immediately when this file is required
+// (async () => {
+//   try {
+//     await loadModel();
+//     console.log('Model initialization complete');
+//   } catch (error) {
+//     console.error('Model initialization failed:', error);
+//   }
+// })();
 
 // option 3 havent test yet but its after c++ development build
 // npm install @tensorflow/tfjs-node
 
-async function loadModel() {
-  try {
-    // Load from local path
-    const modelPath = path.join(__dirname, 'tfjs_flower_model', 'model.json');
-    model = await tf.loadLayersModel(`file://${modelPath}`);
-    console.log('Model loaded successfully from local path');
-    return model;
-  } catch (error) {
-    console.error('Error loading model:', error);
-    throw error;
-  }
-}
+// async function loadModel() {
+//   try {
+//     console.log("Getting signed URLs from Firebase Storage...");
+//     const { modelJson, modelJsonUrl } = await getSignedUrls();
+    
+//     // Create a custom IOHandler to load the model
+//     const modelArtifacts = {
+//       modelTopology: modelJson.modelTopology,
+//       weightsManifest: modelJson.weightsManifest,
+//     };
+    
+//     // Load model from the signed URL
+//     console.log("Loading model from Firebase Storage...");
+//     model = await tf.loadLayersModel(modelJsonUrl);
+//     console.log("Model loaded successfully!");
+    
+//     return model;
+//   } catch (error) {
+//     console.error("Error loading model from Firebase Storage:", error);
+//     throw error;
+//   }
+// }
 
+// // Load the model when this module is loaded
+// (async () => {
+//   try {
+//     await loadModel();
+//     console.log("Model initialization complete");
+//   } catch (error) {
+//     console.error("Model initialization failed:", error);
+//   }
+// })();
 
+// router.get('/test', async (req, res) => {
+//   if (!model) {
+//     return res.status(500).json({ 
+//       error: 'Model not loaded yet',
+//       message: 'The model is still loading from Firebase Storage. Please try again in a moment.'
+//     });
+//   }
 
+// // // Add test endpoint
+// // router.get('/test', async (req, res) => {
+// //   if (!model) {
+// //     return res.status(500).json({ error: 'Model not loaded yet' });
+// //   }
+// //   res.json({ status: 'Model loaded and ready' });
+// // });
 
+//   res.json({ 
+//     status: 'Model loaded and ready from Firebase Storage',
+//     modelInfo: {
+//       inputShape: model.inputs[0].shape,
+//       outputShape: model.outputs[0].shape,
+//       layerCount: model.layers.length
+//     }
+//   });
+// });
 
-
-
-// Add test endpoint
-router.get('/test', async (req, res) => {
-  if (!model) {
-    return res.status(500).json({ error: 'Model not loaded yet' });
-  }
-  res.json({ status: 'Model loaded and ready' });
-});
-
-module.exports = router;
+// module.exports = router;
 
 
 
@@ -520,3 +635,136 @@ module.exports = router;
 // });
 
 // module.exports = router;
+
+
+
+
+const express = require('express');
+const tf = require('@tensorflow/tfjs-node'); // Using the C++ accelerated version
+const admin = require('firebase-admin');
+const axios = require('axios');
+const path = require('path');
+const fs = require('fs');
+
+const router = express.Router();
+let model = null;
+
+// --- 1. SECURELY INITIALIZE FIREBASE ADMIN ---
+try {
+    const serviceAccountPath = path.join(__dirname, '..', '..', 'service-account.json');
+    if (!fs.existsSync(serviceAccountPath)) {
+        throw new Error(`'service-account.json' not found in the 'backend' folder. Please download it from your Firebase project settings.`);
+    }
+    const serviceAccount = require(serviceAccountPath);
+    admin.initializeApp({
+        credential: admin.credential.cert(serviceAccount),
+        storageBucket: 'green-lens-47e9b.firebasestorage.app'
+    });
+} catch (e) {
+    console.error("FATAL: Firebase Admin SDK initialization failed.", e.message);
+}
+
+// --- 2. SECURELY LOAD THE MODEL ON THE SERVER AT STARTUP ---
+async function loadModelFromServer() {
+    if (!admin.apps.length) {
+        console.error("Cannot load model, Firebase Admin is not initialized.");
+        return;
+    }
+    try {
+        console.log('Loading model from Firebase Storage into server memory...');
+        const bucket = admin.storage().bucket();
+        
+        // Download model files into memory buffers
+        const modelJsonPromise = bucket.file('tfjs_flower_model/model.json').download();
+        const weights1Promise = bucket.file('tfjs_flower_model/group1-shard1of3.bin').download();
+        const weights2Promise = bucket.file('tfjs_flower_model/group1-shard2of3.bin').download();
+        const weights3Promise = bucket.file('tfjs_flower_model/group1-shard3of3.bin').download();
+
+        const [
+            modelJsonBuffer,
+            weights1Buffer,
+            weights2Buffer,
+            weights3Buffer
+        ] = await Promise.all([modelJsonPromise, weights1Promise, weights2Promise, weights3Promise]);
+
+        // Create an in-memory IO handler for TensorFlow.js
+        const modelJson = JSON.parse(modelJsonBuffer[0].toString());
+        const weights = [
+            weights1Buffer[0].buffer,
+            weights2Buffer[0].buffer,
+            weights3Buffer[0].buffer
+        ];
+        const memoryHandler = tf.io.fromMemory(modelJson, weights);
+        
+        // Load the model from the in-memory handler
+        model = await tf.loadLayersModel(memoryHandler);
+        console.log('Model loaded successfully and is ready for predictions.');
+
+    } catch (error) {
+        console.error('CRITICAL: Failed to load model from Firebase Storage.', error);
+    }
+}
+
+// --- 3. PREPROCESS THE USER'S IMAGE ---
+async function preprocessImage(imageBuffer) {
+    const tensor = tf.node.decodeImage(imageBuffer, 3) // Decode image to a tensor
+        .resizeNearestNeighbor([224, 224]) // Resize to model's expected input size
+        .toFloat()
+        .div(tf.scalar(255.0)) // Normalize pixel values to [0, 1]
+        .expandDims(); // Add a batch dimension
+    return tensor;
+}
+
+// --- 4. THE CLASSIFICATION API ENDPOINT ---
+router.post('/classify', async (req, res) => {
+    if (!model) {
+        return res.status(503).json({ error: 'Model is not ready, please try again later.' });
+    }
+    const { imageUri } = req.body;
+    if (!imageUri) {
+        return res.status(400).json({ error: 'Missing "imageUri" in request body.' });
+    }
+
+    try {
+        // Download the user's image from the provided URI
+        const imageResponse = await axios.get(imageUri, { responseType: 'arraybuffer' });
+        const imageBuffer = Buffer.from(imageResponse.data, 'binary');
+
+        // Preprocess the image
+        const inputTensor = await preprocessImage(imageBuffer);
+
+        // Make a prediction
+        const prediction = model.predict(inputTensor);
+        
+        // Get the result
+        const scores = await prediction.data();
+        const predictedIndex = prediction.argMax(-1).dataSync()[0];
+        const confidence = scores[predictedIndex];
+
+        // Map the index to your flower names
+        const classMap = [
+            "blackberry_lily", "morning_glory", "mexican_aster", "marigold",
+            "buttercup", "sunflower", "foxglove", "canna_lily", "hibiscus", "rose"
+        ];
+        const flowerName = classMap[predictedIndex];
+
+        // Clean up tensors
+        inputTensor.dispose();
+        prediction.dispose();
+
+        // Send the response
+        res.json({
+            flowerName: flowerName,
+            confidence: confidence
+        });
+
+    } catch (err) {
+        console.error("Error during classification:", err);
+        res.status(500).json({ error: 'Failed to classify image.', details: err.message });
+    }
+});
+
+// Start loading the model as soon as the server starts
+loadModelFromServer();
+
+module.exports = router;
