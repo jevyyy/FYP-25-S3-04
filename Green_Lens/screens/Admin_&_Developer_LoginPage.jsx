@@ -4,7 +4,7 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } fro
 
 export default function Admin_Developer_LoginPage({ navigation }) {
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [password, setPassword] = useState(''); //hi
 
   const handleLogin = () => {
     if (!username || !password) {
