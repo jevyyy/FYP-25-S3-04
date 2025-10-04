@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image, TouchableWithoutFeedback } from 'react-native';
 import { 
   getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, doc, setDoc, updateDoc, increment, getDoc 
 } from 'firebase/firestore';
@@ -71,19 +71,17 @@ export default function User_QuizPage({ navigation }) {
     try {
       const userRef = doc(db, 'users', currentUser.uid);
 
-      // Fetch existing username from Firestore
       const userSnap = await getDoc(userRef);
       const savedUsername =
         userSnap.exists() && userSnap.data().username
           ? userSnap.data().username
           : currentUser.displayName || currentUser.email || 'Anonymous';
 
-      // Save quiz result in 'quizResults' collection
       await addDoc(collection(db, 'quizResults'), {
         userId: currentUser.uid,
         email: currentUser.email || 'anonymous@example.com',
         name: currentUser.displayName || '',
-        username: savedUsername, // preserve username
+        username: savedUsername,
         category: selectedCategory,
         questionId: question.id,
         answer,
@@ -93,7 +91,6 @@ export default function User_QuizPage({ navigation }) {
         createdAt: serverTimestamp(),
       });
 
-      // Ensure user document exists but DON'T reset totalPoints
       await setDoc(
         userRef,
         {
@@ -104,11 +101,8 @@ export default function User_QuizPage({ navigation }) {
         { merge: true }
       );
 
-      // Increment totalPoints safely
       if (points > 0) {
-        await updateDoc(userRef, {
-          totalPoints: increment(points),
-        });
+        await updateDoc(userRef, { totalPoints: increment(points) });
       }
     } catch (err) {
       console.error(err);
@@ -143,33 +137,37 @@ export default function User_QuizPage({ navigation }) {
       </View>
 
       <Modal transparent visible={quizVisible} animationType="slide" onRequestClose={handleReturn}>
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalBox}>
-            {!question ? (
-              <Text>Coming Soon{'\n'}No quiz available at this moment.</Text>
-            ) : !quizResult ? (
-              <>
-                {question.imageUrl && (
-                  <Image source={{ uri: question.imageUrl }} style={{ width: 250, height: 150, marginBottom: 15 }} />
+        <TouchableWithoutFeedback onPress={handleReturn}>
+          <View style={styles.modalOverlay}>
+            <TouchableWithoutFeedback onPress={() => {}}>
+              <View style={styles.modalBox}>
+                {!question ? (
+                  <Text>Coming Soon{'\n'}No quiz available at this moment.</Text>
+                ) : !quizResult ? (
+                  <>
+                    {question.imageUrl && (
+                      <Image source={{ uri: question.imageUrl }} style={{ width: 250, height: 150, marginBottom: 15 }} />
+                    )}
+                    <Text style={styles.questionText}>{question.question}</Text>
+                    {question.options.map((opt) => (
+                      <TouchableOpacity key={opt} style={styles.answerButton} onPress={() => handleAnswer(opt)}>
+                        <Text style={styles.answerText}>{opt}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </>
+                ) : (
+                  <>
+                    <Text style={styles.resultText}>{quizResult === 'correct' ? 'Correct!' : 'Wrong!'}</Text>
+                    <Text style={styles.pointText}>Points: {quizResult === 'correct' ? 3 : 0}</Text>
+                    <TouchableOpacity style={styles.returnButton} onPress={handleReturn}>
+                      <Text style={styles.returnButtonText}>Return</Text>
+                    </TouchableOpacity>
+                  </>
                 )}
-                <Text style={styles.questionText}>{question.question}</Text>
-                {question.options.map((opt) => (
-                  <TouchableOpacity key={opt} style={styles.answerButton} onPress={() => handleAnswer(opt)}>
-                    <Text style={styles.answerText}>{opt}</Text>
-                  </TouchableOpacity>
-                ))}
-              </>
-            ) : (
-              <>
-                <Text style={styles.resultText}>{quizResult === 'correct' ? 'Correct!' : 'Wrong!'}</Text>
-                <Text style={styles.pointText}>Points: {quizResult === 'correct' ? 3 : 0}</Text>
-                <TouchableOpacity style={styles.returnButton} onPress={handleReturn}>
-                  <Text style={styles.returnButtonText}>Return</Text>
-                </TouchableOpacity>
-              </>
-            )}
+              </View>
+            </TouchableWithoutFeedback>
           </View>
-        </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );

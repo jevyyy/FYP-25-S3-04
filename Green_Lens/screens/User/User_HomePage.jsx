@@ -4,11 +4,11 @@ import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { useDrawerStatus } from '@react-navigation/drawer';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useIsFocused } from '@react-navigation/native'; // import useIsFocused
 
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
-  const navigation = useNavigation(); // ✅ navigation access
+  const navigation = useNavigation(); // navigation access
 
   useEffect(() => {
     (async () => {
@@ -37,7 +37,7 @@ function ImagePreview({ onSelectImage }) {
       setLastPhotoUri(uri);
       onSelectImage(uri);
 
-      // ✅ Navigate to User_ViewSummaryPage
+      // Navigate to User_ViewSummaryPage
       navigation.navigate('User_ViewSummary', { photoUri: uri });
     }
   };
@@ -51,6 +51,7 @@ function ImagePreview({ onSelectImage }) {
 
 export default function User_HomePage() {
   const navigation = useNavigation();
+  const isFocused = useIsFocused(); // check if screen is active
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
@@ -69,7 +70,8 @@ export default function User_HomePage() {
     );
   }
 
-  const toggleCameraFacing = () => setFacing((current) => (current === 'back' ? 'front' : 'back'));
+  const toggleCameraFacing = () =>
+    setFacing((current) => (current === 'back' ? 'front' : 'back'));
 
   const takePhoto = async () => {
     if (cameraRef.current) {
@@ -78,7 +80,7 @@ export default function User_HomePage() {
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
 
-        // ✅ Navigate to User_ViewSummaryPage
+        // Navigate to User_ViewSummaryPage
         navigation.navigate('User_ViewSummary', { photoUri: photo.uri });
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
@@ -88,7 +90,10 @@ export default function User_HomePage() {
 
   return (
     <View style={styles.container}>
-      {!isDrawerOpen && <CameraView style={styles.camera} facing={facing} ref={cameraRef} />}
+      {/* Camera only mounts if screen is focused AND drawer is not open */}
+      {isFocused && !isDrawerOpen && (
+        <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
+      )}
 
       <View style={styles.overlay}>
         <ImagePreview onSelectImage={(uri) => setSelectedImageUri(uri)} />

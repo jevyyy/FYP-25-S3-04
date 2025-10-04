@@ -14,7 +14,7 @@ export default function User_ChangePasswordPage() {
   const [modalVisible, setModalVisible] = useState(false);
   const [errors, setErrors] = useState({});
 
-  // ✅ Password strength check
+  // Password strength check
   const validatePassword = (password) => {
     const strongPassword =
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
@@ -27,6 +27,11 @@ export default function User_ChangePasswordPage() {
 
   const handleSubmit = async () => {
     let newErrors = {};
+
+    // Check if current password is empty
+    if (!currentPassword.trim()) {
+      newErrors.currentPassword = '*Password cannot be empty';
+    }
 
     // Validate new password
     const passwordError = validatePassword(newPassword);
@@ -46,7 +51,10 @@ export default function User_ChangePasswordPage() {
 
     try {
       // Re-authenticate user
-      const credential = EmailAuthProvider.credential(auth.currentUser.email, currentPassword);
+      const credential = EmailAuthProvider.credential(
+        auth.currentUser.email,
+        currentPassword
+      );
       await reauthenticateWithCredential(auth.currentUser, credential);
 
       // Update password
@@ -60,12 +68,14 @@ export default function User_ChangePasswordPage() {
       // Show success modal
       setModalVisible(true);
     } catch (err) {
-      console.error(err);
-      if (err.code === 'auth/wrong-password') {
+      // Handle wrong password or invalid credential
+      if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setErrors({ currentPassword: '*Incorrect current password' });
-      } else {
-        alert('Error changing password: ' + err.message);
+        return; // <--- stops Firebase error popup
       }
+
+      // Only show alert for other unexpected errors
+      alert('Error changing password: ' + err.message);
     }
   };
 

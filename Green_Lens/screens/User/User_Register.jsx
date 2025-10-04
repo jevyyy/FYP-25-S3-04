@@ -47,11 +47,13 @@ export default function User_Register() {
         // Update displayName in Auth
         await updateProfile(user, { displayName: name });
 
-        // Save info in Firestore
+        // Save info in Firestore with role + status
         await setDoc(doc(db, 'users', user.uid), {
           name: name,
           username: username,
           email: email,
+          role: "User",      // 👈 default role
+          status: "active",  // 👈 new field for account status
         });
 
         setModalVisible(true); // show success modal

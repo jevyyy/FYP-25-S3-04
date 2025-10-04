@@ -4,6 +4,8 @@ import { Image, TouchableOpacity, Text } from 'react-native';
 import { NavigationContainer } from '@react-navigation/native';
 import { createDrawerNavigator } from '@react-navigation/drawer';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
 
 import Guest_HomePage from './screens/Guest/Guest_HomePage';
 import LoginSelectionPage from './screens/LoginSelectionPage';
@@ -11,6 +13,12 @@ import User_Login from './screens/User/User_Login';
 import User_Register from './screens/User/User_Register';
 import Forgot_PasswordPage from './screens/Forgot_PasswordPage';
 import Admin_Developer_LoginPage from './screens/Admin_&_Developer_LoginPage';
+import Admin_HomePage from './screens/Admin/Admin_HomePage';
+import Admin_AccountsPage from './screens/Admin/Admin_AccountsPage';
+import Admin_ReportPage from './screens/Admin/Admin_ReportPage';
+import Admin_CreateAccountPage from './screens/Admin/Admin_CreateAccountPage';
+import Admin_SettingsPage from './screens/Admin/Admin_SettingsPage';
+import Developer_HomePage from './screens/Developer/Developer_HomePage';
 import User_HomePage from './screens/User/User_HomePage';
 import User_Explore from './screens/User/User_Explore';
 import User_RankingPage from './screens/User/User_RankingPage';
@@ -24,6 +32,7 @@ import User_RewardPage from './screens/User/User_RewardPage';
 
 const Drawer = createDrawerNavigator();
 const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
 
 // Burger menu button
 const BurgerMenu = ({ navigation }) => (
@@ -32,7 +41,7 @@ const BurgerMenu = ({ navigation }) => (
   </TouchableOpacity>
 );
 
-// Guest Drawer
+// --- Guest Drawer ---
 function GuestDrawer() {
   return (
     <Drawer.Navigator
@@ -65,18 +74,17 @@ function GuestDrawer() {
       <Drawer.Screen
         name="Guest_ViewSummary"
         component={Guest_ViewSummaryPage}
-        options={({ navigation }) => ({
+        options={{
           drawerLabel: 'Hidden',
           drawerItemStyle: { display: 'none' },
           title: 'Summary',
-          headerRight: () => <BurgerMenu navigation={navigation} />,
-        })}
+        }}
       />
     </Drawer.Navigator>
   );
 }
 
-// User Drawer
+// --- User Drawer ---
 function UserDrawer() {
   return (
     <Drawer.Navigator
@@ -164,7 +172,7 @@ function UserDrawer() {
   );
 }
 
-// Guest Login stack
+// --- Guest Login stack ---
 function LoginStack() {
   return (
     <Stack.Navigator>
@@ -192,7 +200,78 @@ function LoginStack() {
   );
 }
 
-// App
+// --- Admin Tabs (Bottom Navigation) ---
+function AdminTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#000', // black background
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          height: 70,
+          marginBottom: 40, // move up a bit
+        },
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: 'white', // active icon + label
+        tabBarInactiveTintColor: 'gray', // inactive icon + label
+      }}
+    >
+      <Tab.Screen
+        name="Admin_HomePage"
+        component={Admin_HomePage}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Admin_AccountsPage"
+        component={Admin_AccountsPage}
+        options={{
+          tabBarLabel: 'Accounts',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Admin_ReportPage"
+        component={Admin_ReportPage}
+        options={{
+          tabBarLabel: 'Reports',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="document-text" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Admin_SettingsPage"
+        component={Admin_SettingsPage}
+        options={{
+          tabBarLabel: 'Settings',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// --- Developer Stack ---
+function DeveloperStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="Developer_HomePage"
+        component={Developer_HomePage}
+        options={{ title: 'Developer Home' }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+// --- App ---
 export default function App() {
   return (
     <NavigationContainer>
@@ -201,11 +280,13 @@ export default function App() {
         <Stack.Screen name="GuestFlow" component={GuestDrawer} />
         {/* User flow */}
         <Stack.Screen name="UserFlow" component={UserDrawer} />
+        {/* Admin flow with bottom tabs */}
+        <Stack.Screen name="AdminFlow" component={AdminTabs} />
+        {/* Developer flow */}
+        <Stack.Screen name="DeveloperFlow" component={DeveloperStack} />
         {/* Hidden pages not in drawer */}
-        <Stack.Screen
-          name="User_ChangePasswordPage"
-          component={User_ChangePasswordPage}
-        />
+        <Stack.Screen name="User_ChangePasswordPage" component={User_ChangePasswordPage} />
+        <Stack.Screen name="Admin_CreateAccountPage" component={Admin_CreateAccountPage} />
       </Stack.Navigator>
     </NavigationContainer>
   );

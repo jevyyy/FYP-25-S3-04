@@ -6,7 +6,7 @@ import * as FileSystem from 'expo-file-system/legacy';
 
 export default function User_ViewSummaryPage({ route }) {
   const { photoUri } = route.params || {}; // Only camera photo
-  const objectName = "Sunflower"; // ✅ Renamed from plantName to objectName
+  const objectName = "Sunflower"; // Renamed from plantName to objectName
 
   // Share function
   const handleShare = async () => {

@@ -30,6 +30,13 @@ export default function User_Login() {
       }
 
       const userData = querySnapshot.docs[0].data();
+
+      // Check role
+      if (!userData.role || userData.role !== 'User') {
+        Alert.alert('Access Denied', 'Your account does not have user access');
+        return;
+      }
+
       const email = userData.email;
 
       // Sign in with Firebase Auth
@@ -41,8 +48,8 @@ export default function User_Login() {
         params: { username: userData.username },
       });
     } catch (error) {
-      if (error.code === 'auth/wrong-password') {
-        Alert.alert('Login Failed', 'Incorrect password');
+      if (error.code === 'auth/invalid-credential') {
+        Alert.alert('Login Failed', 'Invalid username or password');
       } else {
         Alert.alert('Login Failed', error.message);
       }

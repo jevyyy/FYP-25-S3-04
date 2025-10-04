@@ -1,26 +1,66 @@
 // ./screens/Admin_&_Developer_LoginPage.jsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
+import { auth, app } from '../firebaseConfig';
+import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
+import { signInWithEmailAndPassword } from 'firebase/auth';
+
+const db = getFirestore(app);
 
 export default function Admin_Developer_LoginPage({ navigation }) {
   const [username, setUsername] = useState('');
-  const [password, setPassword] = useState(''); //hi
+  const [password, setPassword] = useState('');
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!username || !password) {
       Alert.alert('Error', 'Please enter username and password');
       return;
     }
-    Alert.alert('Login', `Admin/Developer Username: ${username}\nPassword: ${password}`);
-  };
 
-  const goToForgotPassword = () => {
-    navigation.navigate('Forgot_PasswordPage'); // redirect to Forgot_PasswordPage
+    try {
+      // Query Firestore for username
+      const q = query(collection(db, 'users'), where('username', '==', username));
+      const querySnapshot = await getDocs(q);
+
+      if (querySnapshot.empty) {
+        Alert.alert('Login Failed', 'Username not found');
+        return;
+      }
+
+      const userData = querySnapshot.docs[0].data();
+
+      // Check role
+      if (userData.role !== 'Admin' && userData.role !== 'Developer') {
+        Alert.alert('Access Denied', 'You do not have permission to login here.');
+        return;
+      }
+
+      // Sign in with email & password
+      await signInWithEmailAndPassword(auth, userData.email, password);
+
+      // Navigate based on role
+      if (userData.role === 'Admin') {
+        navigation.replace('AdminFlow', {
+          screen: 'Admin_HomePage',
+          params: { username: userData.username, role: userData.role },
+        });
+      } else if (userData.role === 'Developer') {
+        navigation.replace('DeveloperFlow', {
+          screen: 'Developer_HomePage',
+          params: { username: userData.username, role: userData.role },
+        });
+      }
+    } catch (error) {
+      if (error.code === 'auth/wrong-password') {
+        Alert.alert('Login Failed', 'Incorrect password');
+      } else {
+        Alert.alert('Login Failed', error.message);
+      }
+    }
   };
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
       <Image
         source={require('../assets/Green_Lens_logo.png')}
         style={styles.logo}
@@ -29,34 +69,32 @@ export default function Admin_Developer_LoginPage({ navigation }) {
 
       <Text style={styles.title}>Sign in For Admin / Developer</Text>
 
-      {/* Username Field */}
-      <Text style={styles.label}>Username</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your username"
-        value={username}
-        onChangeText={setUsername}
-        autoCapitalize="none"
-      />
+      <View style={styles.form}>
+        <Text style={styles.label}>Username</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your username"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+        />
 
-      {/* Password Field */}
-      <Text style={styles.label}>Password</Text>
-      <TextInput
-        style={styles.input}
-        placeholder="Enter your password"
-        value={password}
-        onChangeText={setPassword}
-        secureTextEntry
-      />
+        <Text style={styles.label}>Password</Text>
+        <TextInput
+          style={styles.input}
+          placeholder="Enter your password"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
 
-      {/* Forgot Password link */}
-      <TouchableOpacity onPress={goToForgotPassword} style={styles.forgotPasswordContainer}>
-        <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
-      </TouchableOpacity>
+        {/* Spacing between password field and login button */}
+        <View style={{ height: 30 }} />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Login</Text>
-      </TouchableOpacity>
+        <TouchableOpacity style={styles.button} onPress={handleLogin}>
+          <Text style={styles.buttonText}>Login</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 }
@@ -69,11 +107,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#f9f9f9',
     alignItems: 'center',
   },
-  logo: {
-    width: 200,
-    height: 80,
-    marginBottom: 20,
-  },
+  logo: { width: 200, height: 80, marginBottom: 20 },
   title: {
     fontSize: 24,
     fontWeight: 'bold',
@@ -81,6 +115,7 @@ const styles = StyleSheet.create({
     textAlign: 'left',
     alignSelf: 'flex-start',
   },
+  form: { width: '100%' },
   label: {
     alignSelf: 'flex-start',
     fontSize: 16,
@@ -98,27 +133,12 @@ const styles = StyleSheet.create({
     marginBottom: 15,
     backgroundColor: '#fff',
   },
-  forgotPasswordContainer: {
-    width: '100%',
-    alignItems: 'flex-end',
-    marginBottom: 20,
-  },
-  forgotPasswordText: {
-    fontSize: 14,
-    color: '#1E90FF',
-    fontWeight: 'bold',
-  },
   button: {
     width: '100%',
     paddingVertical: 15,
     borderRadius: 10,
     backgroundColor: '#000',
     alignItems: 'center',
-    marginBottom: 20,
   },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
 });

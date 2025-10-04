@@ -179,7 +179,7 @@ export default function User_RewardPage() {
       </View>
 
       <TouchableOpacity style={styles.testButton} onPress={addTestPoints}>
-        <Text style={styles.testButtonText}>+100 pt (Test)</Text>
+        <Text style={styles.testButtonText}>+100 pt (Demo Purpose Only)</Text>
       </TouchableOpacity>
 
       <FlatList
