@@ -144,10 +144,15 @@ history_fine = model.fit(
 # =================================================================
 # 7. Save the Final Model and Class Names (THE SOLUTION)
 # =================================================================
-# Save the Keras model to the output directory
-model_save_path = os.path.join(output_dir, 'flower_img_classifier.keras')
+# Save the Keras model in the modern .keras format
+model_save_path = os.path.join(output_dir, 'flower_img_classifier_new.keras')
 model.save(model_save_path)
 print(f"\nModel saved successfully to: {model_save_path}")
+
+# Save the Keras model in the legacy .h5 format
+h5_model_path = os.path.join(output_dir, 'flower_img_classifier_new.h5')
+model.save(h5_model_path)
+print(f"Model saved successfully in .h5 format to: {h5_model_path}")
 
 # --- THIS IS THE IMPLEMENTATION OF THE SOLUTION ---
 # We capture the `class_indices` dictionary that ImageDataGenerator created.
