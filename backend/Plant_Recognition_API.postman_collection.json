@@ -1,0 +1,75 @@
+{
+  "info": {
+    "name": "Plant Recognition API",
+    "description": "API collection for testing the Plant Recognition backend",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/health",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["health"]
+        },
+        "description": "Check if the API and model are loaded and ready"
+      },
+      "response": []
+    },
+    {
+      "name": "Get All Classes",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:5000/classes",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["classes"]
+        },
+        "description": "Get all 102 plant/flower classes supported by the model"
+      },
+      "response": []
+    },
+    {
+      "name": "Predict Plant",
+      "request": {
+        "method": "POST",
+        "header": [],
+        "body": {
+          "mode": "formdata",
+          "formdata": [
+            {
+              "key": "image",
+              "type": "file",
+              "src": "/path/to/your/flower/image.jpg",
+              "description": "Upload an image of a flower or plant"
+            }
+          ]
+        },
+        "url": {
+          "raw": "http://localhost:5000/predict",
+          "protocol": "http",
+          "host": ["localhost"],
+          "port": "5000",
+          "path": ["predict"]
+        },
+        "description": "Upload an image to get plant recognition predictions. Returns top 5 predictions with confidence scores."
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    }
+  ]
+}
