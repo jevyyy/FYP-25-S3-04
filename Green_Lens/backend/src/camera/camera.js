@@ -888,7 +888,7 @@
 // module.exports = { initializeModel, cameraRoutes: router };
 
 const express = require('express');
-const tf = require('@tensorflow/tfjs-node');
+const tf = require('@tensorflow/tfjs');
 const admin = require('firebase-admin');
 const axios = require('axios');
 const fs = require('fs');
@@ -908,7 +908,7 @@ const MODEL_REMOTE_PATH = 'tfjs_flower_model/model.json';
 const LOCAL_MODEL_DIR = path.join(os.tmpdir(), 'tfjs_model');
 const LOCAL_MODEL_PATH = path.join(LOCAL_MODEL_DIR, 'model.json');
 
-// --- NEW: Function to load JSON files ---
+// Function to load JSON files ---
 function loadDictionaries() {
   try {
     const classNamesPath = path.join(__dirname, 'class_names.json');
@@ -981,7 +981,7 @@ router.post('/classify', upload.single('image'), async (req, res) => {
     const predictions = model.predict(preprocessedTensor);
     const predictedIndex = predictions.as1D().argMax().dataSync()[0];
 
-    // --- NEW: Two-Step Lookup to get the final flower name ---
+    // Two-Step Lookup to get the final flower name ---
     // Step 1: Use the model's output index to get the folder name (e.g., 1 -> "10")
     const folderName = classNamesMap[predictedIndex];
 

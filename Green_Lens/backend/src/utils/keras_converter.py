@@ -1,37 +1,27 @@
-import tensorflow as tf
 import tensorflowjs as tfjs
+import tensorflow as tf
 import os
 
-# --- Configuration ---
-KERAS_MODEL_PATH = 'flower_img_classifier.keras'
-OUTPUT_DIR = 'tfjs_flower_model'
-# This is the corrected shape, WITHOUT the 'None' for the batch size.
-# Keras's Input layer assumes a variable batch size by default.
-INPUT_SHAPE = (224, 224, 3)
+# Get the directory of the current script (src/utils)
+script_dir = os.path.dirname(os.path.abspath(__file__))
+# Define the final, correct output path (src/tc/tfjs_flower_model)
+output_path = os.path.join(script_dir, '..', 'tc', 'tfjs_flower_model')
 
-# --- Script ---
-print("--- Starting Keras to TFJS Conversion (Corrected) ---")
+# --- The only change is here ---
+# Use the newly created .h5 file as the input
+input_path = 'flower_img_classifier.h5'
+model = tf.keras.models.load_model(input_path)
+# --- End of change ---
 
-# 1. Load your original Keras model
-print(f"Loading original model from: {KERAS_MODEL_PATH}")
-original_model = tf.keras.models.load_model(KERAS_MODEL_PATH)
+# Ensure the output directory exists
+os.makedirs(output_path, exist_ok=True)
 
-# 2. Rebuild the model with an explicit Input layer using the correct 'shape' argument
-print(f"Rebuilding model with explicit input shape: {INPUT_SHAPE}")
-# THIS IS THE FIX: Use 'shape' instead of 'batch_input_shape'
-input_layer = tf.keras.Input(shape=INPUT_SHAPE)
-output = original_model(input_layer)
-new_model = tf.keras.Model(inputs=input_layer, outputs=output)
+# Delete old files in the target directory to be safe
+print(f"Clearing old model files from {output_path}...")
+for f in os.listdir(output_path):
+    os.remove(os.path.join(output_path, f))
 
-print("\nNew model summary:")
-new_model.summary()
+print(f"Converting {input_path} to TF.js format...")
+tfjs.converters.save_keras_model(model, output_path)
 
-# 3. Convert and save the new, corrected model
-print(f"\nConverting and saving the new model to directory: '{OUTPUT_DIR}'")
-if not os.path.exists(OUTPUT_DIR):
-    os.makedirs(OUTPUT_DIR)
-    
-tfjs.converters.save_keras_model(new_model, OUTPUT_DIR)
-
-print("\n--- Conversion Complete! ---")
-print(f"The corrected model has been saved in the '{OUTPUT_DIR}' folder.")
+print(f"\nSUCCESS: Model converted and saved directly to {output_path}")
