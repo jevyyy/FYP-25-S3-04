@@ -10,7 +10,7 @@ import tensorflowjs as tfjs
 # 2. run clean_json.py to manually make model.json compatible with tfjs conversion (keras_converter.py)
 # 3. then upload to firebase and run server.js
 
-# converts keras mdoel to tfjs model
+# converts keras model to tfjs model
 # Load your Keras model
 model = tf.keras.models.load_model('flower_img_classifier.keras')
 
