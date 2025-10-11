@@ -62,3 +62,4 @@ backend/wheels/
 backend/*.egg-info/
 backend/.installed.cfg
 backend/*.egg
+backend/src/downloaded_model/

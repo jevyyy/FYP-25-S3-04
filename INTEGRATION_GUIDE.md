@@ -243,7 +243,11 @@ Popular deployment options:
 ### Backend Issues
 
 **Problem:** Model not found
-**Solution:** Ensure the model file exists at `Green_Lens/backend/src/ouput_model/flower_img_classifier.keras`
+**Solution:** The backend downloads the model from Firebase Storage on startup. Ensure:
+1. Firebase service account file exists at `Green_Lens/backend/service-account.json`
+2. Model file `flower_img_classifier.keras` is uploaded to Firebase Storage
+3. Class mapping files (`class_names.json`, `classes_to_name_dictionary.json`) are in Firebase Storage
+4. You have proper Firebase Storage permissions
 
 **Problem:** TensorFlow errors
 **Solution:** 

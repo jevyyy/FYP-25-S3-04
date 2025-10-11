@@ -142,7 +142,7 @@ Update `API_BASE_URL` in `Green_Lens/services/plantRecognitionApi.js`
 - **Training:** Python 3.10
 - **Input Size:** 224x224 pixels
 - **Output:** 102 flower/plant classes
-- **Location:** `Green_Lens/backend/src/ouput_model/flower_img_classifier.keras`
+- **Source:** Firebase Storage (automatically downloaded on server startup)
 
 ## 📱 Usage Example
 
@@ -194,9 +194,10 @@ FYP-25-S3-04/
 │
 ├── Green_Lens/                      # React Native app
 │   ├── backend/                     # Existing Firebase backend
+│   │   ├── service-account.json    # Firebase credentials
 │   │   └── src/
-│   │       ├── ouput_model/        # Trained model files
-│   │       ├── camera/             # Class mappings
+│   │       ├── ouput_model/        # Original model files (for reference)
+│   │       ├── camera/             # Class mappings (uploaded to Firebase)
 │   │       └── utils/              # Training scripts
 │   ├── services/
 │   │   └── plantRecognitionApi.js  # API service layer

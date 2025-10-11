@@ -8,37 +8,97 @@ import io
 import tensorflow as tf
 from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+import firebase_admin
+from firebase_admin import credentials, storage
 
 app = Flask(__name__)
 CORS(app)
 
-# Paths
-MODEL_PATH = os.path.join(os.path.dirname(__file__), '..', 'Green_Lens', 'backend', 'src', 'ouput_model', 'flower_img_classifier.keras')
-CLASS_NAMES_PATH = os.path.join(os.path.dirname(__file__), '..', 'Green_Lens', 'backend', 'src', 'camera', 'class_names.json')
-CLASS_DICT_PATH = os.path.join(os.path.dirname(__file__), '..', 'Green_Lens', 'backend', 'src', 'camera', 'classes_to_name_dictionary.json')
+# Firebase configuration
+BUCKET_NAME = 'green-lens-47e9b.firebasestorage.app'
+SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'Green_Lens', 'backend', 'service-account.json')
+
+# Local paths for downloaded files
+LOCAL_MODEL_DIR = os.path.join(os.path.dirname(__file__), 'downloaded_model')
+LOCAL_MODEL_PATH = os.path.join(LOCAL_MODEL_DIR, 'flower_img_classifier.keras')
+LOCAL_CLASS_NAMES_PATH = os.path.join(LOCAL_MODEL_DIR, 'class_names.json')
+LOCAL_CLASS_DICT_PATH = os.path.join(LOCAL_MODEL_DIR, 'classes_to_name_dictionary.json')
+
+# Firebase Storage paths
+FIREBASE_MODEL_PATH = 'flower_img_classifier.keras'
+FIREBASE_CLASS_NAMES_PATH = 'class_names.json'
+FIREBASE_CLASS_DICT_PATH = 'classes_to_name_dictionary.json'
 
 # Global variables for model and class names
 model = None
 class_names = None
 class_dict = None
+firebase_initialized = False
+
+def initialize_firebase():
+    """Initialize Firebase Admin SDK"""
+    global firebase_initialized
+    
+    if firebase_initialized:
+        return
+    
+    try:
+        print("Initializing Firebase Admin SDK...")
+        cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+        firebase_admin.initialize_app(cred, {
+            'storageBucket': BUCKET_NAME
+        })
+        firebase_initialized = True
+        print("Firebase Admin SDK initialized successfully")
+    except Exception as e:
+        print(f"Error initializing Firebase: {str(e)}")
+        raise e
+
+def download_file_from_firebase(firebase_path, local_path):
+    """Download a file from Firebase Storage to local path"""
+    try:
+        bucket = storage.bucket()
+        blob = bucket.blob(firebase_path)
+        
+        print(f"Downloading {firebase_path} from Firebase Storage...")
+        blob.download_to_filename(local_path)
+        print(f"Successfully downloaded to {local_path}")
+        
+    except Exception as e:
+        print(f"Error downloading {firebase_path}: {str(e)}")
+        raise e
 
 def load_model_and_classes():
-    """Load the trained model and class mappings"""
+    """Load the trained model and class mappings from Firebase Storage"""
     global model, class_names, class_dict
     
     try:
-        # Load the model
-        print(f"Loading model from: {MODEL_PATH}")
-        model = load_model(MODEL_PATH)
+        # Initialize Firebase if not already done
+        initialize_firebase()
+        
+        # Create local directory for downloaded files
+        if not os.path.exists(LOCAL_MODEL_DIR):
+            os.makedirs(LOCAL_MODEL_DIR, recursive=True)
+            print(f"Created directory: {LOCAL_MODEL_DIR}")
+        
+        # Download model file from Firebase Storage
+        print("Downloading model files from Firebase Storage...")
+        download_file_from_firebase(FIREBASE_MODEL_PATH, LOCAL_MODEL_PATH)
+        download_file_from_firebase(FIREBASE_CLASS_NAMES_PATH, LOCAL_CLASS_NAMES_PATH)
+        download_file_from_firebase(FIREBASE_CLASS_DICT_PATH, LOCAL_CLASS_DICT_PATH)
+        
+        # Load the model from local file
+        print(f"Loading model from: {LOCAL_MODEL_PATH}")
+        model = load_model(LOCAL_MODEL_PATH)
         print("Model loaded successfully")
         
         # Load class names mapping (index to class ID)
-        with open(CLASS_NAMES_PATH, 'r') as f:
+        with open(LOCAL_CLASS_NAMES_PATH, 'r') as f:
             class_names = json.load(f)
         print(f"Loaded {len(class_names)} class names")
         
         # Load class dictionary (class ID to flower name)
-        with open(CLASS_DICT_PATH, 'r') as f:
+        with open(LOCAL_CLASS_DICT_PATH, 'r') as f:
             class_dict = json.load(f)
         print(f"Loaded {len(class_dict)} class descriptions")
         
