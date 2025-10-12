@@ -77,9 +77,8 @@ def load_model_and_classes():
         initialize_firebase()
         
         # Create local directory for downloaded files
-        if not os.path.exists(LOCAL_MODEL_DIR):
-            os.makedirs(LOCAL_MODEL_DIR, recursive=True)
-            print(f"Created directory: {LOCAL_MODEL_DIR}")
+        os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
+        print(f"Created directory: {LOCAL_MODEL_DIR}")
         
         # Download model file from Firebase Storage
         print("Downloading model files from Firebase Storage...")
