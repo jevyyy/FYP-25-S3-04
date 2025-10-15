@@ -1,0 +1,381 @@
+// App.js
+import React from 'react';
+import { Image, TouchableOpacity, Text } from 'react-native';
+import { NavigationContainer } from '@react-navigation/native';
+import { createDrawerNavigator } from '@react-navigation/drawer';
+import { createNativeStackNavigator } from '@react-navigation/native-stack';
+import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
+import { Ionicons } from '@expo/vector-icons';
+
+// --- Imports ---
+import Guest_HomePage from './screens/Guest/Guest_HomePage';
+import LoginSelectionPage from './screens/LoginSelectionPage';
+import User_Login from './screens/User/User_Login';
+import User_Register from './screens/User/User_Register';
+import Forgot_PasswordPage from './screens/Forgot_PasswordPage';
+import Admin_Developer_LoginPage from './screens/Admin_&_Developer_LoginPage';
+import Admin_HomePage from './screens/Admin/Admin_HomePage';
+import Admin_AccountsPage from './screens/Admin/Admin_AccountsPage';
+import Admin_ReportPage from './screens/Admin/Admin_ReportPage';
+import Admin_CreateAccountPage from './screens/Admin/Admin_CreateAccountPage';
+import Admin_UpdateAccountPage from './screens/Admin/Admin_UpdateAccountPage';
+import Admin_SettingsPage from './screens/Admin/Admin_SettingsPage';
+import Admin_SuspendAccountPage from './screens/Admin/Admin_SuspendAccountPage'; // ✅ Added this import
+import Developer_HomePage from './screens/Developer/Developer_HomePage';
+import Developer_PlantsPage from './screens/Developer/Developer_PlantsPage';
+import Developer_FlowersPage from './screens/Developer/Developer_FlowersPage';
+import Developer_ArchitecturePage from './screens/Developer/Developer_ArchitecturesPage';
+import Developer_SettingsPage from './screens/Developer/Developer_Settings';
+import User_HomePage from './screens/User/User_HomePage';
+import User_Explore from './screens/User/User_Explore';
+import User_RankingPage from './screens/User/User_RankingPage';
+import User_QuizPage from './screens/User/User_QuizPage';
+import Guest_ViewSummaryPage from './screens/Guest/Guest_ViewSummaryPage';
+import User_ViewSummaryPage from './screens/User/User_ViewSummaryPage';
+import FeedbackPage from './screens/FeedbackPage';
+import SettingPage from './screens/User/User_SettingsPage';
+import User_ChangePasswordPage from './screens/User/User_ChangePasswordPage';
+import User_RewardPage from './screens/User/User_RewardPage';
+
+const Drawer = createDrawerNavigator();
+const Stack = createNativeStackNavigator();
+const Tab = createBottomTabNavigator();
+
+// --- Burger menu ---
+const BurgerMenu = ({ navigation }) => (
+  <TouchableOpacity onPress={() => navigation.toggleDrawer()} style={{ marginRight: 15 }}>
+    <Text style={{ fontSize: 24 }}>☰</Text>
+  </TouchableOpacity>
+);
+
+// --- Guest Drawer ---
+function GuestDrawer() {
+  return (
+    <Drawer.Navigator
+      initialRouteName="Guest_HomePage"
+      screenOptions={{
+        drawerPosition: 'right',
+        headerTitle: () => (
+          <Image
+            source={require('./assets/Green_Lens_logo.png')}
+            style={{ width: 120, height: 40 }}
+            resizeMode="contain"
+          />
+        ),
+        headerStyle: { backgroundColor: '#fff' },
+      }}
+    >
+      <Drawer.Screen
+        name="Guest_HomePage"
+        component={Guest_HomePage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Home',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
+        name="LoginSelection"
+        component={LoginStack}
+        options={{ drawerLabel: 'Login/Register', headerShown: false }}
+      />
+      <Drawer.Screen
+        name="Guest_ViewSummary"
+        component={Guest_ViewSummaryPage}
+        options={{
+          drawerLabel: 'Hidden',
+          drawerItemStyle: { display: 'none' },
+          title: 'Summary',
+        }}
+      />
+    </Drawer.Navigator>
+  );
+}
+
+// --- User Drawer ---
+function UserDrawer() {
+  return (
+    <Drawer.Navigator
+      initialRouteName="User_HomePage"
+      screenOptions={{
+        drawerPosition: 'right',
+        headerTitle: () => (
+          <Image
+            source={require('./assets/Green_Lens_logo.png')}
+            style={{ width: 120, height: 40 }}
+            resizeMode="contain"
+          />
+        ),
+        headerStyle: { backgroundColor: '#fff' },
+      }}
+    >
+      <Drawer.Screen
+        name="User_HomePage"
+        component={User_HomePage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Home',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
+        name="User_Explore"
+        component={User_Explore}
+        options={({ navigation }) => ({
+          drawerLabel: 'Explore',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
+        name="User_QuizPage"
+        component={User_QuizPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Quiz',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
+        name="User_RankingPage"
+        component={User_RankingPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Ranking',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
+        name="User_RewardPage"
+        component={User_RewardPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Rewards',
+          title: 'Rewards',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
+        name="FeedbackPage"
+        component={FeedbackPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Rate Us',
+          title: 'Rate Us',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
+        name="SettingPage"
+        component={SettingPage}
+        options={({ navigation }) => ({
+          drawerLabel: 'Settings',
+          title: 'Settings',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Drawer.Screen
+        name="User_ViewSummary"
+        component={User_ViewSummaryPage}
+        options={{
+          drawerLabel: 'Hidden',
+          drawerItemStyle: { display: 'none' },
+        }}
+      />
+    </Drawer.Navigator>
+  );
+}
+
+// --- Guest Login stack ---
+function LoginStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen
+        name="LoginSelectionPage"
+        component={LoginSelectionPage}
+        options={({ navigation }) => ({
+          title: 'Login / Register',
+          headerRight: () => <BurgerMenu navigation={navigation} />,
+        })}
+      />
+      <Stack.Screen name="User_Login" component={User_Login} options={{ title: 'User Login' }} />
+      <Stack.Screen name="User_Register" component={User_Register} options={{ title: 'Register' }} />
+      <Stack.Screen
+        name="Forgot_PasswordPage"
+        component={Forgot_PasswordPage}
+        options={{ title: 'Forgot Password' }}
+      />
+      <Stack.Screen
+        name="Admin_Developer_Login"
+        component={Admin_Developer_LoginPage}
+        options={{ title: 'Admin / Developer Login' }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+// --- Admin Tabs ---
+function AdminTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#000',
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          height: 70,
+          marginBottom: 40,
+        },
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: 'white',
+        tabBarInactiveTintColor: 'gray',
+      }}
+    >
+      <Tab.Screen
+        name="Admin_HomePage"
+        component={Admin_HomePage}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Admin_AccountsPage"
+        component={Admin_AccountsPage}
+        options={{
+          tabBarLabel: 'Accounts',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="people" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Admin_ReportPage"
+        component={Admin_ReportPage}
+        options={{
+          tabBarLabel: 'Reports',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="document-text" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Admin_SettingsPage"
+        component={Admin_SettingsPage}
+        options={{
+          tabBarLabel: 'Settings',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// --- Admin Stack ---
+function AdminStack() {
+  return (
+    <Stack.Navigator>
+      <Stack.Screen name="AdminTabs" component={AdminTabs} options={{ headerShown: false }} />
+      <Stack.Screen
+        name="Admin_UpdateAccountPage"
+        component={Admin_UpdateAccountPage}
+        options={{ title: 'Update Account' }}
+      />
+      <Stack.Screen
+        name="Admin_CreateAccountPage"
+        component={Admin_CreateAccountPage}
+        options={{ title: 'Create Account' }}
+      />
+      <Stack.Screen
+        name="Admin_SuspendAccountPage" // ✅ Added this
+        component={Admin_SuspendAccountPage}
+        options={{ title: 'Suspend Account' }}
+      />
+    </Stack.Navigator>
+  );
+}
+
+// --- Developer Tabs ---
+function DeveloperTabs() {
+  return (
+    <Tab.Navigator
+      screenOptions={{
+        headerShown: false,
+        tabBarStyle: {
+          backgroundColor: '#000',
+          borderTopLeftRadius: 16,
+          borderTopRightRadius: 16,
+          height: 70,
+          marginBottom: 40,
+        },
+        tabBarShowLabel: true,
+        tabBarActiveTintColor: 'white',
+        tabBarInactiveTintColor: 'gray',
+      }}
+    >
+      <Tab.Screen
+        name="Developer_HomePage"
+        component={Developer_HomePage}
+        options={{
+          tabBarLabel: 'Home',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="home" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Developer_PlantsPage"
+        component={Developer_PlantsPage}
+        options={{
+          tabBarLabel: 'Plants',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="leaf" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Developer_FlowersPage"
+        component={Developer_FlowersPage}
+        options={{
+          tabBarLabel: 'Flowers',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="flower" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Developer_ArchitecturePage"
+        component={Developer_ArchitecturePage}
+        options={{
+          tabBarLabel: 'Architecture',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="business" size={size} color={color} />,
+        }}
+      />
+      <Tab.Screen
+        name="Developer_SettingsPage"
+        component={Developer_SettingsPage}
+        options={{
+          tabBarLabel: 'Settings',
+          tabBarLabelStyle: { fontWeight: 'bold', fontSize: 12 },
+          tabBarIcon: ({ color, size }) => <Ionicons name="settings" size={size} color={color} />,
+        }}
+      />
+    </Tab.Navigator>
+  );
+}
+
+// --- Developer Flow ---
+function DeveloperFlow() {
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="DeveloperTabs" component={DeveloperTabs} />
+    </Stack.Navigator>
+  );
+}
+
+// --- App ---
+export default function App() {
+  return (
+    <NavigationContainer>
+      <Stack.Navigator screenOptions={{ headerShown: false }}>
+        <Stack.Screen name="GuestFlow" component={GuestDrawer} />
+        <Stack.Screen name="UserFlow" component={UserDrawer} />
+        <Stack.Screen name="AdminFlow" component={AdminStack} />
+        <Stack.Screen name="DeveloperFlow" component={DeveloperFlow} />
+        <Stack.Screen name="User_ChangePasswordPage" component={User_ChangePasswordPage} />
+      </Stack.Navigator>
+    </NavigationContainer>
+  );
+}
