@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet } from "react-native";
 import { getFirestore, collection, onSnapshot } from "firebase/firestore";
-import { app } from "../../firebaseConfig"; // adjust path if needed
+import { app } from "../../firebaseConfig";
 
 export default function Admin_HomePage() {
   const [totalUsers, setTotalUsers] = useState(0);

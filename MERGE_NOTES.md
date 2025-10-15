@@ -122,6 +122,30 @@ npm start
 3. **Database Scripts**: Use `frontend/Script_DB_Populate/` for populating Firebase database
 4. **Configuration**: All Expo configuration is in `frontend/app.json`
 5. **Assets**: All images and assets are in `frontend/assets/`
+6. **Dynamic Paths**: All imports use relative paths that work from their respective locations:
+   - `firebaseConfig` imports use correct relative paths (`../` or `../../` based on file depth)
+   - Asset requires use relative paths (e.g., `require('../assets/image.png')`)
+   - Backend uses `os.path` for dynamic file location
+   - API URL is configurable via environment variable (`EXPO_PUBLIC_API_URL`)
+
+## Path Configuration
+
+### Frontend
+- **Firebase Config**: Located at `frontend/firebaseConfig.js`
+  - Files in `frontend/screens/` use `../firebaseConfig`
+  - Files in `frontend/screens/User/` or `frontend/screens/Admin/` use `../../firebaseConfig`
+- **Assets**: Located at `frontend/assets/`
+  - All asset requires use relative paths based on file location
+- **API URL**: Configurable via `.env` file
+  - Copy `frontend/.env.example` to `frontend/.env`
+  - Set `EXPO_PUBLIC_API_URL` for custom backend URL
+  - Defaults to `http://localhost:5000` if not set
+
+### Backend
+- **Service Account**: Place `service-account.json` in `backend/` directory
+  - Uses dynamic path resolution via `os.path.dirname(__file__)`
+- **Downloaded Model**: Stored in `backend/downloaded_model/` (auto-created)
+  - Uses dynamic path resolution, works from any location
 
 ## Testing the Merge
 

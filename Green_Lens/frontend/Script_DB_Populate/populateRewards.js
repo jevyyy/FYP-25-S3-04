@@ -1,6 +1,6 @@
 // populateRewards.js
 import { getFirestore, doc, setDoc, collection, addDoc } from 'firebase/firestore';
-import { app } from '../firebaseConfig.js'; // import the initialized app
+import { app } from '../firebaseConfig';
 
 const db = getFirestore(app);
 

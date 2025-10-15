@@ -12,7 +12,7 @@ export default function LoginSelectionPage() {
     <View style={styles.outerContainer}>
       {/* Logo above the text */}
       <Image
-        source={require('../assets/Green_Lens_logo.png')} // adjust path if necessary
+        source={require('../assets/Green_Lens_logo.png')}
         style={styles.logo}
         resizeMode="contain"
       />

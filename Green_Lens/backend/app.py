@@ -16,7 +16,8 @@ CORS(app)
 
 # Firebase configuration
 BUCKET_NAME = 'green-lens-47e9b.firebasestorage.app'
-SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), '..', '..', 'Green_Lens', 'backend', 'service-account.json')
+# Use dynamic path resolution that works from any location
+SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), 'service-account.json')
 
 # Local paths for downloaded files
 LOCAL_MODEL_DIR = os.path.join(os.path.dirname(__file__), 'downloaded_model')

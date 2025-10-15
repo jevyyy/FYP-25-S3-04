@@ -62,9 +62,21 @@ The backend API will start on `http://localhost:5000`
 
 ```bash
 cd Green_Lens/frontend
+
+# Copy the example environment file (optional - for custom API URL)
+cp .env.example .env
+
+# Install dependencies
 npm install
+
+# Start the development server
 npm start
 ```
+
+**Environment Configuration (Optional):**
+- Copy `.env.example` to `.env` 
+- Update `EXPO_PUBLIC_API_URL` if your backend is not on `http://localhost:5000`
+- Default value is `http://localhost:5000` if no `.env` file is present
 
 Then:
 - Press `a` for Android emulator
