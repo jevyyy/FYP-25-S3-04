@@ -65,17 +65,6 @@ cd Green_Lens/frontend
 npm install
 npm start
 ```
-```
-
-The backend will be available at `http://localhost:5000`
-
-### 2. React Native App Setup
-
-```bash
-cd Green_Lens
-npm install
-npm start
-```
 
 Then:
 - Press `a` for Android emulator
@@ -85,8 +74,9 @@ Then:
 ## 📖 Documentation
 
 - [**Integration Guide**](INTEGRATION_GUIDE.md) - Complete setup and usage guide
-- [**Backend README**](backend/README.md) - Backend API documentation
-- [**API Service**](Green_Lens/services/plantRecognitionApi.js) - React Native API service layer
+- [**Backend README**](Green_Lens/backend/README.md) - Backend API documentation
+- [**Merge Notes**](MERGE_NOTES.md) - Details about branch consolidation
+- [**API Service**](Green_Lens/frontend/services/plantRecognitionApi.js) - React Native API service layer
 
 ## 🔌 API Endpoints
 
