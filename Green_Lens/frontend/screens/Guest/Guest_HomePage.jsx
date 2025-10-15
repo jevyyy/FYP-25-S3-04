@@ -1,10 +1,11 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Button, Image, StyleSheet, Text, TouchableOpacity, View, Alert } from 'react-native';
+import { Button, Image, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { useDrawerStatus } from '@react-navigation/drawer';
 import { useNavigation, useIsFocused } from '@react-navigation/native'; // added useIsFocused
+import { predictPlant } from '../../services/plantRecognitionApi';
 
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
@@ -36,9 +37,6 @@ function ImagePreview({ onSelectImage }) {
       const uri = result.assets[0].uri;
       setLastPhotoUri(uri);
       onSelectImage(uri);
-
-      // Navigate to Guest_ViewSummaryPage
-      navigation.navigate('Guest_ViewSummary', { photoUri: uri });
     }
   };
 
@@ -56,6 +54,7 @@ export default function Guest_HomePage() {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
   const [selectedImageUri, setSelectedImageUri] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
 
   const drawerStatus = useDrawerStatus();
   const isDrawerOpen = drawerStatus === 'open';
@@ -73,6 +72,29 @@ export default function Guest_HomePage() {
   const toggleCameraFacing = () =>
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
 
+  const processImage = async (photoUri) => {
+    setIsProcessing(true);
+    
+    try {
+      // Call the plant recognition API
+      const result = await predictPlant(photoUri);
+      
+      if (result.success) {
+        // Navigate to Guest_ViewSummaryPage with both photo and prediction results
+        navigation.navigate('Guest_ViewSummary', { 
+          photoUri: photoUri,
+          predictionData: result.data 
+        });
+      } else {
+        Alert.alert('Recognition Failed', result.error || 'Unable to recognize the plant. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to process image: ' + error.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
@@ -83,12 +105,18 @@ export default function Guest_HomePage() {
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
 
-        // Navigate to Guest_ViewSummaryPage
-        navigation.navigate('Guest_ViewSummary', { photoUri: photo.uri });
+        // Process the image with the backend
+        await processImage(photo.uri);
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
       }
     }
+  };
+
+  const handleImageSelected = async (uri) => {
+    setSelectedImageUri(uri);
+    // Process the selected image from gallery
+    await processImage(uri);
   };
 
   return (
@@ -98,10 +126,22 @@ export default function Guest_HomePage() {
         <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
       )}
 
-      <View style={styles.overlay}>
-        <ImagePreview onSelectImage={(uri) => setSelectedImageUri(uri)} />
+      {/* Loading overlay */}
+      {isProcessing && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#ffffff" />
+          <Text style={styles.loadingText}>Recognizing plant...</Text>
+        </View>
+      )}
 
-        <TouchableOpacity style={styles.button} onPress={takePhoto}>
+      <View style={styles.overlay}>
+        <ImagePreview onSelectImage={handleImageSelected} />
+
+        <TouchableOpacity 
+          style={[styles.button, isProcessing && styles.buttonDisabled]} 
+          onPress={takePhoto}
+          disabled={isProcessing}
+        >
           <Text style={styles.text}>📸</Text>
         </TouchableOpacity>
 
@@ -130,6 +170,9 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 40,
   },
+  buttonDisabled: {
+    opacity: 0.5,
+  },
   text: { color: 'white', fontSize: 20 },
   thumbnailContainer: {
     width: 60,
@@ -140,4 +183,20 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   thumbnail: { width: '100%', height: '100%' },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
+  },
+  loadingText: {
+    color: '#ffffff',
+    fontSize: 16,
+    marginTop: 10,
+  },
 });
