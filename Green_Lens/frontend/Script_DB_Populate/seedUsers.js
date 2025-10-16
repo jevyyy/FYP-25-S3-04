@@ -3,7 +3,7 @@
 
 import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
 import { getFirestore, doc, setDoc } from "firebase/firestore";
-import { app } from "../firebaseConfig.js";
+import { app } from '../firebaseConfig';
 
 const auth = getAuth(app);
 const db = getFirestore(app);

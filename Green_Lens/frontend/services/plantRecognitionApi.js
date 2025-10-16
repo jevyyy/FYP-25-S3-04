@@ -8,7 +8,8 @@
 // Configure your backend API URL here
 // For local development: http://localhost:5000
 // For production: replace with your deployed backend URL
-const API_BASE_URL = 'http://localhost:5000';
+// Use environment variable if available, otherwise default to localhost
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
 
 /**
  * Check if the backend API is healthy and ready

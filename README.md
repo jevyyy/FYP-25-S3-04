@@ -9,21 +9,31 @@ A React Native mobile application with Python backend for plant/flower recogniti
 - 🎯 Top 5 predictions with confidence scores
 - 🔄 Real-time prediction processing
 - 📱 Cross-platform (iOS & Android)
+- 👤 User authentication and profiles
+- 🎮 Quiz and rewards system
+- 📊 User rankings
+- 👨‍💼 Admin and Developer portals
 
 ## 🏗️ Architecture
 
 ```
-├── Green_Lens/          # React Native mobile app
-│   ├── services/        # API service layer
-│   ├── screens/         # App screens
-│   └── backend/         # Existing Firebase backend
+Green_Lens/
+├── backend/             # Python Flask API server
+│   ├── app.py          # Main API application
+│   ├── src/            # Source files
+│   ├── requirements.txt # Python dependencies
+│   └── start.sh/.bat   # Startup scripts
 │
-└── backend/             # Python Flask API server
-    ├── src/
-    │   └── app.py       # Main API application
-    ├── requirements.txt # Python dependencies
-    └── start.sh/.bat    # Startup scripts
+└── frontend/           # React Native Expo application
+    ├── App.js          # Main app with navigation
+    ├── screens/        # All app screens
+    ├── services/       # API service layer
+    ├── assets/         # Images and resources
+    ├── functions/      # Firebase functions
+    └── package.json    # Node dependencies
 ```
+
+> **Note**: This branch has been merged from the KX and fastAPI branches. See [MERGE_NOTES.md](MERGE_NOTES.md) for details on what was consolidated.
 
 ## 🚀 Quick Start
 
@@ -37,28 +47,36 @@ A React Native mobile application with Python backend for plant/flower recogniti
 
 ### 1. Backend Setup
 
-**macOS/Linux:**
 ```bash
-cd backend
-chmod +x start.sh
-./start.sh
+cd Green_Lens/backend
+python3 -m venv venv
+source venv/bin/activate  # On Windows: venv\Scripts\activate
+pip install -r requirements.txt
+cd src
+python app.py
 ```
 
-**Windows:**
-```bash
-cd backend
-start.bat
-```
+The backend API will start on `http://localhost:5000`
 
-The backend will be available at `http://localhost:5000`
-
-### 2. React Native App Setup
+### 2. Frontend Setup
 
 ```bash
-cd Green_Lens
+cd Green_Lens/frontend
+
+# Copy the example environment file (optional - for custom API URL)
+cp .env.example .env
+
+# Install dependencies
 npm install
+
+# Start the development server
 npm start
 ```
+
+**Environment Configuration (Optional):**
+- Copy `.env.example` to `.env` 
+- Update `EXPO_PUBLIC_API_URL` if your backend is not on `http://localhost:5000`
+- Default value is `http://localhost:5000` if no `.env` file is present
 
 Then:
 - Press `a` for Android emulator
@@ -68,8 +86,9 @@ Then:
 ## 📖 Documentation
 
 - [**Integration Guide**](INTEGRATION_GUIDE.md) - Complete setup and usage guide
-- [**Backend README**](backend/README.md) - Backend API documentation
-- [**API Service**](Green_Lens/services/plantRecognitionApi.js) - React Native API service layer
+- [**Backend README**](Green_Lens/backend/README.md) - Backend API documentation
+- [**Merge Notes**](MERGE_NOTES.md) - Details about branch consolidation
+- [**API Service**](Green_Lens/frontend/services/plantRecognitionApi.js) - React Native API service layer
 
 ## 🔌 API Endpoints
 

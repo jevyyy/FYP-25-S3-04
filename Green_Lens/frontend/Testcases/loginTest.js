@@ -1,6 +1,6 @@
 // .loginTest.js
 import { signInWithEmailAndPassword, createUserWithEmailAndPassword, getAuth, deleteUser } from "firebase/auth";
-import { app } from "../firebaseConfig.js";
+import { app } from '../firebaseConfig';
 
 const auth = getAuth(app);
 
