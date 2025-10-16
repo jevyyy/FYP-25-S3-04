@@ -126,9 +126,9 @@ ipconfig | findstr IPv4
 ```
 
 **Example:**
-If your computer's IP is `192.168.1.115`, use:
+If your computer's IP is `192.186.1.115`, use:
 ```bash
-EXPO_PUBLIC_API_URL=http://192.168.1.115:5000
+EXPO_PUBLIC_API_URL=http://192.186.1.115:5000
 ```
 
 ## Installation Instructions
