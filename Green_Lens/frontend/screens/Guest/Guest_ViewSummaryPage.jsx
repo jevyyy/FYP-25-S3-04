@@ -137,10 +137,6 @@ export default function Guest_ViewSummaryPage({ route }) {
                   <Text style={styles.characteristics}>{summaryData.funFact}</Text>
                 </>
               )}
-
-              {summaryData.habitat && <Text style={styles.info}>Habitat: {summaryData.habitat}</Text>}
-              {summaryData.location && <Text style={styles.info}>Location: {summaryData.location}</Text>}
-              {summaryData.built_year && <Text style={styles.info}>Built Year: {summaryData.built_year}</Text>}
             </>
           ) : (
             <Text style={styles.placeholderText}>
