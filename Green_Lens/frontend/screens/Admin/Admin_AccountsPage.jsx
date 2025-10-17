@@ -8,6 +8,7 @@ import {
   TouchableOpacity,
   TextInput,
   Alert,
+  ActivityIndicator,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -17,12 +18,13 @@ import { app } from "../../firebaseConfig";
 
 export default function Admin_AccountsPage() {
   const navigation = useNavigation();
-  const itemsPerPage = 8; // for testing (you can set back to 8 later)
+  const itemsPerPage = 8;
 
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
   const [currentUser, setCurrentUser] = useState(null);
+  const [loadingUser, setLoadingUser] = useState(true);
 
   const db = getFirestore(app);
   const auth = getAuth(app);
@@ -43,8 +45,11 @@ export default function Admin_AccountsPage() {
           }
         } catch (error) {
           console.error("Error checking current user document:", error);
+        } finally {
+          setLoadingUser(false);
         }
       } else {
+        setLoadingUser(false);
         navigation.navigate("Login");
       }
     });
@@ -86,7 +91,7 @@ export default function Admin_AccountsPage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
 
-  // --- Function to generate visible pages (max 5) ---
+  // --- Pagination helper ---
   const getVisiblePages = () => {
     const visiblePages = [];
     const maxVisible = 5;
@@ -96,12 +101,7 @@ export default function Admin_AccountsPage() {
     } else {
       let start = Math.max(currentPage - 2, 1);
       let end = Math.min(start + maxVisible - 1, totalPages);
-
-      // Adjust if we’re near the end
-      if (end - start < maxVisible - 1) {
-        start = Math.max(end - maxVisible + 1, 1);
-      }
-
+      if (end - start < maxVisible - 1) start = Math.max(end - maxVisible + 1, 1);
       for (let i = start; i <= end; i++) visiblePages.push(i);
     }
 
@@ -109,6 +109,16 @@ export default function Admin_AccountsPage() {
   };
 
   const visiblePages = getVisiblePages();
+
+  // --- Show loading until currentUser is fetched ---
+  if (loadingUser) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1E90FF" />
+        <Text>Loading user...</Text>
+      </View>
+    );
+  }
 
   return (
     <View style={styles.container}>
@@ -141,6 +151,7 @@ export default function Admin_AccountsPage() {
         data={currentUsers}
         keyExtractor={(item) => `user-${item.id}`}
         contentContainerStyle={{ paddingBottom: 120 }}
+        scrollEnabled={false}
         renderItem={({ item }) => {
           const username = String(item.username || "");
           const role = String(item.role || "");
@@ -178,10 +189,8 @@ export default function Admin_AccountsPage() {
                 onPress={() =>
                   navigation.navigate("Admin_SuspendAccountPage", { user: item })
                 }
-                disabled={item.id === currentUser?.uid}
-                style={{
-                  opacity: item.id === currentUser?.uid ? 0.5 : 1,
-                }}
+                disabled={!currentUser || item.id === currentUser.uid} // ✅ crash-proof
+                style={{ opacity: !currentUser || item.id === currentUser.uid ? 0.5 : 1 }}
               >
                 <Ionicons name="ban" size={20} color="red" />
               </TouchableOpacity>
@@ -192,7 +201,6 @@ export default function Admin_AccountsPage() {
 
       {/* Pagination */}
       <View style={styles.pagination}>
-        {/* Jump to first page */}
         <TouchableOpacity
           disabled={currentPage === 1}
           onPress={() => setCurrentPage(1)}
@@ -202,10 +210,8 @@ export default function Admin_AccountsPage() {
           </Text>
         </TouchableOpacity>
 
-        {/* Show "..." before if not starting at 1 */}
         {visiblePages[0] > 1 && <Text style={styles.ellipsis}>...</Text>}
 
-        {/* Page numbers (max 5) */}
         {visiblePages.map((page) => (
           <TouchableOpacity key={`page-${page}`} onPress={() => setCurrentPage(page)}>
             <Text
@@ -219,12 +225,10 @@ export default function Admin_AccountsPage() {
           </TouchableOpacity>
         ))}
 
-        {/* Show "..." after if not ending at last page */}
         {visiblePages[visiblePages.length - 1] < totalPages && (
           <Text style={styles.ellipsis}>...</Text>
         )}
 
-        {/* Jump to last page */}
         <TouchableOpacity
           disabled={currentPage === totalPages}
           onPress={() => setCurrentPage(totalPages)}
@@ -261,11 +265,7 @@ const styles = StyleSheet.create({
     marginBottom: 4,
     alignItems: "center",
   },
-  headerText: {
-    fontWeight: "700",
-    fontSize: 14,
-    color: "#000",
-  },
+  headerText: { fontWeight: "700", fontSize: 14, color: "#000" },
   userRow: {
     flexDirection: "row",
     alignItems: "center",
@@ -297,4 +297,5 @@ const styles = StyleSheet.create({
   pageArrow: { fontSize: 16, marginHorizontal: 10 },
   disabled: { color: "#aaa" },
   ellipsis: { fontSize: 16, marginHorizontal: 6, color: "#777" },
+  loadingContainer: { flex: 1, justifyContent: "center", alignItems: "center" },
 });
