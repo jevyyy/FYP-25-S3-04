@@ -17,7 +17,7 @@ import { app } from "../../firebaseConfig";
 
 export default function Admin_AccountsPage() {
   const navigation = useNavigation();
-  const itemsPerPage = 8;
+  const itemsPerPage = 8; // for testing (you can set back to 8 later)
 
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -62,7 +62,7 @@ export default function Admin_AccountsPage() {
           id: doc.id,
           name: doc.data().name || "",
           username: doc.data().username || "",
-          email: doc.data().email || "", // <-- add this
+          email: doc.data().email || "",
           password: doc.data().password || "",
           role: doc.data().role || "",
           status: doc.data().status || "active",
@@ -85,6 +85,30 @@ export default function Admin_AccountsPage() {
   const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
+
+  // --- Function to generate visible pages (max 5) ---
+  const getVisiblePages = () => {
+    const visiblePages = [];
+    const maxVisible = 5;
+
+    if (totalPages <= maxVisible) {
+      for (let i = 1; i <= totalPages; i++) visiblePages.push(i);
+    } else {
+      let start = Math.max(currentPage - 2, 1);
+      let end = Math.min(start + maxVisible - 1, totalPages);
+
+      // Adjust if we’re near the end
+      if (end - start < maxVisible - 1) {
+        start = Math.max(end - maxVisible + 1, 1);
+      }
+
+      for (let i = start; i <= end; i++) visiblePages.push(i);
+    }
+
+    return visiblePages;
+  };
+
+  const visiblePages = getVisiblePages();
 
   return (
     <View style={styles.container}>
@@ -130,7 +154,6 @@ export default function Admin_AccountsPage() {
                 status === "inactive" && { backgroundColor: "#FFF7D4" },
               ]}
             >
-              {/* Update Account navigation remains */}
               <TouchableOpacity
                 style={{ flex: 1 }}
                 onPress={() =>
@@ -151,7 +174,6 @@ export default function Admin_AccountsPage() {
                 {capitalizedStatus}
               </Text>
 
-              {/* Suspend/Reactivate moved to separate page */}
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate("Admin_SuspendAccountPage", { user: item })
@@ -170,31 +192,48 @@ export default function Admin_AccountsPage() {
 
       {/* Pagination */}
       <View style={styles.pagination}>
+        {/* Jump to first page */}
         <TouchableOpacity
           disabled={currentPage === 1}
-          onPress={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+          onPress={() => setCurrentPage(1)}
         >
           <Text style={[styles.pageArrow, currentPage === 1 && styles.disabled]}>
             {"<<"}
           </Text>
         </TouchableOpacity>
 
-        {[...Array(totalPages)].map((_, i) => (
-          <TouchableOpacity key={`page-${i}`} onPress={() => setCurrentPage(i + 1)}>
+        {/* Show "..." before if not starting at 1 */}
+        {visiblePages[0] > 1 && <Text style={styles.ellipsis}>...</Text>}
+
+        {/* Page numbers (max 5) */}
+        {visiblePages.map((page) => (
+          <TouchableOpacity key={`page-${page}`} onPress={() => setCurrentPage(page)}>
             <Text
-              style={[styles.pageNumber, currentPage === i + 1 && styles.activePage]}
+              style={[
+                styles.pageNumber,
+                currentPage === page && styles.activePage,
+              ]}
             >
-              {i + 1}
+              {page}
             </Text>
           </TouchableOpacity>
         ))}
 
+        {/* Show "..." after if not ending at last page */}
+        {visiblePages[visiblePages.length - 1] < totalPages && (
+          <Text style={styles.ellipsis}>...</Text>
+        )}
+
+        {/* Jump to last page */}
         <TouchableOpacity
           disabled={currentPage === totalPages}
-          onPress={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+          onPress={() => setCurrentPage(totalPages)}
         >
           <Text
-            style={[styles.pageArrow, currentPage === totalPages && styles.disabled]}
+            style={[
+              styles.pageArrow,
+              currentPage === totalPages && styles.disabled,
+            ]}
           >
             {">>"}
           </Text>
@@ -246,8 +285,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   pageNumber: {
-    marginHorizontal: 6,
-    padding: 6,
+    marginHorizontal: 4,
+    paddingVertical: 6,
+    paddingHorizontal: 8,
     fontSize: 14,
     borderWidth: 1,
     borderColor: "#ccc",
@@ -256,4 +296,5 @@ const styles = StyleSheet.create({
   activePage: { backgroundColor: "black", color: "white" },
   pageArrow: { fontSize: 16, marginHorizontal: 10 },
   disabled: { color: "#aaa" },
+  ellipsis: { fontSize: 16, marginHorizontal: 6, color: "#777" },
 });
