@@ -8,13 +8,15 @@ import {
   View,
   Alert,
   Animated,
+  ActivityIndicator,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { useDrawerStatus } from '@react-navigation/drawer';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons'; // for the question mark icon
+import { Ionicons } from '@expo/vector-icons';
+import { predictPlant } from '../../services/plantRecognitionApi'; // 👈 same API used in Guest_HomePage
 
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
@@ -45,8 +47,7 @@ function ImagePreview({ onSelectImage }) {
     if (!result.canceled) {
       const uri = result.assets[0].uri;
       setLastPhotoUri(uri);
-      onSelectImage(uri);
-      navigation.navigate('User_ViewSummary', { photoUri: uri });
+      onSelectImage(uri); // 👈 trigger recognition
     }
   };
 
@@ -64,6 +65,7 @@ export default function User_HomePage() {
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
   const [selectedImageUri, setSelectedImageUri] = useState(null);
+  const [isProcessing, setIsProcessing] = useState(false);
   const drawerStatus = useDrawerStatus();
   const isDrawerOpen = drawerStatus === 'open';
 
@@ -98,7 +100,6 @@ export default function User_HomePage() {
         useNativeDriver: true,
       }).start();
 
-      // Auto-hide after 5 seconds
       setTimeout(() => {
         Animated.timing(fadeAnim, {
           toValue: 0,
@@ -122,17 +123,41 @@ export default function User_HomePage() {
   const toggleCameraFacing = () =>
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
 
+  const processImage = async (photoUri) => {
+    setIsProcessing(true);
+    try {
+      const result = await predictPlant(photoUri);
+      if (result.success) {
+        navigation.navigate('User_ViewSummary', {
+          photoUri: photoUri,
+          predictionData: result.data,
+        });
+      } else {
+        Alert.alert('Recognition Failed', result.error || 'Unable to recognize the plant. Please try again.');
+      }
+    } catch (error) {
+      Alert.alert('Error', 'Failed to process image: ' + error.message);
+    } finally {
+      setIsProcessing(false);
+    }
+  };
+
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
-        const photo = await cameraRef.current.takePictureAsync();
+        const photo = await cameraRef.current.takePictureAsync({ skipProcessing: true });
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
-        navigation.navigate('User_ViewSummary', { photoUri: photo.uri });
+        await processImage(photo.uri); // 👈 send to recognition
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
       }
     }
+  };
+
+  const handleImageSelected = async (uri) => {
+    setSelectedImageUri(uri);
+    await processImage(uri);
   };
 
   return (
@@ -141,29 +166,36 @@ export default function User_HomePage() {
         <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
       )}
 
-      {/* Top-right question mark icon */}
+      {/* Loading overlay */}
+      {isProcessing && (
+        <View style={styles.loadingOverlay}>
+          <ActivityIndicator size="large" color="#ffffff" />
+          <Text style={styles.loadingText}>Recognizing plant...</Text>
+        </View>
+      )}
+
+      {/* Help icon */}
       <TouchableOpacity style={styles.helpIcon} onPress={handleToggleTip}>
         <Ionicons name="help-circle-outline" size={32} color="white" />
       </TouchableOpacity>
 
-      {/* Floating Helpful Tip Box */}
+      {/* Floating tip box */}
       {showTip && (
         <Animated.View style={[styles.tipBox, { opacity: fadeAnim }]}>
           <Text style={styles.tipText}>{currentTip}</Text>
         </Animated.View>
       )}
 
-      {/* Camera overlay controls */}
+      {/* Camera controls */}
       <View style={styles.overlay}>
-        {/* Thumbnail on the left */}
-        <ImagePreview onSelectImage={(uri) => setSelectedImageUri(uri)} />
-
-        {/* camera button */}
-        <TouchableOpacity style={[styles.circleButton, styles.shutterButton]} onPress={takePhoto}>
+        <ImagePreview onSelectImage={handleImageSelected} />
+        <TouchableOpacity
+          style={[styles.circleButton, styles.shutterButton, isProcessing && styles.buttonDisabled]}
+          onPress={takePhoto}
+          disabled={isProcessing}
+        >
           <Text style={styles.cameraIcon}>📸</Text>
         </TouchableOpacity>
-
-        {/* toggle button */}
         <TouchableOpacity style={[styles.circleButton, styles.toggleButton]} onPress={toggleCameraFacing}>
           <Text style={styles.toggleIcon}>🔄</Text>
         </TouchableOpacity>
@@ -184,8 +216,6 @@ const styles = StyleSheet.create({
     justifyContent: 'space-around',
     paddingHorizontal: 20,
   },
-
-  //Circular button base
   circleButton: {
     justifyContent: 'center',
     alignItems: 'center',
@@ -194,27 +224,10 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     borderColor: '#fff',
   },
-
-  //main camera button 
-  shutterButton: {
-    width: 90,
-    height: 90,
-  },
-  cameraIcon: {
-    fontSize: 36,
-    color: 'white',
-  },
-
-  //toggle button
-  toggleButton: {
-    width: 55,
-    height: 55,
-  },
-  toggleIcon: {
-    fontSize: 20,
-    color: 'white',
-  },
-
+  shutterButton: { width: 90, height: 90 },
+  cameraIcon: { fontSize: 36, color: 'white' },
+  toggleButton: { width: 55, height: 55 },
+  toggleIcon: { fontSize: 20, color: 'white' },
   thumbnailContainer: {
     width: 60,
     height: 60,
@@ -224,7 +237,6 @@ const styles = StyleSheet.create({
     borderColor: '#fff',
   },
   thumbnail: { width: '100%', height: '100%' },
-
   helpIcon: {
     position: 'absolute',
     top: 20,
@@ -242,10 +254,18 @@ const styles = StyleSheet.create({
     padding: 16,
     borderRadius: 10,
   },
-  tipText: {
-    color: '#fff',
-    fontSize: 15,
-    textAlign: 'center',
-    lineHeight: 20,
+  tipText: { color: '#fff', fontSize: 15, textAlign: 'center', lineHeight: 20 },
+  loadingOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0, 0, 0, 0.7)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 10,
   },
+  loadingText: { color: '#ffffff', fontSize: 16, marginTop: 10 },
+  buttonDisabled: { opacity: 0.5 },
 });
