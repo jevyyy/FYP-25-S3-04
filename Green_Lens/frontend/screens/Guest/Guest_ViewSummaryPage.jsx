@@ -32,10 +32,12 @@ export default function Guest_ViewSummaryPage({ route }) {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        const docRef = doc(db, 'flowersInfo', objectName.toLowerCase());
+        const docRef = doc(db, 'objectInfo', objectName.toLowerCase());
         const docSnap = await getDoc(docRef);
+
         if (docSnap.exists()) {
-          setSummaryData(docSnap.data());
+          const data = docSnap.data();
+          setSummaryData(data);
         } else {
           setSummaryData({ description: 'No information available yet.' });
         }
@@ -101,18 +103,38 @@ export default function Guest_ViewSummaryPage({ route }) {
         {confidence > 0 && (
           <Text style={styles.confidence}>Confidence: {confidence.toFixed(2)}%</Text>
         )}
-        <Text style={styles.title}>{objectName}</Text>
+
+        <Text style={styles.title}>{summaryData?.name || objectName}</Text>
 
         {/* ---------- SUMMARY DATA FROM FIREBASE ---------- */}
         <View style={styles.labelColumn}>
           {summaryData ? (
             <>
-              <Text style={styles.description}>{summaryData.description}</Text>
+              {summaryData.description && (
+                <>
+                  <Text style={styles.characteristicsTitle}>Description:</Text>
+                  <Text style={styles.characteristics}>{summaryData.description}</Text>
+                </>
+              )}
 
               {summaryData.characteristics && (
                 <>
                   <Text style={styles.characteristicsTitle}>Characteristics:</Text>
                   <Text style={styles.characteristics}>{summaryData.characteristics}</Text>
+                </>
+              )}
+
+              {summaryData.healthTip && (
+                <>
+                  <Text style={styles.characteristicsTitle}>Health Tip:</Text>
+                  <Text style={styles.characteristics}>{summaryData.healthTip}</Text>
+                </>
+              )}
+
+              {summaryData.funFact && (
+                <>
+                  <Text style={styles.characteristicsTitle}>Fun Fact:</Text>
+                  <Text style={styles.characteristics}>{summaryData.funFact}</Text>
                 </>
               )}
 

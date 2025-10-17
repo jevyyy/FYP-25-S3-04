@@ -15,7 +15,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
 import { doc, getDoc } from 'firebase/firestore';
-import { db } from '../../firebaseConfig'; // adjust path
+import { db } from '../../firebaseConfig';
 
 export default function User_ViewSummaryPage({ route }) {
   const { photoUri, predictionData } = route.params || {};
@@ -26,14 +26,16 @@ export default function User_ViewSummaryPage({ route }) {
   const [summaryData, setSummaryData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch summary from Firebase
+  // Fetch summary from Firestore
   useEffect(() => {
     const fetchSummary = async () => {
       try {
         const docRef = doc(db, 'objectInfo', objectName.toLowerCase());
         const docSnap = await getDoc(docRef);
+
         if (docSnap.exists()) {
-          setSummaryData(docSnap.data());
+          const data = docSnap.data();
+          setSummaryData(data);
         } else {
           setSummaryData({ description: 'No information available yet.' });
         }
@@ -89,22 +91,29 @@ export default function User_ViewSummaryPage({ route }) {
   return (
     <ScrollView style={styles.scrollContainer}>
       <View style={styles.container}>
-        {/* ---------- PHOTO + OBJECT NAME + CONFIDENCE ---------- */}
+        {/* PHOTO + OBJECT NAME + CONFIDENCE */}
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.image} />
         ) : (
           <Text style={styles.noPhotoText}>No photo available</Text>
         )}
+
         {confidence > 0 && (
           <Text style={styles.confidence}>Confidence: {confidence.toFixed(2)}%</Text>
         )}
-        <Text style={styles.title}>{objectName}</Text>
-        
-        {/* ---------- SUMMARY DATA FROM FIREBASE ---------- */}
+
+        <Text style={styles.title}>{summaryData?.name || objectName}</Text>
+
+        {/* SUMMARY DATA FROM FIRESTORE */}
         <View style={styles.labelColumn}>
           {summaryData ? (
             <>
-              <Text style={styles.description}>{summaryData.description}</Text>
+              {summaryData.description && (
+                <>
+                  <Text style={styles.characteristicsTitle}>Description:</Text>
+                  <Text style={styles.characteristics}>{summaryData.description}</Text>
+                </>
+              )}
 
               {summaryData.characteristics && (
                 <>
@@ -113,9 +122,19 @@ export default function User_ViewSummaryPage({ route }) {
                 </>
               )}
 
-              {summaryData.habitat && <Text style={styles.info}>Habitat: {summaryData.habitat}</Text>}
-              {summaryData.location && <Text style={styles.info}>Location: {summaryData.location}</Text>}
-              {summaryData.built_year && <Text style={styles.info}>Built Year: {summaryData.built_year}</Text>}
+              {summaryData.healthTip && (
+                <>
+                  <Text style={styles.characteristicsTitle}>Health Tip:</Text>
+                  <Text style={styles.characteristics}>{summaryData.healthTip}</Text>
+                </>
+              )}
+
+              {summaryData.funFact && (
+                <>
+                  <Text style={styles.characteristicsTitle}>Fun Fact:</Text>
+                  <Text style={styles.characteristics}>{summaryData.funFact}</Text>
+                </>
+              )}
             </>
           ) : (
             <Text style={styles.placeholderText}>
@@ -124,7 +143,7 @@ export default function User_ViewSummaryPage({ route }) {
           )}
         </View>
 
-        {/* ---------- BUTTONS ---------- */}
+        {/* BUTTONS */}
         <View style={styles.buttonColumn}>
           <TouchableOpacity style={styles.seeMoreButton} onPress={handleGoogleSearch}>
             <Text style={styles.seeMoreText}>See More</Text>
@@ -148,10 +167,8 @@ const styles = StyleSheet.create({
   confidence: { fontSize: 16, color: '#4CAF50', marginBottom: 15, alignSelf: 'flex-start', fontWeight: '600' },
   labelColumn: { width: '100%', alignItems: 'flex-start', marginBottom: 20 },
   placeholderText: { fontSize: 16, color: '#555', marginBottom: 8, textAlign: 'left' },
-  description: { fontSize: 16, color: '#555', marginBottom: 10, textAlign: 'left', alignSelf: 'flex-start' },
   characteristicsTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4, alignSelf: 'flex-start' },
   characteristics: { fontSize: 16, color: '#555', marginBottom: 10, alignSelf: 'flex-start' },
-  info: { fontSize: 14, color: '#333', marginBottom: 6, alignSelf: 'flex-start' },
   buttonColumn: { width: '100%', alignItems: 'flex-end', marginTop: 15 },
   seeMoreButton: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, backgroundColor: '#1E90FF', marginBottom: 12 },
   seeMoreText: { fontSize: 16, color: '#fff', fontWeight: '600' },
