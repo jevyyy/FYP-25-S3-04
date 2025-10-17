@@ -30,7 +30,7 @@ export default function User_ViewSummaryPage({ route }) {
   useEffect(() => {
     const fetchSummary = async () => {
       try {
-        const docRef = doc(db, 'flowersInfo', objectName.toLowerCase());
+        const docRef = doc(db, 'objectInfo', objectName.toLowerCase());
         const docSnap = await getDoc(docRef);
         if (docSnap.exists()) {
           setSummaryData(docSnap.data());

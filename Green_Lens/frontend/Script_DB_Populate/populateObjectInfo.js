@@ -1,8 +1,18 @@
 // populateObjectInfo.js
-import { getFirestore, doc, setDoc, collection } from 'firebase/firestore';
-import { app } from './firebaseConfig.js';
+import admin from 'firebase-admin';
+import fs from 'fs';
 
-const db = getFirestore(app);
+// Load service account JSON
+const serviceAccount = JSON.parse(
+  fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-9af6311d8b.json', 'utf8')
+);
+
+// Initialize Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const db = admin.firestore();
 
 // 🌸 Flowers
 const flowerData = [
@@ -137,20 +147,35 @@ async function populateObjectInfo() {
 
     // Flowers
     for (const flower of flowerData) {
-      const flowerRef = doc(collection(db, "objectInfo", "flower", "data"), flower.id);
-      await setDoc(flowerRef, { ...flower, createdAt: new Date() });
-      console.log(`✅ Added flower: ${flower.name}`);
+      const flowerRef = db.doc(`objectInfo/flower/${flower.id}/info`);
+      const docSnap = await flowerRef.get();
+      if (!docSnap.exists) {
+        await flowerRef.set({ ...flower, createdAt: new Date() });
+        console.log(`✅ Added flower: ${flower.name}`);
+      } else {
+        console.log(`⚠️ Skipped existing flower: ${flower.name}`);
+      }
     }
 
     // Plant
-    const plantRef = doc(collection(db, "objectInfo", "plant", "data"), plantData.id);
-    await setDoc(plantRef, plantData);
-    console.log(`🌱 Added plant: ${plantData.name}`);
+    const plantRef = db.doc(`objectInfo/plant/${plantData.id}/info`);
+    const plantSnap = await plantRef.get();
+    if (!plantSnap.exists) {
+      await plantRef.set(plantData);
+      console.log(`🌱 Added plant: ${plantData.name}`);
+    } else {
+      console.log(`⚠️ Skipped existing plant: ${plantData.name}`);
+    }
 
     // Architecture
-    const archRef = doc(collection(db, "objectInfo", "architecture", "data"), architectureData.id);
-    await setDoc(archRef, architectureData);
-    console.log(`🏛️ Added architecture: ${architectureData.name}`);
+    const archRef = db.doc(`objectInfo/architecture/${architectureData.id}/info`);
+    const archSnap = await archRef.get();
+    if (!archSnap.exists) {
+      await archRef.set(architectureData);
+      console.log(`🏛️ Added architecture: ${architectureData.name}`);
+    } else {
+      console.log(`⚠️ Skipped existing architecture: ${architectureData.name}`);
+    }
 
     console.log("🎉 All object data populated successfully!");
   } catch (error) {
