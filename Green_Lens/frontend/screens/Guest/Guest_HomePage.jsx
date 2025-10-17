@@ -9,6 +9,7 @@ import {
   Alert,
   ActivityIndicator,
   Animated,
+  ScrollView,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -69,12 +70,12 @@ export default function Guest_HomePage() {
   const drawerStatus = useDrawerStatus();
   const isDrawerOpen = drawerStatus === 'open';
 
-  // 🌿 Helpful Tip System
-  const [showTip, setShowTip] = useState(false);
+  // 🌿 Tip System (show all tips)
+  const [showTips, setShowTips] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
-  const [currentTip, setCurrentTip] = useState('');
 
   const tips = [
+    '------------------------------Helpful Tips------------------------------',
     '🌿 Make sure your plant is centered and in focus for better results.',
     '☀️ Use natural lighting when possible to improve image recognition.',
     '📷 Avoid blurry or shaky photos — hold your phone steady.',
@@ -82,30 +83,29 @@ export default function Guest_HomePage() {
     '🌸 Make sure the background is clear and not too cluttered.',
   ];
 
-  const handleToggleTip = () => {
-    const randomTip = tips[Math.floor(Math.random() * tips.length)];
-    setCurrentTip(randomTip);
-
-    if (showTip) {
+  // Show tips and auto-close after 5 seconds
+  const toggleTips = () => {
+    if (showTips) {
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
-      }).start(() => setShowTip(false));
+      }).start(() => setShowTips(false));
     } else {
-      setShowTip(true);
+      setShowTips(true);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
       }).start();
 
+      // Auto-close after 5 seconds
       setTimeout(() => {
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        }).start(() => setShowTip(false));
+        }).start(() => setShowTips(false));
       }, 5000);
     }
   };
@@ -175,14 +175,20 @@ export default function Guest_HomePage() {
       )}
 
       {/* Help icon */}
-      <TouchableOpacity style={styles.helpIcon} onPress={handleToggleTip}>
+      <TouchableOpacity style={styles.helpIcon} onPress={toggleTips}>
         <Ionicons name="help-circle-outline" size={32} color="white" />
       </TouchableOpacity>
 
-      {/* Floating tip box */}
-      {showTip && (
+      {/* Tip box showing all tips */}
+      {showTips && (
         <Animated.View style={[styles.tipBox, { opacity: fadeAnim }]}>
-          <Text style={styles.tipText}>{currentTip}</Text>
+          <ScrollView>
+            {tips.map((tip, index) => (
+              <Text key={index} style={styles.tipText}>
+                {tip}
+              </Text>
+            ))}
+          </ScrollView>
         </Animated.View>
       )}
 
@@ -256,9 +262,16 @@ const styles = StyleSheet.create({
     top: 70,
     left: 20,
     right: 20,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     padding: 16,
     borderRadius: 10,
+    maxHeight: 400,
   },
-  tipText: { color: '#fff', fontSize: 15, textAlign: 'center', lineHeight: 20 },
+  tipText: {
+    color: '#fff',
+    fontSize: 15,
+    textAlign: 'left',
+    lineHeight: 22,
+    marginBottom: 6,
+  },
 });

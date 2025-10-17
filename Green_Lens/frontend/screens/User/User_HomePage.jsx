@@ -9,6 +9,7 @@ import {
   Alert,
   Animated,
   ActivityIndicator,
+  ScrollView,
 } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
@@ -16,11 +17,10 @@ import * as MediaLibrary from 'expo-media-library';
 import { useDrawerStatus } from '@react-navigation/drawer';
 import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
-import { predictPlant } from '../../services/plantRecognitionApi'; // 👈 same API used in Guest_HomePage
+import { predictPlant } from '../../services/plantRecognitionApi';
 
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
-  const navigation = useNavigation();
 
   useEffect(() => {
     (async () => {
@@ -47,7 +47,7 @@ function ImagePreview({ onSelectImage }) {
     if (!result.canceled) {
       const uri = result.assets[0].uri;
       setLastPhotoUri(uri);
-      onSelectImage(uri); // 👈 trigger recognition
+      onSelectImage(uri);
     }
   };
 
@@ -69,12 +69,12 @@ export default function User_HomePage() {
   const drawerStatus = useDrawerStatus();
   const isDrawerOpen = drawerStatus === 'open';
 
-  // Helpful tips
-  const [showTip, setShowTip] = useState(false);
+  // 🌿 Tip system (show all tips)
+  const [showTips, setShowTips] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
-  const [currentTip, setCurrentTip] = useState('');
 
   const tips = [
+    '------------------------------Helpful Tips------------------------------',
     '🌿 Make sure your plant is centered and in focus for better results.',
     '☀️ Use natural lighting when possible to improve image recognition.',
     '📷 Avoid blurry or shaky photos — hold your phone steady.',
@@ -82,30 +82,29 @@ export default function User_HomePage() {
     '🌸 Make sure the background is clear and not too cluttered.',
   ];
 
-  const handleToggleTip = () => {
-    const randomTip = tips[Math.floor(Math.random() * tips.length)];
-    setCurrentTip(randomTip);
-
-    if (showTip) {
+  // Show tips and auto-close after 5 seconds
+  const toggleTips = () => {
+    if (showTips) {
       Animated.timing(fadeAnim, {
         toValue: 0,
         duration: 300,
         useNativeDriver: true,
-      }).start(() => setShowTip(false));
+      }).start(() => setShowTips(false));
     } else {
-      setShowTip(true);
+      setShowTips(true);
       Animated.timing(fadeAnim, {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
       }).start();
 
+      // Auto-close after 5 seconds
       setTimeout(() => {
         Animated.timing(fadeAnim, {
           toValue: 0,
           duration: 300,
           useNativeDriver: true,
-        }).start(() => setShowTip(false));
+        }).start(() => setShowTips(false));
       }, 5000);
     }
   };
@@ -114,7 +113,9 @@ export default function User_HomePage() {
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
+        <Text style={{ textAlign: 'center' }}>
+          We need your permission to show the camera
+        </Text>
         <Button onPress={requestPermission} title="Grant permission" />
       </View>
     );
@@ -133,7 +134,10 @@ export default function User_HomePage() {
           predictionData: result.data,
         });
       } else {
-        Alert.alert('Recognition Failed', result.error || 'Unable to recognize the plant. Please try again.');
+        Alert.alert(
+          'Recognition Failed',
+          result.error || 'Unable to recognize the plant. Please try again.'
+        );
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to process image: ' + error.message);
@@ -148,7 +152,7 @@ export default function User_HomePage() {
         const photo = await cameraRef.current.takePictureAsync({ skipProcessing: true });
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
-        await processImage(photo.uri); // 👈 send to recognition
+        await processImage(photo.uri);
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
       }
@@ -175,14 +179,20 @@ export default function User_HomePage() {
       )}
 
       {/* Help icon */}
-      <TouchableOpacity style={styles.helpIcon} onPress={handleToggleTip}>
+      <TouchableOpacity style={styles.helpIcon} onPress={toggleTips}>
         <Ionicons name="help-circle-outline" size={32} color="white" />
       </TouchableOpacity>
 
-      {/* Floating tip box */}
-      {showTip && (
+      {/* Tip box showing all tips */}
+      {showTips && (
         <Animated.View style={[styles.tipBox, { opacity: fadeAnim }]}>
-          <Text style={styles.tipText}>{currentTip}</Text>
+          <ScrollView>
+            {tips.map((tip, index) => (
+              <Text key={index} style={styles.tipText}>
+                {tip}
+              </Text>
+            ))}
+          </ScrollView>
         </Animated.View>
       )}
 
@@ -190,14 +200,14 @@ export default function User_HomePage() {
       <View style={styles.overlay}>
         <ImagePreview onSelectImage={handleImageSelected} />
         <TouchableOpacity
-          style={[styles.circleButton, styles.shutterButton, isProcessing && styles.buttonDisabled]}
+          style={[styles.button, isProcessing && styles.buttonDisabled]}
           onPress={takePhoto}
           disabled={isProcessing}
         >
-          <Text style={styles.cameraIcon}>📸</Text>
+          <Text style={styles.text}>📸</Text>
         </TouchableOpacity>
-        <TouchableOpacity style={[styles.circleButton, styles.toggleButton]} onPress={toggleCameraFacing}>
-          <Text style={styles.toggleIcon}>🔄</Text>
+        <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
+          <Text style={styles.text}>🔄</Text>
         </TouchableOpacity>
       </View>
     </View>
@@ -209,25 +219,20 @@ const styles = StyleSheet.create({
   camera: { flex: 1 },
   overlay: {
     position: 'absolute',
-    bottom: 40,
+    bottom: 30,
     width: '100%',
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-around',
+    justifyContent: 'space-between',
     paddingHorizontal: 20,
   },
-  circleButton: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    borderRadius: 50,
-    backgroundColor: 'rgba(0, 0, 0, 0.6)',
-    borderWidth: 2,
-    borderColor: '#fff',
+  button: {
+    backgroundColor: '#00000080',
+    padding: 12,
+    borderRadius: 40,
   },
-  shutterButton: { width: 90, height: 90 },
-  cameraIcon: { fontSize: 36, color: 'white' },
-  toggleButton: { width: 55, height: 55 },
-  toggleIcon: { fontSize: 20, color: 'white' },
+  buttonDisabled: { opacity: 0.5 },
+  text: { color: 'white', fontSize: 20 },
   thumbnailContainer: {
     width: 60,
     height: 60,
@@ -250,11 +255,18 @@ const styles = StyleSheet.create({
     top: 70,
     left: 20,
     right: 20,
-    backgroundColor: 'rgba(0,0,0,0.65)',
+    backgroundColor: 'rgba(0,0,0,0.75)',
     padding: 16,
     borderRadius: 10,
+    maxHeight: 400,
   },
-  tipText: { color: '#fff', fontSize: 15, textAlign: 'center', lineHeight: 20 },
+  tipText: {
+    color: '#fff',
+    fontSize: 15,
+    textAlign: 'left',
+    lineHeight: 22,
+    marginBottom: 6,
+  },
   loadingOverlay: {
     position: 'absolute',
     top: 0,
@@ -267,5 +279,4 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   loadingText: { color: '#ffffff', fontSize: 16, marginTop: 10 },
-  buttonDisabled: { opacity: 0.5 },
 });
