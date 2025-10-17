@@ -1,15 +1,25 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Button, Image, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator } from 'react-native';
+import {
+  Button,
+  Image,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+  Alert,
+  ActivityIndicator,
+  Animated,
+} from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { useDrawerStatus } from '@react-navigation/drawer';
-import { useNavigation, useIsFocused } from '@react-navigation/native'; // added useIsFocused
+import { useNavigation, useIsFocused } from '@react-navigation/native';
+import { Ionicons } from '@expo/vector-icons';
 import { predictPlant } from '../../services/plantRecognitionApi';
 
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
-  const navigation = useNavigation(); // navigation inside thumbnail
 
   useEffect(() => {
     (async () => {
@@ -49,7 +59,7 @@ function ImagePreview({ onSelectImage }) {
 
 export default function Guest_HomePage() {
   const navigation = useNavigation();
-  const isFocused = useIsFocused(); // 👈 check if screen is active
+  const isFocused = useIsFocused();
   const [facing, setFacing] = useState('back');
   const [permission, requestPermission] = useCameraPermissions();
   const cameraRef = useRef(null);
@@ -58,6 +68,47 @@ export default function Guest_HomePage() {
 
   const drawerStatus = useDrawerStatus();
   const isDrawerOpen = drawerStatus === 'open';
+
+  // 🌿 Helpful Tip System
+  const [showTip, setShowTip] = useState(false);
+  const [fadeAnim] = useState(new Animated.Value(0));
+  const [currentTip, setCurrentTip] = useState('');
+
+  const tips = [
+    '🌿 Make sure your plant is centered and in focus for better results.',
+    '☀️ Use natural lighting when possible to improve image recognition.',
+    '📷 Avoid blurry or shaky photos — hold your phone steady.',
+    '🍃 Try to capture only one plant in the frame for more accurate detection.',
+    '🌸 Make sure the background is clear and not too cluttered.',
+  ];
+
+  const handleToggleTip = () => {
+    const randomTip = tips[Math.floor(Math.random() * tips.length)];
+    setCurrentTip(randomTip);
+
+    if (showTip) {
+      Animated.timing(fadeAnim, {
+        toValue: 0,
+        duration: 300,
+        useNativeDriver: true,
+      }).start(() => setShowTip(false));
+    } else {
+      setShowTip(true);
+      Animated.timing(fadeAnim, {
+        toValue: 1,
+        duration: 300,
+        useNativeDriver: true,
+      }).start();
+
+      setTimeout(() => {
+        Animated.timing(fadeAnim, {
+          toValue: 0,
+          duration: 300,
+          useNativeDriver: true,
+        }).start(() => setShowTip(false));
+      }, 5000);
+    }
+  };
 
   if (!permission) return <View />;
   if (!permission.granted) {
@@ -74,16 +125,12 @@ export default function Guest_HomePage() {
 
   const processImage = async (photoUri) => {
     setIsProcessing(true);
-    
     try {
-      // Call the plant recognition API
       const result = await predictPlant(photoUri);
-      
       if (result.success) {
-        // Navigate to Guest_ViewSummaryPage with both photo and prediction results
-        navigation.navigate('Guest_ViewSummary', { 
+        navigation.navigate('Guest_ViewSummary', {
           photoUri: photoUri,
-          predictionData: result.data 
+          predictionData: result.data,
         });
       } else {
         Alert.alert('Recognition Failed', result.error || 'Unable to recognize the plant. Please try again.');
@@ -98,14 +145,9 @@ export default function Guest_HomePage() {
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
-        const photo = await cameraRef.current.takePictureAsync({
-          skipProcessing: true, // prevents shutter sound on Android
-        });
-
+        const photo = await cameraRef.current.takePictureAsync({ skipProcessing: true });
         await MediaLibrary.saveToLibraryAsync(photo.uri);
         setSelectedImageUri(photo.uri);
-
-        // Process the image with the backend
         await processImage(photo.uri);
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
@@ -115,13 +157,11 @@ export default function Guest_HomePage() {
 
   const handleImageSelected = async (uri) => {
     setSelectedImageUri(uri);
-    // Process the selected image from gallery
     await processImage(uri);
   };
 
   return (
     <View style={styles.container}>
-      {/* Camera only mounts if screen is focused AND drawer is not open */}
       {isFocused && !isDrawerOpen && (
         <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
       )}
@@ -134,17 +174,27 @@ export default function Guest_HomePage() {
         </View>
       )}
 
+      {/* Help icon */}
+      <TouchableOpacity style={styles.helpIcon} onPress={handleToggleTip}>
+        <Ionicons name="help-circle-outline" size={32} color="white" />
+      </TouchableOpacity>
+
+      {/* Floating tip box */}
+      {showTip && (
+        <Animated.View style={[styles.tipBox, { opacity: fadeAnim }]}>
+          <Text style={styles.tipText}>{currentTip}</Text>
+        </Animated.View>
+      )}
+
       <View style={styles.overlay}>
         <ImagePreview onSelectImage={handleImageSelected} />
-
-        <TouchableOpacity 
-          style={[styles.button, isProcessing && styles.buttonDisabled]} 
+        <TouchableOpacity
+          style={[styles.button, isProcessing && styles.buttonDisabled]}
           onPress={takePhoto}
           disabled={isProcessing}
         >
           <Text style={styles.text}>📸</Text>
         </TouchableOpacity>
-
         <TouchableOpacity style={styles.button} onPress={toggleCameraFacing}>
           <Text style={styles.text}>🔄</Text>
         </TouchableOpacity>
@@ -170,9 +220,7 @@ const styles = StyleSheet.create({
     padding: 12,
     borderRadius: 40,
   },
-  buttonDisabled: {
-    opacity: 0.5,
-  },
+  buttonDisabled: { opacity: 0.5 },
   text: { color: 'white', fontSize: 20 },
   thumbnailContainer: {
     width: 60,
@@ -194,9 +242,23 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     zIndex: 10,
   },
-  loadingText: {
-    color: '#ffffff',
-    fontSize: 16,
-    marginTop: 10,
+  loadingText: { color: '#ffffff', fontSize: 16, marginTop: 10 },
+  helpIcon: {
+    position: 'absolute',
+    top: 20,
+    right: 10,
+    backgroundColor: 'rgba(0,0,0,0.4)',
+    borderRadius: 26,
+    padding: 6,
   },
+  tipBox: {
+    position: 'absolute',
+    top: 70,
+    left: 20,
+    right: 20,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    padding: 16,
+    borderRadius: 10,
+  },
+  tipText: { color: '#fff', fontSize: 15, textAlign: 'center', lineHeight: 20 },
 });
