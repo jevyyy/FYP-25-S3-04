@@ -1,48 +1,61 @@
-import React from 'react';
-import { 
-  View, 
-  Text, 
-  Image, 
-  StyleSheet, 
-  TouchableOpacity, 
-  Alert, 
-  Platform, 
-  Linking, 
-  ScrollView 
+import React, { useEffect, useState } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  TouchableOpacity,
+  Alert,
+  Platform,
+  Linking,
+  ScrollView,
+  ActivityIndicator,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Sharing from 'expo-sharing';
 import * as FileSystem from 'expo-file-system/legacy';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebaseConfig'; // adjust path
 
 export default function User_ViewSummaryPage({ route }) {
   const { photoUri, predictionData } = route.params || {};
-
-  // Extract prediction info from the backend
   const topPrediction = predictionData?.top_prediction || null;
-  const allPredictions = predictionData?.predictions || [];
-
-  const objectName = topPrediction?.flower_name || "Unknown Plant";
+  const objectName = topPrediction?.flower_name || 'Unknown Object';
   const confidence = topPrediction?.confidence_percentage || 0;
 
-  // ---------------------------
-  // 📤 Share function
-  // ---------------------------
-  const handleShare = async () => {
-    if (!photoUri) {
-      Alert.alert('No photo available to share');
-      return;
-    }
+  const [summaryData, setSummaryData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
+  // Fetch summary from Firebase
+  useEffect(() => {
+    const fetchSummary = async () => {
+      try {
+        const docRef = doc(db, 'flowersInfo', objectName.toLowerCase());
+        const docSnap = await getDoc(docRef);
+        if (docSnap.exists()) {
+          setSummaryData(docSnap.data());
+        } else {
+          setSummaryData({ description: 'No information available yet.' });
+        }
+      } catch (error) {
+        console.error('Error fetching object:', error);
+        setSummaryData({ description: 'Failed to load object info.' });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchSummary();
+  }, [objectName]);
+
+  // Share function
+  const handleShare = async () => {
+    if (!photoUri) return Alert.alert('No photo available to share');
     try {
       const isAvailable = await Sharing.isAvailableAsync();
-      if (!isAvailable) {
-        Alert.alert('Sharing is not available on this device');
-        return;
-      }
+      if (!isAvailable) return Alert.alert('Sharing not available on this device');
 
       let shareUri = photoUri;
-
-      // On Android, copy to cache directory to prevent permission issues
       if (Platform.OS === 'android' && !photoUri.startsWith(FileSystem.cacheDirectory)) {
         const fileName = photoUri.split('/').pop();
         const cacheUri = FileSystem.cacheDirectory + fileName;
@@ -54,58 +67,55 @@ export default function User_ViewSummaryPage({ route }) {
         dialogTitle: `Check out my ${objectName} summary from Green Lens!`,
       });
     } catch (error) {
-      console.log('Error sharing:', error);
       Alert.alert('Error sharing photo', error.message);
     }
   };
 
-  // ---------------------------
-  // 🌐 Google search function
-  // ---------------------------
+  // Google search
   const handleGoogleSearch = () => {
-    if (!objectName) {
-      Alert.alert('No object name available');
-      return;
-    }
     const query = encodeURIComponent(objectName);
     const url = `https://www.google.com/search?q=${query}`;
-    Linking.openURL(url).catch((err) =>
-      Alert.alert('Error', 'Failed to open browser: ' + err.message)
-    );
+    Linking.openURL(url).catch(err => Alert.alert('Error', 'Failed to open browser: ' + err.message));
   };
+
+  if (loading) {
+    return (
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#1E90FF" />
+      </View>
+    );
+  }
 
   return (
     <ScrollView style={styles.scrollContainer}>
       <View style={styles.container}>
+        {/* ---------- PHOTO + OBJECT NAME + CONFIDENCE ---------- */}
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.image} />
         ) : (
           <Text style={styles.noPhotoText}>No photo available</Text>
         )}
-
-        <Text style={styles.title}>{objectName}</Text>
         {confidence > 0 && (
           <Text style={styles.confidence}>Confidence: {confidence.toFixed(2)}%</Text>
         )}
-
+        <Text style={styles.title}>{objectName}</Text>
+        
+        {/* ---------- SUMMARY DATA FROM FIREBASE ---------- */}
         <View style={styles.labelColumn}>
-          {topPrediction ? (
+          {summaryData ? (
             <>
-              <Text style={styles.placeholderText}>
-                This plant has been identified with {confidence.toFixed(2)}% confidence.
-                The recognition is based on visual features analyzed by our AI model.
-              </Text>
+              <Text style={styles.description}>{summaryData.description}</Text>
 
-              {allPredictions.length > 1 && (
-                <View style={styles.alternativesContainer}>
-                  <Text style={styles.alternativesTitle}>Other possible matches:</Text>
-                  {allPredictions.slice(1, 4).map((pred, index) => (
-                    <Text key={index} style={styles.alternativeText}>
-                      • {pred.flower_name} ({pred.confidence_percentage.toFixed(2)}%)
-                    </Text>
-                  ))}
-                </View>
+              {summaryData.characteristics && (
+                <>
+                  <Text style={styles.characteristicsTitle}>Characteristics:</Text>
+                  <Text style={styles.characteristics}>{summaryData.characteristics}</Text>
+                </>
               )}
+
+              {summaryData.habitat && <Text style={styles.info}>Habitat: {summaryData.habitat}</Text>}
+              {summaryData.location && <Text style={styles.info}>Location: {summaryData.location}</Text>}
+              {summaryData.built_year && <Text style={styles.info}>Built Year: {summaryData.built_year}</Text>}
             </>
           ) : (
             <Text style={styles.placeholderText}>
@@ -114,6 +124,7 @@ export default function User_ViewSummaryPage({ route }) {
           )}
         </View>
 
+        {/* ---------- BUTTONS ---------- */}
         <View style={styles.buttonColumn}>
           <TouchableOpacity style={styles.seeMoreButton} onPress={handleGoogleSearch}>
             <Text style={styles.seeMoreText}>See More</Text>
@@ -137,11 +148,13 @@ const styles = StyleSheet.create({
   confidence: { fontSize: 16, color: '#4CAF50', marginBottom: 15, alignSelf: 'flex-start', fontWeight: '600' },
   labelColumn: { width: '100%', alignItems: 'flex-start', marginBottom: 20 },
   placeholderText: { fontSize: 16, color: '#555', marginBottom: 8, textAlign: 'left' },
-  alternativesContainer: { marginTop: 15, width: '100%' },
-  alternativesTitle: { fontSize: 16, fontWeight: 'bold', color: '#333', marginBottom: 8 },
-  alternativeText: { fontSize: 14, color: '#666', marginLeft: 10, marginBottom: 4 },
-  buttonColumn: { width: '100%', alignItems: 'flex-end' },
+  description: { fontSize: 16, color: '#555', marginBottom: 10, textAlign: 'left', alignSelf: 'flex-start' },
+  characteristicsTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4, alignSelf: 'flex-start' },
+  characteristics: { fontSize: 16, color: '#555', marginBottom: 10, alignSelf: 'flex-start' },
+  info: { fontSize: 14, color: '#333', marginBottom: 6, alignSelf: 'flex-start' },
+  buttonColumn: { width: '100%', alignItems: 'flex-end', marginTop: 15 },
   seeMoreButton: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, backgroundColor: '#1E90FF', marginBottom: 12 },
   seeMoreText: { fontSize: 16, color: '#fff', fontWeight: '600' },
   shareButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
+  loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
