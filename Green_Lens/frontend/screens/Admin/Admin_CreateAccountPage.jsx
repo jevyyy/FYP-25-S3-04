@@ -24,45 +24,48 @@ export default function Admin_CreateAccountPage() {
   const [password, setPassword] = useState("");
   const [email, setEmail] = useState("");
   const [role, setRole] = useState("Admin");
+  const [errors, setErrors] = useState({});
+
+  const validatePassword = (pwd) => {
+    const strongPassword = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+    if (!strongPassword.test(pwd)) {
+      return '*Password too weak (at least 8 chars, include uppercase, lowercase, number & special character)';
+    }
+    return null;
+  };
 
   const handleCreate = async () => {
-    if (!name || !username || !password || !email) {
-      Alert.alert("Error", "Please fill all fields.");
-      return;
-    }
+    let newErrors = {};
+    if (!name) newErrors.name = '*Name cannot be empty';
+    if (!username) newErrors.username = '*Username cannot be empty';
+    if (!email) newErrors.email = '*Email cannot be empty';
+
+    const passwordError = validatePassword(password);
+    if (passwordError) newErrors.password = passwordError;
+
+    setErrors(newErrors);
+
+    if (Object.keys(newErrors).length > 0) return;
 
     try {
-      const currentUser = auth.currentUser;
-      console.log(
-        `👤 Current logged-in user: ${currentUser?.email || "Unknown"} | UID: ${
-          currentUser?.uid || "N/A"
-        }`
-      );
-
-      // ✅ Initialize a temporary secondary app for user creation
       const secondaryApp = initializeApp(app.options, "SecondaryApp");
       const secondaryAuth = getAuth(secondaryApp);
 
-      // ✅ Create new user without affecting main session
       const userCredential = await createUserWithEmailAndPassword(
         secondaryAuth,
-        email.trim(),
+        email,
         password
       );
       const uid = userCredential.user.uid;
 
-      // ✅ Save user info to Firestore (no createdAt)
       await setDoc(doc(db, "users", uid), {
-        name: name.trim(),
-        username: username.trim().toLowerCase(),
-        email: email.trim(),
+        name,
+        username,
+        email,
         role,
         status: "active",
       });
 
-      console.log(`✅ New account created successfully: ${email} | UID: ${uid}`);
-
-      // ✅ Sign out & clean up secondary app
       await secondaryAuth.signOut();
       await deleteApp(secondaryApp);
 
@@ -73,15 +76,22 @@ export default function Admin_CreateAccountPage() {
         },
       ]);
 
-      // ✅ Reset form
       setName("");
       setUsername("");
       setPassword("");
       setEmail("");
       setRole("Admin");
-    } catch (error) {
-      console.error("❌ Error creating account:", error);
-      Alert.alert("Error", error.message || "Failed to create account.");
+      setErrors({});
+    } catch (firebaseError) {
+      let fbErrors = {};
+      if (firebaseError.code === 'auth/email-already-in-use') {
+        fbErrors.email = '*Email already in use';
+      } else if (firebaseError.code === 'auth/invalid-email') {
+        fbErrors.email = '*Invalid email address';
+      } else {
+        fbErrors.general = firebaseError.message;
+      }
+      setErrors(fbErrors);
     }
   };
 
@@ -95,13 +105,17 @@ export default function Admin_CreateAccountPage() {
         value={name}
         onChangeText={setName}
       />
+      {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
+
       <TextInput
         style={styles.input}
         placeholder="Enter your username"
         value={username}
         autoCapitalize="none"
-        onChangeText={(text) => setUsername(text.toLowerCase())}
+        onChangeText={setUsername}
       />
+      {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
+
       <TextInput
         style={styles.input}
         placeholder="Enter your password"
@@ -109,14 +123,23 @@ export default function Admin_CreateAccountPage() {
         secureTextEntry
         onChangeText={setPassword}
       />
+      {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
+
       <TextInput
         style={styles.input}
         placeholder="Enter your email"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={(text) => {
+          if (text.length === 1) {
+            setEmail(text.toLowerCase());
+          } else {
+            setEmail(text);
+          }
+        }}
       />
+      {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
+      {errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
 
-      {/* Role Picker */}
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={role}
@@ -129,18 +152,11 @@ export default function Admin_CreateAccountPage() {
         </Picker>
       </View>
 
-      {/* Buttons */}
       <View style={styles.buttonRow}>
-        <TouchableOpacity
-          style={[styles.button, styles.cancel]}
-          onPress={() => navigation.goBack()}
-        >
+        <TouchableOpacity style={[styles.button, styles.cancel]} onPress={() => navigation.goBack()}>
           <Text style={styles.buttonText}>Cancel</Text>
         </TouchableOpacity>
-        <TouchableOpacity
-          style={[styles.button, styles.create]}
-          onPress={handleCreate}
-        >
+        <TouchableOpacity style={[styles.button, styles.create]} onPress={handleCreate}>
           <Text style={styles.buttonText}>Create</Text>
         </TouchableOpacity>
       </View>
@@ -157,6 +173,7 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     marginBottom: 12,
   },
+  errorText: { color: 'red', fontSize: 14, marginBottom: 10 },
   pickerContainer: {
     borderWidth: 1,
     borderRadius: 8,

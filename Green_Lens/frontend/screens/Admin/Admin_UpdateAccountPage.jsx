@@ -1,4 +1,3 @@
-// Admin_UpdateAccountPage.jsx
 import React, { useState } from "react";
 import {
   View,
@@ -10,40 +9,85 @@ import {
 } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { getFirestore, doc, updateDoc } from "firebase/firestore";
 import { SafeAreaView } from "react-native-safe-area-context"; 
-import { app } from "../../firebaseConfig";
+import { getAuth } from "firebase/auth";
 
 export default function Admin_UpdateAccountPage() {
   const navigation = useNavigation();
   const route = useRoute();
-  const { user } = route.params; // now must include email
-
-  const db = getFirestore(app);
+  const { user } = route.params; // must include email and id (Firestore doc id)
 
   const [name, setName] = useState(user.name || "");
   const [username, setUsername] = useState(user.username || "");
-  const [email, setEmail] = useState(user.email || ""); // email comes from params
+  const [email, setEmail] = useState(user.email || ""); 
   const [role, setRole] = useState(user.role || "User");
-  const [newPassword, setNewPassword] = useState(""); // for password change
+  const [newPassword, setNewPassword] = useState("");
+  const [errors, setErrors] = useState({});
+
+  const validatePassword = (password) => {
+    const strongPassword =
+      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
+    if (!strongPassword.test(password)) {
+      return '*Password too weak (min 8 chars, uppercase, lowercase, number & special char)';
+    }
+    return null;
+  };
 
   const handleUpdate = async () => {
+    let newErrors = {};
+    if (!name.trim()) newErrors.name = '*Name cannot be empty';
+    if (!username.trim()) newErrors.username = '*Username cannot be empty';
+    if (!email.trim()) newErrors.email = '*Email cannot be empty';
+    if (newPassword.trim()) {
+      const passwordError = validatePassword(newPassword);
+      if (passwordError) newErrors.newPassword = passwordError;
+    }
+
+    setErrors(newErrors);
+    if (Object.keys(newErrors).length > 0) return;
+
     try {
-      const userRef = doc(db, "users", user.id);
+      // Get current admin token
+      const auth = getAuth();
+      const idToken = await auth.currentUser.getIdToken();
 
-      // Prepare update object
-      const updateData = { name, username, email, role };
-      if (newPassword.trim() !== "") {
-        updateData.password = newPassword; // only update if a new password is entered
+      // Prepare payload
+      const payload = {
+        targetUid: user.id, // Firebase UID or Firestore doc id if you map
+        name,
+        username,
+        email: email.toLowerCase(), // ensure lowercase first letter
+        role,
+        password: newPassword.trim() || null,
+      };
+
+      const res = await fetch("https://us-central1-YOUR_PROJECT.cloudfunctions.net/updateUser", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${idToken}`,
+        },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+
+      if (res.ok) {
+        Alert.alert("Success", "User updated successfully!", [
+          { text: "OK", onPress: () => navigation.goBack() },
+        ]);
+      } else {
+        // Handle server errors
+        if (data.message.includes("email-already-in-use")) {
+          setErrors({ email: '*Email already in use' });
+        } else if (data.message.includes("invalid-email")) {
+          setErrors({ email: '*Invalid email address' });
+        } else {
+          Alert.alert("Error", data.message || "Failed to update user.");
+        }
       }
-
-      await updateDoc(userRef, updateData);
-
-      Alert.alert("Success", "User updated successfully!", [
-        { text: "OK", onPress: () => navigation.goBack() },
-      ]);
     } catch (error) {
-      console.error("Update error:", error);
+      console.error(error);
       Alert.alert("Error", "Failed to update user.");
     }
   };
@@ -60,6 +104,7 @@ export default function Admin_UpdateAccountPage() {
           onChangeText={setName}
           placeholder="Enter name"
         />
+        {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
       </View>
 
       <View style={styles.inputContainer}>
@@ -69,7 +114,9 @@ export default function Admin_UpdateAccountPage() {
           value={username}
           onChangeText={setUsername}
           placeholder="Enter username"
+          autoCapitalize="none"
         />
+        {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
       </View>
 
       <View style={styles.inputContainer}>
@@ -79,7 +126,9 @@ export default function Admin_UpdateAccountPage() {
           value={email}
           onChangeText={setEmail}
           placeholder="Enter email"
+          autoCapitalize="none"
         />
+        {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
       </View>
 
       <View style={styles.inputContainer}>
@@ -91,6 +140,7 @@ export default function Admin_UpdateAccountPage() {
           secureTextEntry
           placeholder="Enter new password (optional)"
         />
+        {errors.newPassword && <Text style={styles.errorText}>{errors.newPassword}</Text>}
       </View>
 
       <View style={styles.inputContainer}>
@@ -150,4 +200,5 @@ const styles = StyleSheet.create({
   cancelButton: { backgroundColor: "#333" },
   updateButton: { backgroundColor: "#333" },
   buttonText: { color: "#fff", fontSize: 15, fontWeight: "500" },
+  errorText: { color: "red", fontSize: 13, marginTop: 4 },
 });
