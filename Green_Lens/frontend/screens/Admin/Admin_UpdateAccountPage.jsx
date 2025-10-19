@@ -61,7 +61,7 @@ export default function Admin_UpdateAccountPage() {
         password: newPassword.trim() || null,
       };
 
-      const res = await fetch("https://us-central1-YOUR_PROJECT.cloudfunctions.net/updateUser", {
+      const res = await fetch("https://us-central1-green-lens-47e9b.cloudfunctions.net/updateUserAuth", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
