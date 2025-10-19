@@ -17,7 +17,7 @@ const db = admin.firestore();
 // 🌸 Flowers
 const flowerData = [
   {
-    id: "blackberry_lily",
+    id: "blackberry lily",
     name: "Blackberry Lily",
     description:
       "A vibrant flower with orange petals and red spots, known for its unique seed pods resembling blackberries.",
@@ -35,7 +35,7 @@ const flowerData = [
     funFact: "Buttercups are mildly toxic but famous for their glossy petal shine used in optical studies.",
   },
   {
-    id: "canna_lily",
+    id: "canna lily",
     name: "Canna Lily",
     description:
       "A tropical flower with large colorful blooms and broad green or purple leaves.",
@@ -71,7 +71,7 @@ const flowerData = [
     funFact: "Petals are edible and used in salads and as a natural dye.",
   },
   {
-    id: "mexican_aster",
+    id: "mexican aster",
     name: "Mexican Aster",
     description:
       "Also known as cosmos, these flowers have daisy-like petals in pink, white, and purple.",
@@ -80,7 +80,7 @@ const flowerData = [
     funFact: "Attracts bees and butterflies, making it a pollinator’s favorite.",
   },
   {
-    id: "morning_glory",
+    id: "morning glory",
     name: "Morning Glory",
     description:
       "A climbing vine producing trumpet-shaped flowers that bloom in the morning.",
