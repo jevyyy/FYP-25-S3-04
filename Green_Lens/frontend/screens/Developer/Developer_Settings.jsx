@@ -9,6 +9,7 @@ export default function Developer_SettingsPage() {
     accountSettings: false,
     preTrainModel: false,
     trainModel: false,
+    deployment: false,
     appInfo: false,
   });
 
@@ -17,19 +18,6 @@ export default function Developer_SettingsPage() {
       ...prev,
       [section]: !prev[section]
     }));
-  };
-
-  const handleNavigation = (destination) => {
-    switch(destination) {
-      case 'Deployment':
-        navigation.navigate('Developer_Deployment');
-        break;
-      case 'RateUs':
-        navigation.navigate('FeedbackPage'); // <-- navigates to FeedbackPage
-        break;
-      default:
-        Alert.alert('Coming Soon', `${destination} feature will be available soon.`);
-    }
   };
 
   const handleLogout = () => {
@@ -61,9 +49,7 @@ export default function Developer_SettingsPage() {
     );
   };
 
-  // --- Open Google Colab Notebook ---
-  const openColabNotebook = () => {
-    const url = "https://colab.research.google.com/your-notebook-link"; // <- replace with your Colab URL
+  const openURL = (url) => {
     Linking.canOpenURL(url)
       .then((supported) => {
         if (supported) {
@@ -77,11 +63,8 @@ export default function Developer_SettingsPage() {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header with Logo */}
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
+        {/* Header */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
             <View style={styles.logo}>
@@ -91,121 +74,70 @@ export default function Developer_SettingsPage() {
           </View>
         </View>
 
-        {/* Settings Options */}
         <View style={styles.settingsContainer}>
           {/* Account Settings */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => toggleSection('accountSettings')}
-          >
+          <TouchableOpacity style={styles.settingItem} onPress={() => toggleSection('accountSettings')}>
             <Text style={styles.settingText}>Account settings</Text>
-            <Ionicons 
-              name={expandedSections.accountSettings ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#666" 
-            />
+            <Ionicons name={expandedSections.accountSettings ? "chevron-up" : "chevron-down"} size={20} color="#666" />
           </TouchableOpacity>
           {expandedSections.accountSettings && (
             <View style={styles.expandedContent}>
               <Text style={styles.expandedText}>Username: Developer1</Text>
               <Text style={styles.expandedText}>Email: dev@greenlens.com</Text>
-              <TouchableOpacity style={styles.subOption}>
-                <Text style={styles.subOptionText}>Change Password</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.subOption}>
-                <Text style={styles.subOptionText}>Edit Profile</Text>
-              </TouchableOpacity>
+              <TouchableOpacity style={styles.subOption}><Text style={styles.subOptionText}>Change Password</Text></TouchableOpacity>
+              <TouchableOpacity style={styles.subOption}><Text style={styles.subOptionText}>Edit Profile</Text></TouchableOpacity>
             </View>
           )}
 
           {/* Pre-train Model */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => toggleSection('preTrainModel')}
-          >
-            <Text style={styles.settingText}>Pre-train model</Text>
-            <Ionicons 
-              name={expandedSections.preTrainModel ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#666" 
-            />
+          <TouchableOpacity style={styles.settingItem} onPress={() => toggleSection('preTrainModel')}>
+            <Text style={styles.settingText}>Pre-train Model</Text>
+            <Ionicons name={expandedSections.preTrainModel ? "chevron-up" : "chevron-down"} size={20} color="#666" />
           </TouchableOpacity>
           {expandedSections.preTrainModel && (
             <View style={styles.expandedContent}>
-              <Text style={styles.expandedText}>Data Preparation</Text>
-              <TouchableOpacity style={styles.subOption}>
-                <Text style={styles.subOptionText}>Upload Training Data</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.subOption}>
-                <Text style={styles.subOptionText}>Data Augmentation</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.subOption}>
-                <Text style={styles.subOptionText}>Validate Dataset</Text>
+              <TouchableOpacity style={styles.subOption} onPress={() => openURL("https://colab.research.google.com/your-pretrain-notebook")}>
+                <Text style={[styles.subOptionText, { color: '#1a73e8' }]}>Open Pre-train Colab</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Train Model */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => toggleSection('trainModel')}
-          >
-            <Text style={styles.settingText}>Train model</Text>
-            <Ionicons 
-              name={expandedSections.trainModel ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#666" 
-            />
+          <TouchableOpacity style={styles.settingItem} onPress={() => toggleSection('trainModel')}>
+            <Text style={styles.settingText}>Train Model</Text>
+            <Ionicons name={expandedSections.trainModel ? "chevron-up" : "chevron-down"} size={20} color="#666" />
           </TouchableOpacity>
           {expandedSections.trainModel && (
             <View style={styles.expandedContent}>
-              <Text style={styles.expandedText}>Training Configuration</Text>
-              <TouchableOpacity style={styles.subOption}>
-                <Text style={styles.subOptionText}>Start Training</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.subOption}>
-                <Text style={styles.subOptionText}>View Training Progress</Text>
-              </TouchableOpacity>
-              <TouchableOpacity style={styles.subOption}>
-                <Text style={styles.subOptionText}>Training History</Text>
-              </TouchableOpacity>
-
-              {/* --- Colab Notebook Link --- */}
-              <TouchableOpacity style={styles.subOption} onPress={openColabNotebook}>
-                <Text style={[styles.subOptionText, { color: '#1a73e8' }]}>Open Colab Notebook</Text>
+              <TouchableOpacity style={styles.subOption} onPress={() => openURL("https://colab.research.google.com/your-train-notebook")}>
+                <Text style={[styles.subOptionText, { color: '#1a73e8' }]}>Open Train Colab</Text>
               </TouchableOpacity>
             </View>
           )}
 
           {/* Deployment */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => handleNavigation('Deployment')}
-          >
+          <TouchableOpacity style={styles.settingItem} onPress={() => toggleSection('deployment')}>
             <Text style={styles.settingText}>Deployment</Text>
-            <Ionicons name="chevron-forward" size={20} color="#666" />
+            <Ionicons name={expandedSections.deployment ? "chevron-up" : "chevron-down"} size={20} color="#666" />
           </TouchableOpacity>
+          {expandedSections.deployment && (
+            <View style={styles.expandedContent}>
+              <TouchableOpacity style={styles.subOption} onPress={() => openURL("https://drive.google.com/your-folder-link")}>
+                <Text style={[styles.subOptionText, { color: '#1a73e8' }]}>Open Google Drive</Text>
+              </TouchableOpacity>
+            </View>
+          )}
 
           {/* Rate Us */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => handleNavigation('RateUs')}
-          >
+          <TouchableOpacity style={styles.settingItem} onPress={() => Alert.alert("Coming Soon", "Rate Us feature will be available soon.")}>
             <Text style={styles.settingText}>Rate Us</Text>
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
 
           {/* App Info */}
-          <TouchableOpacity
-            style={styles.settingItem}
-            onPress={() => toggleSection('appInfo')}
-          >
+          <TouchableOpacity style={styles.settingItem} onPress={() => toggleSection('appInfo')}>
             <Text style={styles.settingText}>App Info</Text>
-            <Ionicons 
-              name={expandedSections.appInfo ? "chevron-up" : "chevron-down"} 
-              size={20} 
-              color="#666" 
-            />
+            <Ionicons name={expandedSections.appInfo ? "chevron-up" : "chevron-down"} size={20} color="#666" />
           </TouchableOpacity>
           {expandedSections.appInfo && (
             <View style={styles.expandedContent}>
@@ -217,12 +149,10 @@ export default function Developer_SettingsPage() {
           )}
 
           {/* Logout */}
-          <TouchableOpacity
-            style={[styles.settingItem, styles.logoutItem]}
-            onPress={handleLogout}
-          >
+          <TouchableOpacity style={[styles.settingItem, styles.logoutItem]} onPress={handleLogout}>
             <Text style={styles.logoutText}>Logout</Text>
           </TouchableOpacity>
+
         </View>
       </ScrollView>
     </View>
