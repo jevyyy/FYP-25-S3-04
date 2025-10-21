@@ -129,7 +129,10 @@ export default function Developer_SettingsPage() {
           )}
 
           {/* Rate Us */}
-          <TouchableOpacity style={styles.settingItem} onPress={() => Alert.alert("Coming Soon", "Rate Us feature will be available soon.")}>
+          <TouchableOpacity
+            style={styles.settingItem}
+            onPress={() => navigation.navigate('FeedbackPage')}
+          >
             <Text style={styles.settingText}>Rate Us</Text>
             <Ionicons name="chevron-forward" size={20} color="#666" />
           </TouchableOpacity>
