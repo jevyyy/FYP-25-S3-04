@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Linking } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 
@@ -25,7 +25,7 @@ export default function Developer_SettingsPage() {
         navigation.navigate('Developer_Deployment');
         break;
       case 'RateUs':
-        navigation.navigate('Developer_RateUs');
+        navigation.navigate('FeedbackPage'); // <-- navigates to FeedbackPage
         break;
       default:
         Alert.alert('Coming Soon', `${destination} feature will be available soon.`);
@@ -59,6 +59,20 @@ export default function Developer_SettingsPage() {
         },
       ]
     );
+  };
+
+  // --- Open Google Colab Notebook ---
+  const openColabNotebook = () => {
+    const url = "https://colab.research.google.com/your-notebook-link"; // <- replace with your Colab URL
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          Alert.alert("Cannot open URL", "Please check your URL or internet connection.");
+        }
+      })
+      .catch((err) => console.error("Error opening URL:", err));
   };
 
   return (
@@ -154,6 +168,11 @@ export default function Developer_SettingsPage() {
               </TouchableOpacity>
               <TouchableOpacity style={styles.subOption}>
                 <Text style={styles.subOptionText}>Training History</Text>
+              </TouchableOpacity>
+
+              {/* --- Colab Notebook Link --- */}
+              <TouchableOpacity style={styles.subOption} onPress={openColabNotebook}>
+                <Text style={[styles.subOptionText, { color: '#1a73e8' }]}>Open Colab Notebook</Text>
               </TouchableOpacity>
             </View>
           )}

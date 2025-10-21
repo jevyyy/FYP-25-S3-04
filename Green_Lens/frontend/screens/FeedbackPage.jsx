@@ -3,17 +3,18 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { app } from '../firebaseConfig';
+import { useNavigation } from '@react-navigation/native'; // <-- Import
 
 const db = getFirestore(app);
 const auth = getAuth(app);
 
 export default function FeedbackPage() {
+  const navigation = useNavigation(); // <-- Add navigation hook
   const [rating, setRating] = useState(1); 
   const [suggestion, setSuggestion] = useState('');
   const [error, setError] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
 
-  // Listen to auth state
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
       setCurrentUser(user);
@@ -35,14 +36,20 @@ export default function FeedbackPage() {
     try {
       await addDoc(collection(db, 'feedback'), {
         userId: currentUser.uid,
-        username: currentUser.displayName || currentUser.email || 'Anonymous', // username
-        email: currentUser.email || 'anonymous@example.com', // email stored separately
+        username: currentUser.displayName || currentUser.email || 'Anonymous',
+        email: currentUser.email || 'anonymous@example.com',
         rating,
         suggestion: suggestion.trim(),
         createdAt: serverTimestamp(),
       });
 
-      Alert.alert('Thank You!', 'Your feedback has been submitted.');
+      Alert.alert('Thank You!', 'Your feedback has been submitted.', [
+        {
+          text: 'OK',
+          onPress: () => navigation.goBack(), // <-- Navigate back after submission
+        },
+      ]);
+
       setRating(1);
       setSuggestion('');
       setError('');

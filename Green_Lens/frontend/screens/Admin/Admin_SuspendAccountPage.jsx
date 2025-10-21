@@ -13,6 +13,9 @@ import { useNavigation, useRoute } from "@react-navigation/native";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "../../firebaseConfig";
 
+import { LogBox } from "react-native"; // <-- Add this
+LogBox.ignoreAllLogs(false); // <-- Show all warnings and logs
+
 export default function Admin_SuspendAccountPage() {
   const navigation = useNavigation();
   const route = useRoute();

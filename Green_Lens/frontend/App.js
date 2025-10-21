@@ -20,7 +20,7 @@ import Admin_ReportPage from './screens/Admin/Admin_ReportPage';
 import Admin_CreateAccountPage from './screens/Admin/Admin_CreateAccountPage';
 import Admin_UpdateAccountPage from './screens/Admin/Admin_UpdateAccountPage';
 import Admin_SettingsPage from './screens/Admin/Admin_SettingsPage';
-import Admin_SuspendAccountPage from './screens/Admin/Admin_SuspendAccountPage'; // ✅ Added this import
+import Admin_SuspendAccountPage from './screens/Admin/Admin_SuspendAccountPage';
 import Developer_HomePage from './screens/Developer/Developer_HomePage';
 import Developer_PlantsPage from './screens/Developer/Developer_PlantsPage';
 import Developer_FlowersPage from './screens/Developer/Developer_FlowersPage';
@@ -281,7 +281,7 @@ function AdminStack() {
         options={{ title: 'Create Account' }}
       />
       <Stack.Screen
-        name="Admin_SuspendAccountPage" // ✅ Added this
+        name="Admin_SuspendAccountPage"
         component={Admin_SuspendAccountPage}
         options={{ title: 'Suspend Account' }}
       />
@@ -361,6 +361,11 @@ function DeveloperFlow() {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="DeveloperTabs" component={DeveloperTabs} />
+      <Stack.Screen
+        name="FeedbackPage"
+        component={FeedbackPage}
+        options={{ headerShown: true, title: 'Rate Us' }}
+      />
     </Stack.Navigator>
   );
 }

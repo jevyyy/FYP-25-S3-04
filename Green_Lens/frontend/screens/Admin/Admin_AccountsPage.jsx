@@ -15,8 +15,8 @@ import { useNavigation } from "@react-navigation/native";
 import { getFirestore, collection, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { app } from "../../firebaseConfig";
-import { LogBox } from "react-native"; // <-- Add this
 
+import { LogBox } from "react-native"; // <-- Add this
 LogBox.ignoreAllLogs(false); // <-- Show all warnings and logs
 
 export default function Admin_AccountsPage() {
