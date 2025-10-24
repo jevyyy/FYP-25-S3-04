@@ -25,15 +25,20 @@ import {
   collection,
   doc,
   addDoc,
+  deleteDoc,
   onSnapshot,
   query,
   orderBy,
   serverTimestamp,
   getDoc,
+  updateDoc,
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
+
+// Import your logo
+import LogoImage from '../../assets/Green_Lens_logo.png';
 
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -49,6 +54,9 @@ export default function Developer_PlantsPage() {
   const [previewUri, setPreviewUri] = useState(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
+
+  // Update state
+  const [selectedPlant, setSelectedPlant] = useState(null);
 
   // input
   const [plantName, setPlantName] = useState('');
@@ -72,10 +80,11 @@ export default function Developer_PlantsPage() {
             uri: data.imageUrl,
             name: data.name || data.uploadedBy || 'User Upload',
             uploadedBy: data.uploadedBy || '',
+            storagePath: data.storagePath || null,
             createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : data.createdAt) : null,
           };
         });
-        setPlantImages(items); // no placeholder
+        setPlantImages(items);
         setLoading(false);
       },
       (err) => {
@@ -96,13 +105,22 @@ export default function Developer_PlantsPage() {
     (img.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // --- Add new plant ---
   const handleAddNewPlant = async () => {
+    setSelectedPlant(null);
+    setPlantName('');
+    setPreviewUri(null);
     await handleSelectImage();
   };
 
-  const handleImagePress = (image) => navigation.navigate('Developer_PlantDetail', { imageData: image });
+  const handleImagePress = (image) => {
+    setSelectedPlant(image);
+    setPlantName(image.name);
+    setPreviewUri(image.uri);
+    setPreviewModalVisible(true);
+  };
 
-  // --- Upload logic ---
+  // --- Image Picker ---
   const handleSelectImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -120,8 +138,7 @@ export default function Developer_PlantsPage() {
       if (!result.canceled && result.assets?.length > 0) {
         const uri = result.assets[0].uri;
         setPreviewUri(uri);
-        setPlantName(''); // reset plant name
-        setPreviewModalVisible(true);
+        setPreviewModalVisible(true); // open modal immediately
       }
     } catch (err) {
       console.error('ImagePicker error:', err);
@@ -129,8 +146,8 @@ export default function Developer_PlantsPage() {
     }
   };
 
+  // --- Upload or Update with old image deletion ---
   const handleConfirmUpload = async () => {
-    if (!previewUri) return;
     if (!plantName.trim()) {
       Alert.alert('Validation', 'Please enter Plant Name.');
       return;
@@ -141,42 +158,122 @@ export default function Developer_PlantsPage() {
     try {
       const user = auth.currentUser;
       const uid = user?.uid || 'anonymous';
-      const response = await fetch(previewUri);
-      const blob = await response.blob();
+      let downloadUrl = previewUri;
 
-      const filename = `modelPhotos/plants/${Date.now()}_${uid}.jpg`;
-      const storageRef = ref(storage, filename);
+      if (!selectedPlant) {
+        // New upload
+        const response = await fetch(previewUri);
+        const blob = await response.blob();
+        const filename = `modelPhotos/plants/${Date.now()}_${uid}.jpg`;
+        const storageRef = ref(storage, filename);
+        await uploadBytes(storageRef, blob);
+        downloadUrl = await getDownloadURL(storageRef);
 
-      await uploadBytes(storageRef, blob);
-      const downloadUrl = await getDownloadURL(storageRef);
+        let uploadedBy = 'Developer';
+        try {
+          const userDocRef = doc(db, 'users', uid);
+          const userSnap = await getDoc(userDocRef);
+          if (userSnap.exists() && userSnap.data().username) uploadedBy = userSnap.data().username;
+          else if (user?.email) uploadedBy = user.email.split('@')[0];
+        } catch (e) {
+          uploadedBy = user?.email?.split('@')[0] || uploadedBy;
+        }
 
-      let uploadedBy = 'Developer';
-      try {
-        const userDocRef = doc(db, 'users', uid);
-        const userSnap = await getDoc(userDocRef);
-        if (userSnap.exists() && userSnap.data().username) uploadedBy = userSnap.data().username;
-        else if (user?.email) uploadedBy = user.email.split('@')[0];
-      } catch (e) {
-        uploadedBy = user?.email?.split('@')[0] || uploadedBy;
+        await addDoc(plantsImagesCollectionRef(), {
+          imageUrl: downloadUrl,
+          uploadedBy,
+          name: plantName.trim().toLowerCase(),
+          createdAt: serverTimestamp(),
+          storagePath: filename,
+        });
+
+        Alert.alert('Success', 'Image uploaded to developer dataset.');
+      } else {
+        // Update existing
+        let newImageUrl = null;
+        let newStoragePath = null;
+
+        if (previewUri !== selectedPlant.uri) {
+          const response = await fetch(previewUri);
+          const blob = await response.blob();
+          const filename = `modelPhotos/plants/${Date.now()}_${selectedPlant.id}.jpg`;
+          const storageRef = ref(storage, filename);
+          await uploadBytes(storageRef, blob);
+          newImageUrl = await getDownloadURL(storageRef);
+          newStoragePath = filename;
+
+          if (selectedPlant.storagePath) {
+            try {
+              const oldRef = ref(storage, selectedPlant.storagePath);
+              await deleteObject(oldRef);
+            } catch (err) {
+              console.warn('Failed to delete old image:', err);
+            }
+          }
+        }
+
+        const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
+        await updateDoc(plantDocRef, {
+          name: plantName.trim().toLowerCase(),
+          ...(newImageUrl ? { imageUrl: newImageUrl, storagePath: newStoragePath } : {}),
+          updatedAt: serverTimestamp(),
+        });
+
+        Alert.alert('Success', 'Plant updated successfully.');
       }
-
-      await addDoc(plantsImagesCollectionRef(), {
-        imageUrl: downloadUrl,
-        uploadedBy,
-        name: plantName.trim().toLowerCase(),
-        createdAt: serverTimestamp(),
-      });
 
       setPreviewModalVisible(false);
       setPreviewUri(null);
       setPlantName('');
-      Alert.alert('Success', 'Image uploaded to developer dataset.');
+      setSelectedPlant(null);
     } catch (err) {
-      console.error('Upload error (developer plants):', err);
-      Alert.alert('Upload failed', 'Unable to upload image. Try again.');
+      console.error('Upload/Update error:', err);
+      Alert.alert('Failed', 'Could not upload or update the plant.');
     } finally {
       if (isMounted.current) setUploading(false);
     }
+  };
+
+  // --- Delete existing plant ---
+  const handleDeletePlant = async () => {
+    if (!selectedPlant) return;
+
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this plant image?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setUploading(true);
+            try {
+              // Delete Firestore document
+              const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
+              await deleteDoc(plantDocRef);
+
+              // Delete from Storage
+              if (selectedPlant.storagePath) {
+                const oldRef = ref(storage, selectedPlant.storagePath);
+                await deleteObject(oldRef);
+              }
+
+              Alert.alert('Deleted', 'Plant image deleted successfully.');
+              setPreviewModalVisible(false);
+              setPreviewUri(null);
+              setPlantName('');
+              setSelectedPlant(null);
+            } catch (err) {
+              console.error('Delete error:', err);
+              Alert.alert('Error', 'Failed to delete plant image.');
+            } finally {
+              if (isMounted.current) setUploading(false);
+            }
+          },
+        },
+      ]
+    );
   };
 
   const renderImageItem = ({ item }) => (
@@ -193,10 +290,10 @@ export default function Developer_PlantsPage() {
       {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <View style={styles.logo}>
-            <Ionicons name="leaf" size={28} color="#2E7D32" />
-          </View>
-          <Text style={styles.logoText}>GREEN LENS</Text>
+          <Image
+            source={LogoImage}
+            style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }}
+          />
         </View>
 
         <Text style={styles.pageTitle}>Dataset Images</Text>
@@ -213,7 +310,6 @@ export default function Developer_PlantsPage() {
             />
           </View>
 
-          {/* + New Plant button */}
           <TouchableOpacity style={styles.addButton} onPress={handleAddNewPlant} disabled={uploading}>
             <Ionicons name="add" size={20} color="#fff" />
             <Text style={styles.addButtonText}>{uploading ? 'Uploading' : 'New plant'}</Text>
@@ -243,7 +339,7 @@ export default function Developer_PlantsPage() {
         />
       )}
 
-      {/* Preview Modal */}
+      {/* Preview/Update Modal */}
       <Modal
         visible={previewModalVisible}
         transparent
@@ -253,6 +349,7 @@ export default function Developer_PlantsPage() {
             setPreviewModalVisible(false);
             setPreviewUri(null);
             setPlantName('');
+            setSelectedPlant(null);
           }
         }}
       >
@@ -273,7 +370,7 @@ export default function Developer_PlantsPage() {
               />
             </View>
 
-            <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between' }}>
+            <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
               <TouchableOpacity
                 style={[styles.modalButton, { backgroundColor: '#ccc' }]}
                 onPress={() => {
@@ -281,6 +378,7 @@ export default function Developer_PlantsPage() {
                     setPreviewModalVisible(false);
                     setPreviewUri(null);
                     setPlantName('');
+                    setSelectedPlant(null);
                   }
                 }}
                 disabled={uploading}
@@ -293,9 +391,28 @@ export default function Developer_PlantsPage() {
                 onPress={handleConfirmUpload}
                 disabled={uploading}
               >
-                {uploading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '600' }}>Upload</Text>}
+                {uploading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '600' }}>{selectedPlant ? 'Update' : 'Upload'}</Text>}
               </TouchableOpacity>
             </View>
+
+            <TouchableOpacity
+              style={{ marginTop: 8 }}
+              onPress={handleSelectImage}
+              disabled={uploading}
+            >
+              <Text style={{ color: '#2E7D32', fontWeight: '600' }}>Change Image</Text>
+            </TouchableOpacity>
+
+            {/* Delete Button */}
+            {selectedPlant && (
+              <TouchableOpacity
+                style={{ marginTop: 8 }}
+                onPress={handleDeletePlant}
+                disabled={uploading}
+              >
+                <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete Image</Text>
+              </TouchableOpacity>
+            )}
           </ScrollView>
         </KeyboardAvoidingView>
       </Modal>
@@ -307,8 +424,6 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   logoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-  logo: { width: 40, height: 40, borderRadius: 20, backgroundColor: '#e8f5e9', justifyContent: 'center', alignItems: 'center', marginRight: 8 },
-  logoText: { fontSize: 18, fontWeight: 'bold', color: '#2E7D32', letterSpacing: 1 },
   pageTitle: { fontSize: 26, fontWeight: 'bold', color: '#333', marginBottom: 15 },
   controlsRow: { flexDirection: 'row', alignItems: 'center' },
   searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f5f5', borderRadius: 10, paddingHorizontal: 12, height: 45 },
