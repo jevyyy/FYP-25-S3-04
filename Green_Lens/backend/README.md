@@ -1,0 +1,185 @@
+# Plant Recognition Backend API
+
+This is a Python Flask backend API that serves a trained MobileNetV2 model for plant/flower recognition.
+
+## Requirements
+
+- Python 3.10 (recommended, compatible with Python 3.8+)
+- All dependencies listed in `requirements.txt`
+
+## Setup
+
+### 1. Create a Virtual Environment
+
+```bash
+cd backend
+python3 -m venv venv
+```
+
+### 2. Activate the Virtual Environment
+
+**On Windows:**
+```bash
+venv\Scripts\activate
+```
+
+**On macOS/Linux:**
+```bash
+source venv/bin/activate
+```
+
+### 3. Install Dependencies
+
+```bash
+pip install -r requirements.txt
+```
+
+## Running the API
+
+### Development Mode
+
+```bash
+cd src
+python app.py
+```
+
+The API will start on `http://localhost:5000`
+
+### Production Mode
+
+For production, use a WSGI server like Gunicorn:
+
+```bash
+pip install gunicorn
+cd src
+gunicorn -w 4 -b 0.0.0.0:5000 app:app
+```
+
+## API Endpoints
+
+### 1. Health Check
+**GET** `/health`
+
+Returns the health status of the API and whether the model is loaded.
+
+**Response:**
+```json
+{
+  "status": "healthy",
+  "model_loaded": true,
+  "classes_loaded": true
+}
+```
+
+### 2. Predict Plant/Flower
+**POST** `/predict`
+
+Upload an image to get plant/flower predictions.
+
+**Request:**
+- Method: POST
+- Content-Type: multipart/form-data
+- Body: image file with key "image"
+
+**Response:**
+```json
+{
+  "success": true,
+  "predictions": [
+    {
+      "class_id": "74",
+      "flower_name": "rose",
+      "confidence": 0.95,
+      "confidence_percentage": 95.0
+    },
+    ...
+  ],
+  "top_prediction": {
+    "class_id": "74",
+    "flower_name": "rose",
+    "confidence": 0.95,
+    "confidence_percentage": 95.0
+  }
+}
+```
+
+### 3. Get All Classes
+**GET** `/classes`
+
+Returns all available plant/flower classes.
+
+**Response:**
+```json
+{
+  "success": true,
+  "total_classes": 102,
+  "classes": {
+    "1": "pink primrose",
+    "2": "hard-leaved pocket orchid",
+    ...
+  }
+}
+```
+
+## Model Information
+
+- **Model:** MobileNetV2 (Transfer Learning)
+- **Input Size:** 224x224 pixels
+- **Classes:** 102 flower species
+- **Model Source:** Firebase Storage
+- **Model File:** `flower_img_classifier.keras` (downloaded from Firebase on startup)
+
+## Firebase Configuration
+
+The backend automatically downloads the model and class mapping files from Firebase Storage when it starts. You need:
+
+1. A valid Firebase service account JSON file at `../Green_Lens/backend/service-account.json`
+2. The following files in Firebase Storage:
+   - `flower_img_classifier.keras` - The trained model
+   - `class_names.json` - Class index to ID mapping
+   - `classes_to_name_dictionary.json` - Class ID to flower name mapping
+
+The downloaded files are cached locally in `src/downloaded_model/` directory.
+
+## Testing the API
+
+You can test the API using curl:
+
+```bash
+# Health check
+curl http://localhost:5000/health
+
+# Predict
+curl -X POST -F "image=@/path/to/your/flower.jpg" http://localhost:5000/predict
+
+# Get classes
+curl http://localhost:5000/classes
+```
+
+## Environment Variables
+
+- `PORT`: Port to run the server on (default: 5000)
+
+## Troubleshooting
+
+### ModuleNotFoundError
+Make sure you've activated the virtual environment and installed all dependencies.
+
+### Model Not Found Error
+The backend downloads the model from Firebase Storage on startup. If you encounter this error:
+1. Verify Firebase service account file exists at `../Green_Lens/backend/service-account.json`
+2. Check that the model file `flower_img_classifier.keras` exists in Firebase Storage
+3. Ensure you have proper Firebase Storage permissions
+4. Check the backend logs for specific Firebase errors
+
+### TensorFlow Errors
+This project requires TensorFlow 2.15.0. If you encounter issues, try:
+```bash
+pip install --upgrade tensorflow==2.15.0
+```
+
+## Notes
+
+- The model was trained with Python 3.10 and TensorFlow 2.15.0
+- For best results, use images of flowers with good lighting and clear views
+- The API returns the top 5 predictions with confidence scores
