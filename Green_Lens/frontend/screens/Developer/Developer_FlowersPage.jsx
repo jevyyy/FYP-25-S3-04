@@ -14,6 +14,8 @@ import {
   KeyboardAvoidingView,
   Platform,
   ScrollView,
+  TouchableWithoutFeedback,
+  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -147,7 +149,24 @@ export default function Developer_PlantsPage() {
   };
 
   // --- Upload or Update with old image deletion ---
-  const handleConfirmUpload = async () => {
+  const handleConfirmUpload = () => {
+    if (!selectedPlant) {
+      // New upload, proceed directly
+      performUploadOrUpdate();
+    } else {
+      // Update existing, ask confirmation first
+      Alert.alert(
+        'Confirm Update',
+        'Are you sure you want to update this plant?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Update', onPress: () => performUploadOrUpdate() },
+        ]
+      );
+    }
+  };
+
+  const performUploadOrUpdate = async () => {
     if (!plantName.trim()) {
       Alert.alert('Validation', 'Please enter Plant Name.');
       return;
@@ -235,7 +254,7 @@ export default function Developer_PlantsPage() {
   };
 
   // --- Delete existing plant ---
-  const handleDeletePlant = async () => {
+  const handleDeletePlant = () => {
     if (!selectedPlant) return;
 
     Alert.alert(
@@ -353,68 +372,83 @@ export default function Developer_PlantsPage() {
           }
         }}
       >
-        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalOverlay}>
-          <ScrollView contentContainerStyle={styles.modalBox}>
-            {previewUri && (
-              <Image source={{ uri: previewUri }} style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }} />
-            )}
+        <TouchableWithoutFeedback
+          onPress={() => {
+            if (!uploading) {
+              setPreviewModalVisible(false);
+              setPreviewUri(null);
+              setPlantName('');
+              setSelectedPlant(null);
+            }
+          }}
+        >
+          <View style={styles.modalOverlay}>
+            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBoxWrapper}>
+              <TouchableWithoutFeedback onPress={() => {}}>
+                <ScrollView contentContainerStyle={styles.modalBox}>
+                  {previewUri && (
+                    <Image source={{ uri: previewUri }} style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }} />
+                  )}
 
-            <View style={{ width: '100%', marginBottom: 12 }}>
-              <Text style={{ marginBottom: 6, fontWeight: '600' }}>Plant Name</Text>
-              <TextInput
-                value={plantName}
-                onChangeText={setPlantName}
-                placeholder="Common name (required)"
-                style={styles.input}
-                editable={!uploading}
-              />
-            </View>
+                  <View style={{ width: '100%', marginBottom: 12 }}>
+                    <Text style={{ marginBottom: 6, fontWeight: '600' }}>Plant Name</Text>
+                    <TextInput
+                      value={plantName}
+                      onChangeText={setPlantName}
+                      placeholder="Common name (required)"
+                      style={styles.input}
+                      editable={!uploading}
+                    />
+                  </View>
 
-            <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: '#ccc' }]}
-                onPress={() => {
-                  if (!uploading) {
-                    setPreviewModalVisible(false);
-                    setPreviewUri(null);
-                    setPlantName('');
-                    setSelectedPlant(null);
-                  }
-                }}
-                disabled={uploading}
-              >
-                <Text style={{ color: '#000', fontWeight: '600' }}>Cancel</Text>
-              </TouchableOpacity>
+                  <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
+                    <TouchableOpacity
+                      style={[styles.modalButton, { backgroundColor: '#ccc' }]}
+                      onPress={() => {
+                        if (!uploading) {
+                          setPreviewModalVisible(false);
+                          setPreviewUri(null);
+                          setPlantName('');
+                          setSelectedPlant(null);
+                        }
+                      }}
+                      disabled={uploading}
+                    >
+                      <Text style={{ color: '#000', fontWeight: '600' }}>Cancel</Text>
+                    </TouchableOpacity>
 
-              <TouchableOpacity
-                style={[styles.modalButton, { backgroundColor: '#2E7D32' }]}
-                onPress={handleConfirmUpload}
-                disabled={uploading}
-              >
-                {uploading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '600' }}>{selectedPlant ? 'Update' : 'Upload'}</Text>}
-              </TouchableOpacity>
-            </View>
+                    <TouchableOpacity
+                      style={[styles.modalButton, { backgroundColor: '#2E7D32' }]}
+                      onPress={handleConfirmUpload}
+                      disabled={uploading}
+                    >
+                      {uploading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '600' }}>{selectedPlant ? 'Update' : 'Upload'}</Text>}
+                    </TouchableOpacity>
+                  </View>
 
-            <TouchableOpacity
-              style={{ marginTop: 8 }}
-              onPress={handleSelectImage}
-              disabled={uploading}
-            >
-              <Text style={{ color: '#2E7D32', fontWeight: '600' }}>Change Image</Text>
-            </TouchableOpacity>
+                  <TouchableOpacity
+                    style={{ marginTop: 8 }}
+                    onPress={handleSelectImage}
+                    disabled={uploading}
+                  >
+                    <Text style={{ color: '#2E7D32', fontWeight: '600' }}>Change Image</Text>
+                  </TouchableOpacity>
 
-            {/* Delete Button */}
-            {selectedPlant && (
-              <TouchableOpacity
-                style={{ marginTop: 8 }}
-                onPress={handleDeletePlant}
-                disabled={uploading}
-              >
-                <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete Image</Text>
-              </TouchableOpacity>
-            )}
-          </ScrollView>
-        </KeyboardAvoidingView>
+                  {/* Delete Button */}
+                  {selectedPlant && (
+                    <TouchableOpacity
+                      style={{ marginTop: 8 }}
+                      onPress={handleDeletePlant}
+                      disabled={uploading}
+                    >
+                      <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete Image</Text>
+                    </TouchableOpacity>
+                  )}
+                </ScrollView>
+              </TouchableWithoutFeedback>
+            </KeyboardAvoidingView>
+          </View>
+        </TouchableWithoutFeedback>
       </Modal>
     </View>
   );
@@ -441,6 +475,7 @@ const styles = StyleSheet.create({
   imageThumb: { width: '100%', height: 150, backgroundColor: '#f0f0f0' },
   imageName: { fontSize: 14, color: '#333', fontWeight: '600' },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)' },
+  modalBoxWrapper: { width: '100%', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 340, backgroundColor: '#fff', borderRadius: 12, padding: 18, alignItems: 'center' },
   modalButton: { flex: 1, paddingVertical: 12, borderRadius: 10, alignItems: 'center', marginHorizontal: 6 },
   input: { borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10, backgroundColor: '#fff' },
