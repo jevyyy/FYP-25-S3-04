@@ -26,7 +26,6 @@ export default function User_ViewSummaryPage({ route }) {
   const [summaryData, setSummaryData] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // Fetch summary from Firestore
   useEffect(() => {
     const fetchSummary = async () => {
       try {
@@ -34,8 +33,7 @@ export default function User_ViewSummaryPage({ route }) {
         const docSnap = await getDoc(docRef);
 
         if (docSnap.exists()) {
-          const data = docSnap.data();
-          setSummaryData(data);
+          setSummaryData(docSnap.data());
         } else {
           setSummaryData({ description: 'No information available yet.' });
         }
@@ -50,7 +48,6 @@ export default function User_ViewSummaryPage({ route }) {
     fetchSummary();
   }, [objectName]);
 
-  // Share function
   const handleShare = async () => {
     if (!photoUri) return Alert.alert('No photo available to share');
     try {
@@ -73,7 +70,6 @@ export default function User_ViewSummaryPage({ route }) {
     }
   };
 
-  // Google search
   const handleGoogleSearch = () => {
     const query = encodeURIComponent(objectName);
     const url = `https://www.google.com/search?q=${query}`;
@@ -89,9 +85,8 @@ export default function User_ViewSummaryPage({ route }) {
   }
 
   return (
-    <ScrollView style={styles.scrollContainer}>
-      <View style={styles.container}>
-        {/* PHOTO + OBJECT NAME + CONFIDENCE */}
+    <View style={styles.container}>
+      <ScrollView contentContainerStyle={styles.scrollContent}>
         {photoUri ? (
           <Image source={{ uri: photoUri }} style={styles.image} />
         ) : (
@@ -104,7 +99,6 @@ export default function User_ViewSummaryPage({ route }) {
 
         <Text style={styles.title}>{summaryData?.name || objectName}</Text>
 
-        {/* SUMMARY DATA FROM FIRESTORE */}
         <View style={styles.labelColumn}>
           {summaryData ? (
             <>
@@ -114,21 +108,18 @@ export default function User_ViewSummaryPage({ route }) {
                   <Text style={styles.characteristics}>{summaryData.description}</Text>
                 </>
               )}
-
               {summaryData.characteristics && (
                 <>
                   <Text style={styles.characteristicsTitle}>Characteristics:</Text>
                   <Text style={styles.characteristics}>{summaryData.characteristics}</Text>
                 </>
               )}
-
               {summaryData.healthTip && (
                 <>
                   <Text style={styles.characteristicsTitle}>Health Tip:</Text>
                   <Text style={styles.characteristics}>{summaryData.healthTip}</Text>
                 </>
               )}
-
               {summaryData.funFact && (
                 <>
                   <Text style={styles.characteristicsTitle}>Fun Fact:</Text>
@@ -142,36 +133,55 @@ export default function User_ViewSummaryPage({ route }) {
             </Text>
           )}
         </View>
+      </ScrollView>
 
-        {/* BUTTONS */}
-        <View style={styles.buttonColumn}>
-          <TouchableOpacity style={styles.seeMoreButton} onPress={handleGoogleSearch}>
-            <Text style={styles.seeMoreText}>See More</Text>
-          </TouchableOpacity>
+      {/* Fixed buttons at bottom */}
+      <View style={styles.buttonContainer}>
+        <TouchableOpacity style={styles.seeMoreButton} onPress={handleGoogleSearch}>
+          <Text style={styles.seeMoreText}>See More</Text>
+        </TouchableOpacity>
 
-          <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
-            <Ionicons name="share-social-outline" size={22} color="#fff" />
-          </TouchableOpacity>
-        </View>
+        <TouchableOpacity style={styles.shareButton} onPress={handleShare}>
+          <Ionicons name="share-social-outline" size={22} color="#fff" />
+        </TouchableOpacity>
       </View>
-    </ScrollView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  scrollContainer: { flex: 1 },
-  container: { flex: 1, justifyContent: 'flex-start', alignItems: 'center', padding: 20 },
-  image: { width: 250, height: 250, borderRadius: 10, marginBottom: 20, marginTop: 40 },
+  container: { flex: 1, backgroundColor: '#fff' },
+  scrollContent: { padding: 20, paddingBottom: 100 },
+  image: { width: 250, height: 250, borderRadius: 10, marginBottom: 20, alignSelf: 'center' },
   noPhotoText: { fontSize: 16, color: '#999', marginVertical: 20, textAlign: 'center' },
-  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 5, alignSelf: 'flex-start' },
-  confidence: { fontSize: 16, color: '#4CAF50', marginBottom: 15, alignSelf: 'flex-start', fontWeight: '600' },
+  title: { fontSize: 22, fontWeight: 'bold', marginBottom: 5 },
+  confidence: { fontSize: 16, color: '#4CAF50', marginBottom: 15, fontWeight: '600' },
   labelColumn: { width: '100%', alignItems: 'flex-start', marginBottom: 20 },
-  placeholderText: { fontSize: 16, color: '#555', marginBottom: 8, textAlign: 'left' },
-  characteristicsTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4, alignSelf: 'flex-start' },
-  characteristics: { fontSize: 16, color: '#555', marginBottom: 10, alignSelf: 'flex-start' },
-  buttonColumn: { width: '100%', alignItems: 'flex-end', marginTop: 15 },
-  seeMoreButton: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, backgroundColor: '#1E90FF', marginBottom: 12 },
+  placeholderText: { fontSize: 16, color: '#555', marginBottom: 8 },
+  characteristicsTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4 },
+  characteristics: { fontSize: 16, color: '#555', marginBottom: 10 },
+  buttonContainer: {
+    position: 'absolute',
+    bottom: 50,
+    right: 20,
+    flexDirection: 'column', // stacked vertically
+    alignItems: 'center',
+  },
+  seeMoreButton: {
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    borderRadius: 8,
+    backgroundColor: '#1E90FF',
+    marginBottom: 12,
+  },
   seeMoreText: { fontSize: 16, color: '#fff', fontWeight: '600' },
-  shareButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
+  shareButton: {
+    width: 46,
+    height: 46,
+    borderRadius: 23,
+    backgroundColor: '#000',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

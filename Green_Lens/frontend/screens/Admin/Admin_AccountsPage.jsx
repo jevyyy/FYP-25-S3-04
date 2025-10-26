@@ -14,7 +14,7 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { getFirestore, collection, onSnapshot, doc, getDoc } from "firebase/firestore";
-import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
+import { getAuth, signOut } from "firebase/auth";
 import { app } from "../../firebaseConfig";
 
 import GreenLensLogo from "../../assets/Green_Lens_logo.png";
@@ -34,33 +34,33 @@ export default function Admin_AccountsPage() {
 
   const db = getFirestore(app);
   const auth = getAuth(app);
+  auth._canInitEmulator = false; // prevents firebase from re-initializing auth unnecessarily
 
-  // --- Auth state listener ---
+  // --- Auth state listener (one time only) ---
   useEffect(() => {
-    const unsubscribe = onAuthStateChanged(auth, async (user) => {
-      if (user) {
-        setCurrentUser(user);
-        try {
-          const userDocRef = doc(db, "users", user.uid);
-          const userDocSnap = await getDoc(userDocRef);
+    const user = auth.currentUser;
+    if (!user) {
+      navigation.navigate("Login");
+      return;
+    }
 
-          if (userDocSnap.exists() && userDocSnap.data().status === "inactive") {
-            Alert.alert("Account Locked", "Your account has been suspended.");
-            await signOut(auth);
-            navigation.navigate("Login");
-          }
-        } catch (error) {
-          console.error("Error checking current user document:", error);
-        } finally {
-          setLoadingUser(false);
+    setCurrentUser(user);
+    (async () => {
+      try {
+        const userDocRef = doc(db, "users", user.uid);
+        const userDocSnap = await getDoc(userDocRef);
+
+        if (userDocSnap.exists() && userDocSnap.data().status === "inactive") {
+          Alert.alert("Account Locked", "Your account has been suspended.");
+          await signOut(auth);
+          navigation.navigate("Login");
         }
-      } else {
+      } catch (error) {
+        console.error("Error checking current user document:", error);
+      } finally {
         setLoadingUser(false);
-        navigation.navigate("Login");
       }
-    });
-
-    return () => unsubscribe();
+    })();
   }, []);
 
   // --- Fetch users from Firestore ---
@@ -248,7 +248,7 @@ const styles = StyleSheet.create({
   searchBar: {
     flex: 1,
     backgroundColor: "#f2f2f2",
-    paddingHorizontal: 12,
+    paddingHorizontal: 1,
     borderRadius: 8,
     marginRight: 10,
   },
@@ -260,7 +260,7 @@ const styles = StyleSheet.create({
   username: { flex: 1, fontWeight: "600", fontSize: 16 },
   role: { flex: 1, textAlign: "center" },
   status: { flex: 1, fontWeight: "600", textAlign: "center" },
-  pagination: { flexDirection: "row", justifyContent: "center", marginVertical: 12, marginBottom: 30, alignItems: "center" },
+  pagination: { flexDirection: "row", justifyContent: "center", marginVertical: 12, marginBottom: 10, alignItems: "center" },
   pageNumber: { marginHorizontal: 4, paddingVertical: 6, paddingHorizontal: 8, fontSize: 14, borderWidth: 1, borderColor: "#ccc", borderRadius: 4 },
   activePage: { backgroundColor: "black", color: "white" },
   pageArrow: { fontSize: 16, marginHorizontal: 10 },
