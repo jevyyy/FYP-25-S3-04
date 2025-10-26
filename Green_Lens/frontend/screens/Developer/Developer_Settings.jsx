@@ -7,19 +7,10 @@ import GreenLensLogo from '../../assets/Green_Lens_logo.png'; // adjust path if 
 
 export default function Developer_SettingsPage() {
   const navigation = useNavigation();
-  const [expandedSections, setExpandedSections] = useState({
-    preTrainModel: false,
-    trainModel: false,
-    deployment: false,
-    appInfo: false,
-  });
-
-  const toggleSection = (section) => {
-    setExpandedSections(prev => ({
-      ...prev,
-      [section]: !prev[section]
-    }));
-  };
+  const [showPretrain, setShowPretrain] = useState(false);
+  const [showTrain, setShowTrain] = useState(false);
+  const [showDeployment, setShowDeployment] = useState(false);
+  const [showAppInfo, setShowAppInfo] = useState(false);
 
   const handleLogout = () => {
     Alert.alert(
@@ -37,9 +28,7 @@ export default function Developer_SettingsPage() {
                 routes: [
                   {
                     name: 'GuestFlow',
-                    state: {
-                      routes: [{ name: 'Guest_HomePage' }],
-                    },
+                    state: { routes: [{ name: 'Guest_HomePage' }] },
                   },
                 ],
               })
@@ -52,119 +41,103 @@ export default function Developer_SettingsPage() {
 
   const openURL = (url) => {
     Linking.canOpenURL(url)
-      .then((supported) => {
-        if (supported) {
-          Linking.openURL(url);
-        } else {
-          Alert.alert("Cannot open URL", "Please check your URL or internet connection.");
-        }
-      })
+      .then((supported) => (supported ? Linking.openURL(url) : Alert.alert("Cannot open URL")))
       .catch((err) => console.error("Error opening URL:", err));
   };
 
+  const renderOption = (title, expanded, toggle, content) => (
+    <>
+      <TouchableOpacity style={styles.option} onPress={toggle}>
+        <View style={styles.optionRow}>
+          <Text style={styles.optionText}>{title}</Text>
+          <Text style={styles.arrow}>{expanded ? '▲' : '▼'}</Text>
+        </View>
+      </TouchableOpacity>
+      {expanded && <View style={styles.dropdownInfo}>{content}</View>}
+    </>
+  );
+
   return (
     <View style={styles.container}>
-      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header */}
-        <View style={styles.header}>
+      <ScrollView contentContainerStyle={{ paddingBottom: 20 }} showsVerticalScrollIndicator={false}>
+        
+        {/* Logo moved down to match Architecture Page */}
+        <View style={styles.logoContainer}>
           <Image source={GreenLensLogo} style={styles.logoImage} />
         </View>
 
-        <View style={styles.settingsContainer}>
-          {/* Pre-train Model */}
-          <TouchableOpacity style={styles.settingItem} onPress={() => toggleSection('preTrainModel')}>
-            <Text style={styles.settingText}>Pre-train Model</Text>
-            <Text>{expandedSections.preTrainModel ? '▲' : '▼'}</Text>
+        {/* Pre-train Model */}
+        {renderOption(
+          'Pre-train Model',
+          showPretrain,
+          () => setShowPretrain(!showPretrain),
+          <TouchableOpacity style={styles.greenButton} onPress={() => openURL("https://colab.research.google.com/your-pretrain-notebook")}>
+            <Text style={styles.buttonText}>Pre-Train Model</Text>
           </TouchableOpacity>
-          {expandedSections.preTrainModel && (
-            <View style={styles.expandedContent}>
-              <TouchableOpacity style={styles.smallButton} onPress={() => openURL("https://colab.research.google.com/your-pretrain-notebook")}>
-                <Text style={styles.buttonText}>Pre-train Model</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+        )}
 
-          {/* Train Model */}
-          <TouchableOpacity style={styles.settingItem} onPress={() => toggleSection('trainModel')}>
-            <Text style={styles.settingText}>Train Model</Text>
-            <Text>{expandedSections.trainModel ? '▲' : '▼'}</Text>
+        {/* Train Model */}
+        {renderOption(
+          'Train Model',
+          showTrain,
+          () => setShowTrain(!showTrain),
+          <TouchableOpacity style={styles.greenButton} onPress={() => openURL("https://colab.research.google.com/your-train-notebook")}>
+            <Text style={styles.buttonText}>Train Model</Text>
           </TouchableOpacity>
-          {expandedSections.trainModel && (
-            <View style={styles.expandedContent}>
-              <TouchableOpacity style={styles.smallButton} onPress={() => openURL("https://colab.research.google.com/your-train-notebook")}>
-                <Text style={styles.buttonText}>Train Model</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+        )}
 
-          {/* Deployment */}
-          <TouchableOpacity style={styles.settingItem} onPress={() => toggleSection('deployment')}>
-            <Text style={styles.settingText}>Deployment</Text>
-            <Text>{expandedSections.deployment ? '▲' : '▼'}</Text>
+        {/* Deployment */}
+        {renderOption(
+          'Deployment',
+          showDeployment,
+          () => setShowDeployment(!showDeployment),
+          <TouchableOpacity style={styles.greenButton} onPress={() => openURL("https://drive.google.com/your-folder-link")}>
+            <Text style={styles.buttonText}>Deploy Model</Text>
           </TouchableOpacity>
-          {expandedSections.deployment && (
-            <View style={styles.expandedContent}>
-              <TouchableOpacity style={styles.smallButton} onPress={() => openURL("https://drive.google.com/your-folder-link")}>
-                <Text style={styles.buttonText}>Deploy Model</Text>
-              </TouchableOpacity>
-            </View>
-          )}
+        )}
 
-          {/* Rate Us */}
-          <TouchableOpacity style={styles.settingItem} onPress={() => navigation.navigate('FeedbackPage')}>
-            <Text style={styles.settingText}>Rate Us</Text>
-            <Text>▶</Text>
-          </TouchableOpacity>
+        {/* Rate Us */}
+        <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('FeedbackPage')}>
+          <Text style={styles.optionText}>Rate Us</Text>
+        </TouchableOpacity>
 
-          {/* App Info */}
-          <TouchableOpacity style={styles.settingItem} onPress={() => toggleSection('appInfo')}>
-            <Text style={styles.settingText}>App Info</Text>
-            <Text>{expandedSections.appInfo ? '▲' : '▼'}</Text>
-          </TouchableOpacity>
-          {expandedSections.appInfo && (
-            <View style={styles.expandedContent}>
-              <Text style={styles.expandedText}>Version: 1.0.0</Text>
-              <Text style={styles.expandedText}>Green Lens App</Text>
-              <Text style={styles.expandedText}>Developed by: GreenLens Team</Text>
-            </View>
-          )}
+        {/* App Info */}
+        {renderOption(
+          'App Info',
+          showAppInfo,
+          () => setShowAppInfo(!showAppInfo),
+          <>
+            <Text>Version: 1.0.0</Text>
+            <Text>Green Lens Developer App</Text>
+            <Text>Developed by: GreenLens Team</Text>
+          </>
+        )}
 
-          {/* Logout */}
-          <TouchableOpacity style={[styles.settingItem, styles.logoutItem]} onPress={handleLogout}>
-            <Text style={styles.logoutText}>Logout</Text>
-          </TouchableOpacity>
-        </View>
+        {/* Logout */}
+        <TouchableOpacity style={styles.option} onPress={handleLogout}>
+          <Text style={[styles.optionText, { color: 'red' }]}>Logout</Text>
+        </TouchableOpacity>
       </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' },
-  scrollContent: { paddingBottom: 20 },
-  header: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 20, backgroundColor: '#fff', alignItems: 'flex-start' },
-  logoImage: { width: 150, height: 50, resizeMode: 'contain' }, // ✅ bigger size
-  settingsContainer: { paddingHorizontal: 20, paddingTop: 10 },
-  settingItem: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingVertical: 18, borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
-  settingText: { fontSize: 16, color: '#333' },
-  expandedContent: { backgroundColor: '#f8f8f8', padding: 15, marginTop: -1, marginBottom: 10, borderRadius: 8 },
-  expandedText: { fontSize: 14, color: '#555', marginBottom: 8 },
-
-  smallButton: {
+  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
+  logoContainer: { paddingTop: 50, paddingBottom: 10, alignItems: 'flex-start' }, // moved logo down
+  logoImage: { width: 150, height: 50, resizeMode: 'contain', marginBottom: 10 },
+  option: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#ccc' },
+  optionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+  optionText: { fontSize: 18, color: '#333' },
+  arrow: { fontSize: 22, color: '#333' },
+  dropdownInfo: { paddingVertical: 10, paddingLeft: 15, backgroundColor: '#f2f2f2', marginBottom: 10 },
+  greenButton: {
     backgroundColor: '#2E7D32',
     paddingVertical: 10,
+    paddingHorizontal: 15,
     borderRadius: 8,
-    alignItems: 'center',
-    marginVertical: 5,
-    width: '40%',
     alignSelf: 'flex-start',
+    marginVertical: 5,
   },
-  buttonText: {
-    fontSize: 14,
-    fontWeight: '600',
-    color: '#fff',
-  },
-
-  logoutItem: { marginTop: 20, borderBottomWidth: 0 },
-  logoutText: { fontSize: 16, color: '#d32f2f', fontWeight: '600' },
+  buttonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 });

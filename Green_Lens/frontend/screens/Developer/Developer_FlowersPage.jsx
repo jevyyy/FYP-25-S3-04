@@ -1,4 +1,4 @@
-// ./screens/Developer/Developer_PlantsPage.jsx
+// ./screens/Developer/Developer_FlowerPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import {
   View,
@@ -46,10 +46,10 @@ const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
-export default function Developer_PlantsPage() {
+export default function Developer_FlowerPage() {
   const navigation = useNavigation();
   const [searchQuery, setSearchQuery] = useState('');
-  const [plantImages, setPlantImages] = useState([]);
+  const [flowerImages, setFlowerImages] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Upload / preview state
@@ -58,19 +58,19 @@ export default function Developer_PlantsPage() {
   const [uploading, setUploading] = useState(false);
 
   // Update state
-  const [selectedPlant, setSelectedPlant] = useState(null);
+  const [selectedFlower, setSelectedFlower] = useState(null);
 
   // input
-  const [plantName, setPlantName] = useState('');
+  const [flowerName, setFlowerName] = useState('');
 
   const isMounted = useRef(true);
 
-  const plantsImagesCollectionRef = () =>
-    collection(doc(collection(db, 'modelPhotos'), 'plants'), 'images');
+  const flowersImagesCollectionRef = () =>
+    collection(doc(collection(db, 'modelPhotos'), 'flowers'), 'images');
 
   useEffect(() => {
     isMounted.current = true;
-    const q = query(plantsImagesCollectionRef(), orderBy('createdAt', 'desc'));
+    const q = query(flowersImagesCollectionRef(), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -86,13 +86,13 @@ export default function Developer_PlantsPage() {
             createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : data.createdAt) : null,
           };
         });
-        setPlantImages(items);
+        setFlowerImages(items);
         setLoading(false);
       },
       (err) => {
-        console.error('Firestore snapshot error (plants):', err);
+        console.error('Firestore snapshot error (flowers):', err);
         if (!isMounted.current) return;
-        setPlantImages([]);
+        setFlowerImages([]);
         setLoading(false);
       }
     );
@@ -103,21 +103,21 @@ export default function Developer_PlantsPage() {
     };
   }, []);
 
-  const filteredImages = plantImages.filter((img) =>
+  const filteredImages = flowerImages.filter((img) =>
     (img.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // --- Add new plant ---
-  const handleAddNewPlant = async () => {
-    setSelectedPlant(null);
-    setPlantName('');
+  // --- Add new flower ---
+  const handleAddNewFlower = async () => {
+    setSelectedFlower(null);
+    setFlowerName('');
     setPreviewUri(null);
     await handleSelectImage();
   };
 
   const handleImagePress = (image) => {
-    setSelectedPlant(image);
-    setPlantName(image.name);
+    setSelectedFlower(image);
+    setFlowerName(image.name);
     setPreviewUri(image.uri);
     setPreviewModalVisible(true);
   };
@@ -140,7 +140,7 @@ export default function Developer_PlantsPage() {
       if (!result.canceled && result.assets?.length > 0) {
         const uri = result.assets[0].uri;
         setPreviewUri(uri);
-        setPreviewModalVisible(true); // open modal immediately
+        setPreviewModalVisible(true);
       }
     } catch (err) {
       console.error('ImagePicker error:', err);
@@ -150,25 +150,23 @@ export default function Developer_PlantsPage() {
 
   // --- Upload or Update with old image deletion ---
   const handleConfirmUpload = () => {
-    if (!selectedPlant) {
-      // New upload, proceed directly
+    if (!selectedFlower) {
       performUploadOrUpdate();
     } else {
-      // Update existing, ask confirmation first
       Alert.alert(
         'Confirm Update',
-        'Are you sure you want to update this plant?',
+        'Are you sure you want to apply the changes?',
         [
           { text: 'Cancel', style: 'cancel' },
-          { text: 'Update', onPress: () => performUploadOrUpdate() },
+          { text: 'Yes', onPress: () => performUploadOrUpdate() },
         ]
       );
     }
   };
 
   const performUploadOrUpdate = async () => {
-    if (!plantName.trim()) {
-      Alert.alert('Validation', 'Please enter Plant Name.');
+    if (!flowerName.trim()) {
+      Alert.alert('Validation', 'Please enter Flower Name.');
       return;
     }
 
@@ -179,11 +177,11 @@ export default function Developer_PlantsPage() {
       const uid = user?.uid || 'anonymous';
       let downloadUrl = previewUri;
 
-      if (!selectedPlant) {
+      if (!selectedFlower) {
         // New upload
         const response = await fetch(previewUri);
         const blob = await response.blob();
-        const filename = `modelPhotos/plants/${Date.now()}_${uid}.jpg`;
+        const filename = `modelPhotos/flowers/${Date.now()}_${uid}.jpg`;
         const storageRef = ref(storage, filename);
         await uploadBytes(storageRef, blob);
         downloadUrl = await getDownloadURL(storageRef);
@@ -198,32 +196,32 @@ export default function Developer_PlantsPage() {
           uploadedBy = user?.email?.split('@')[0] || uploadedBy;
         }
 
-        await addDoc(plantsImagesCollectionRef(), {
+        await addDoc(flowersImagesCollectionRef(), {
           imageUrl: downloadUrl,
           uploadedBy,
-          name: plantName.trim().toLowerCase(),
+          name: flowerName.trim().toLowerCase(),
           createdAt: serverTimestamp(),
           storagePath: filename,
         });
 
-        Alert.alert('Success', 'Image uploaded to developer dataset.');
+        Alert.alert('Success', 'Image added!');
       } else {
         // Update existing
         let newImageUrl = null;
         let newStoragePath = null;
 
-        if (previewUri !== selectedPlant.uri) {
+        if (previewUri !== selectedFlower.uri) {
           const response = await fetch(previewUri);
           const blob = await response.blob();
-          const filename = `modelPhotos/plants/${Date.now()}_${selectedPlant.id}.jpg`;
+          const filename = `modelPhotos/flowers/${Date.now()}_${selectedFlower.id}.jpg`;
           const storageRef = ref(storage, filename);
           await uploadBytes(storageRef, blob);
           newImageUrl = await getDownloadURL(storageRef);
           newStoragePath = filename;
 
-          if (selectedPlant.storagePath) {
+          if (selectedFlower.storagePath) {
             try {
-              const oldRef = ref(storage, selectedPlant.storagePath);
+              const oldRef = ref(storage, selectedFlower.storagePath);
               await deleteObject(oldRef);
             } catch (err) {
               console.warn('Failed to delete old image:', err);
@@ -231,35 +229,35 @@ export default function Developer_PlantsPage() {
           }
         }
 
-        const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
-        await updateDoc(plantDocRef, {
-          name: plantName.trim().toLowerCase(),
+        const flowerDocRef = doc(flowersImagesCollectionRef(), selectedFlower.id);
+        await updateDoc(flowerDocRef, {
+          name: flowerName.trim().toLowerCase(),
           ...(newImageUrl ? { imageUrl: newImageUrl, storagePath: newStoragePath } : {}),
           updatedAt: serverTimestamp(),
         });
 
-        Alert.alert('Success', 'Plant updated successfully.');
+        Alert.alert('Success', 'Image updated!');
       }
 
       setPreviewModalVisible(false);
       setPreviewUri(null);
-      setPlantName('');
-      setSelectedPlant(null);
+      setFlowerName('');
+      setSelectedFlower(null);
     } catch (err) {
       console.error('Upload/Update error:', err);
-      Alert.alert('Failed', 'Could not upload or update the plant.');
+      Alert.alert('Failed', 'Could not upload or update the flower.');
     } finally {
       if (isMounted.current) setUploading(false);
     }
   };
 
-  // --- Delete existing plant ---
-  const handleDeletePlant = () => {
-    if (!selectedPlant) return;
+  // --- Delete existing flower ---
+  const handleDeleteFlower = () => {
+    if (!selectedFlower) return;
 
     Alert.alert(
       'Confirm Delete',
-      'Are you sure you want to delete this plant image?',
+      'Are you sure you want to delete this image?',
       [
         { text: 'Cancel', style: 'cancel' },
         {
@@ -268,24 +266,22 @@ export default function Developer_PlantsPage() {
           onPress: async () => {
             setUploading(true);
             try {
-              // Delete Firestore document
-              const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
-              await deleteDoc(plantDocRef);
+              const flowerDocRef = doc(flowersImagesCollectionRef(), selectedFlower.id);
+              await deleteDoc(flowerDocRef);
 
-              // Delete from Storage
-              if (selectedPlant.storagePath) {
-                const oldRef = ref(storage, selectedPlant.storagePath);
+              if (selectedFlower.storagePath) {
+                const oldRef = ref(storage, selectedFlower.storagePath);
                 await deleteObject(oldRef);
               }
 
-              Alert.alert('Deleted', 'Plant image deleted successfully.');
+              Alert.alert('Success', 'Image deleted!');
               setPreviewModalVisible(false);
               setPreviewUri(null);
-              setPlantName('');
-              setSelectedPlant(null);
+              setFlowerName('');
+              setSelectedFlower(null);
             } catch (err) {
               console.error('Delete error:', err);
-              Alert.alert('Error', 'Failed to delete plant image.');
+              Alert.alert('Error', 'Failed to delete flower image.');
             } finally {
               if (isMounted.current) setUploading(false);
             }
@@ -329,9 +325,9 @@ export default function Developer_PlantsPage() {
             />
           </View>
 
-          <TouchableOpacity style={styles.addButton} onPress={handleAddNewPlant} disabled={uploading}>
+          <TouchableOpacity style={styles.addButton} onPress={handleAddNewFlower} disabled={uploading}>
             <Ionicons name="add" size={20} color="#fff" />
-            <Text style={styles.addButtonText}>{uploading ? 'Uploading' : 'New plant'}</Text>
+            <Text style={styles.addButtonText}>{uploading ? 'Uploading' : 'New Flower'}</Text>
           </TouchableOpacity>
         </View>
       </View>
@@ -340,11 +336,15 @@ export default function Developer_PlantsPage() {
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
-          <Text style={styles.loadingText}>Loading plants...</Text>
+          <Text style={styles.loadingText}>Loading flowers...</Text>
+        </View>
+      ) : flowerImages.length === 0 ? (
+        <View style={styles.emptyContainer}>
+          <Text style={styles.emptyText}>No flower images uploaded yet.</Text>
         </View>
       ) : filteredImages.length === 0 ? (
         <View style={styles.emptyContainer}>
-          <Text style={styles.emptyText}>No plants image uploaded yet.</Text>
+          <Text style={styles.emptyText}>No results found.</Text>
         </View>
       ) : (
         <FlatList
@@ -367,8 +367,8 @@ export default function Developer_PlantsPage() {
           if (!uploading) {
             setPreviewModalVisible(false);
             setPreviewUri(null);
-            setPlantName('');
-            setSelectedPlant(null);
+            setFlowerName('');
+            setSelectedFlower(null);
           }
         }}
       >
@@ -377,25 +377,31 @@ export default function Developer_PlantsPage() {
             if (!uploading) {
               setPreviewModalVisible(false);
               setPreviewUri(null);
-              setPlantName('');
-              setSelectedPlant(null);
+              setFlowerName('');
+              setSelectedFlower(null);
             }
           }}
         >
           <View style={styles.modalOverlay}>
-            <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.modalBoxWrapper}>
+            <KeyboardAvoidingView
+              behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+              style={styles.modalBoxWrapper}
+            >
               <TouchableWithoutFeedback onPress={() => {}}>
                 <ScrollView contentContainerStyle={styles.modalBox}>
                   {previewUri && (
-                    <Image source={{ uri: previewUri }} style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }} />
+                    <Image
+                      source={{ uri: previewUri }}
+                      style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }}
+                    />
                   )}
 
                   <View style={{ width: '100%', marginBottom: 12 }}>
-                    <Text style={{ marginBottom: 6, fontWeight: '600' }}>Plant Name</Text>
+                    <Text style={{ marginBottom: 6, fontWeight: '600' }}>Flower Name</Text>
                     <TextInput
-                      value={plantName}
-                      onChangeText={setPlantName}
-                      placeholder="Common name (required)"
+                      value={flowerName}
+                      onChangeText={setFlowerName}
+                      placeholder="Flower common name (required)"
                       style={styles.input}
                       editable={!uploading}
                     />
@@ -408,8 +414,8 @@ export default function Developer_PlantsPage() {
                         if (!uploading) {
                           setPreviewModalVisible(false);
                           setPreviewUri(null);
-                          setPlantName('');
-                          setSelectedPlant(null);
+                          setFlowerName('');
+                          setSelectedFlower(null);
                         }
                       }}
                       disabled={uploading}
@@ -422,26 +428,39 @@ export default function Developer_PlantsPage() {
                       onPress={handleConfirmUpload}
                       disabled={uploading}
                     >
-                      {uploading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '600' }}>{selectedPlant ? 'Update' : 'Upload'}</Text>}
+                      {uploading ? (
+                        <ActivityIndicator color="#fff" />
+                      ) : (
+                        <Text style={{ color: '#fff', fontWeight: '600' }}>
+                          {selectedFlower ? 'Update' : 'Upload'}
+                        </Text>
+                      )}
                     </TouchableOpacity>
                   </View>
 
-                  <TouchableOpacity
-                    style={{ marginTop: 8 }}
-                    onPress={handleSelectImage}
-                    disabled={uploading}
-                  >
-                    <Text style={{ color: '#2E7D32', fontWeight: '600' }}>Change Image</Text>
-                  </TouchableOpacity>
-
-                  {/* Delete Button */}
-                  {selectedPlant && (
+                  {/* Retake / Update Image Button */}
+                  {previewUri && (
                     <TouchableOpacity
                       style={{ marginTop: 8 }}
-                      onPress={handleDeletePlant}
+                      onPress={handleSelectImage}
                       disabled={uploading}
                     >
-                      <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete Image</Text>
+                      <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
+                        {selectedFlower
+                          ? 'Update image from Device Storage'
+                          : 'Retake image from Device Storage'}
+                      </Text>
+                    </TouchableOpacity>
+                  )}
+
+                  {/* Delete Button */}
+                  {selectedFlower && (
+                    <TouchableOpacity
+                      style={{ marginTop: 8 }}
+                      onPress={handleDeleteFlower}
+                      disabled={uploading}
+                    >
+                      <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
                     </TouchableOpacity>
                   )}
                 </ScrollView>
