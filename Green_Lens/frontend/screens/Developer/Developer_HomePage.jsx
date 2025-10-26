@@ -1,28 +1,47 @@
 import React, { useState, useEffect } from 'react';
-import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
-import { Ionicons } from '@expo/vector-icons';
+import { View, Text, StyleSheet, ScrollView, ActivityIndicator, Image } from 'react-native';
 import { getStorage, ref, listAll } from 'firebase/storage';
-import { app } from '../../firebaseConfig'; // make sure this is your initialized Firebase app
+import { getFirestore, doc, getDoc } from 'firebase/firestore';
+import { getAuth } from 'firebase/auth';
+import { app } from '../../firebaseConfig';
+import GreenLensLogo from '../../assets/Green_Lens_logo.png'; // your logo
 
-export default function Developer_HomePage({ route }) {
+export default function Developer_HomePage() {
   const [stats, setStats] = useState({
     totalImages: 0,
     lastTrainingTime: '8 August 2025',
     modelVersion: '1.0',
   });
   const [loading, setLoading] = useState(false);
+  const [username, setUsername] = useState('Developer');
 
-  const username = route?.params?.username || 'Developer1';
   const storage = getStorage(app);
+  const db = getFirestore(app);
+  const auth = getAuth(app);
 
   useEffect(() => {
+    fetchUsername();
     fetchModelStats();
   }, []);
+
+  const fetchUsername = async () => {
+    const currentUser = auth.currentUser;
+    if (currentUser) {
+      try {
+        const userDoc = await getDoc(doc(db, 'users', currentUser.uid));
+        if (userDoc.exists()) {
+          setUsername(userDoc.data().username || 'Developer');
+        }
+      } catch (err) {
+        console.error('Error fetching username:', err);
+      }
+    }
+  };
 
   const fetchModelStats = async () => {
     setLoading(true);
     try {
-      const categories = ['architecture', 'plants', 'flowers']; // add all your categories
+      const categories = ['architecture', 'plants', 'flowers']; 
       let totalImagesCount = 0;
 
       for (const category of categories) {
@@ -44,12 +63,7 @@ export default function Developer_HomePage({ route }) {
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header with logo and greeting */}
         <View style={styles.header}>
-          <View style={styles.logoContainer}>
-            <View style={styles.logo}>
-              <Ionicons name="leaf" size={32} color="#2E7D32" />
-            </View>
-            <Text style={styles.logoText}>GREEN LENS</Text>
-          </View>
+          <Image source={GreenLensLogo} style={styles.logoImage} />
           <Text style={styles.greeting}>Hi {username},</Text>
         </View>
 
@@ -78,14 +92,12 @@ export default function Developer_HomePage({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  container: { flex: 1, backgroundColor: '#fff' }, // completely white page
   scrollContent: { paddingBottom: 100 },
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 30, backgroundColor: '#fff' },
-  logoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
-  logo: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#e8f5e9', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
-  logoText: { fontSize: 20, fontWeight: 'bold', color: '#2E7D32', letterSpacing: 1 },
+  logoImage: { width: 150, height: 50, resizeMode: 'contain', marginBottom: 10 },
   greeting: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-  statsContainer: { paddingHorizontal: 20, paddingTop: 30 },
+  statsContainer: { paddingHorizontal: 20,},
   statCard: { borderRadius: 20, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   yellowCard: { backgroundColor: '#FFF9C4' },
   greenCard: { backgroundColor: '#C8E6C9' },

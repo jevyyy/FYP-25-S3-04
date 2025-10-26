@@ -66,6 +66,7 @@ export default function Developer_SettingsPage() {
           <Image source={GreenLensLogo} style={styles.logoImage} />
         </View>
 
+
         {/* Pre-train Model */}
         {renderOption(
           'Pre-train Model',
@@ -124,8 +125,19 @@ export default function Developer_SettingsPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  logoContainer: { paddingTop: 50, paddingBottom: 10, alignItems: 'flex-start' }, // moved logo down
-  logoImage: { width: 150, height: 50, resizeMode: 'contain', marginBottom: 10 },
+// Logo container style
+logoContainer: {
+  flexDirection: 'row',   // horizontal like PlantsPage
+  alignItems: 'center',   // vertically center
+  marginBottom: 15,       // spacing below logo
+},
+logoImage: {
+  width: 150,
+  height: 50,
+  resizeMode: 'contain',
+  marginRight: 8,         // spacing to the right if needed
+  marginTop: 30,
+},
   option: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#ccc' },
   optionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   optionText: { fontSize: 18, color: '#333' },

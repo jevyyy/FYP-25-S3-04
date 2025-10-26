@@ -1,8 +1,8 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet, FlatList } from "react-native";
-import { Ionicons } from "@expo/vector-icons";
+import { View, Text, StyleSheet, FlatList, Image } from "react-native";
 import { getFirestore, collection, onSnapshot, query, orderBy } from "firebase/firestore";
 import { app } from "../../firebaseConfig";
+import GreenLensLogo from "../../assets/Green_Lens_logo.png"; // adjust path if needed
 
 export default function Admin_Reports() {
   const db = getFirestore(app);
@@ -51,8 +51,7 @@ export default function Admin_Reports() {
     <View style={styles.container}>
       {/* Logo */}
       <View style={styles.logoContainer}>
-        <Ionicons name="leaf" size={28} color="green" />
-        <Text style={styles.logoText}>GREEN LENS</Text>
+        <Image source={GreenLensLogo} style={styles.logoImage} />
       </View>
 
       {/* Title */}
@@ -66,7 +65,7 @@ export default function Admin_Reports() {
       {/* Feedback */}
       <Text style={styles.subtitle}>User Feedback</Text>
       <FlatList
-        data={feedbacks} // display all feedbacks
+        data={feedbacks}
         keyExtractor={(item) => item.id}
         contentContainerStyle={{ paddingBottom: 20 }}
         renderItem={({ item }) => (
@@ -83,8 +82,8 @@ export default function Admin_Reports() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 16, paddingTop: 50 },
-  logoContainer: { flexDirection: "row", alignItems: "center", marginBottom: 20 },
-  logoText: { fontSize: 20, fontWeight: "bold", marginLeft: 8, color: "green" },
+  logoContainer: { alignItems: "flex-start", marginBottom: 20 },
+  logoImage: { width: 150, height: 50, resizeMode: "contain" },
   title: { fontSize: 22, fontWeight: "bold", marginBottom: 16 },
   chartContainer: { marginBottom: 20 },
   barRow: { flexDirection: "row", alignItems: "center", marginBottom: 6 },
@@ -96,11 +95,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     marginHorizontal: 6,
   },
-  barFill: {
-    height: 12,
-    backgroundColor: "green",
-    borderRadius: 6,
-  },
+  barFill: { height: 12, backgroundColor: "green", borderRadius: 6 },
   count: { width: 30, textAlign: "right" },
   subtitle: { fontSize: 18, fontWeight: "600", marginBottom: 10 },
   feedbackCard: {

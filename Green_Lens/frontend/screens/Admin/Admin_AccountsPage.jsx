@@ -17,7 +17,7 @@ import { getFirestore, collection, onSnapshot, doc, getDoc } from "firebase/fire
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { app } from "../../firebaseConfig";
 
-import GreenLensLogo from "../../assets/Green_Lens_logo.png"; // Adjust path if needed
+import GreenLensLogo from "../../assets/Green_Lens_logo.png";
 
 import { LogBox } from "react-native";
 LogBox.ignoreAllLogs(false);
@@ -159,7 +159,7 @@ export default function Admin_AccountsPage() {
       <FlatList
         data={currentUsers}
         keyExtractor={(item) => `user-${item.id}`}
-        contentContainerStyle={{ paddingBottom: 1200 }}
+        contentContainerStyle={{ paddingBottom: 30 }}
         scrollEnabled={false}
         renderItem={({ item }) => {
           const username = String(item.username || "");
@@ -242,8 +242,8 @@ export default function Admin_AccountsPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 16, paddingTop: 50 },
-  logoContainer: { alignItems: "center", marginBottom: 16 },
-  logoImage: { width: 150, height: 50, resizeMode: "contain", marginRight: 225 },
+  logoContainer: { alignItems: "flex-start", marginBottom: 16 },
+  logoImage: { width: 150, height: 50, resizeMode: "contain" },
   topBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
   searchBar: {
     flex: 1,

@@ -111,19 +111,20 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
-    paddingTop: 60,
+    paddingTop: 50,
     paddingHorizontal: 20,
   },
   header: {
-  flexDirection: "column", // stack logo and username vertically
-  alignItems: "flex-start", // align everything to left
-  marginBottom: 30,
+    flexDirection: "column", // stack logo and username vertically
+    alignItems: "flex-start", // align everything to left
+    marginBottom: 30,
   },
   logoImage: {
     width: 150,
     height: 50,
     resizeMode: "contain",
     marginBottom: 10, // spacing between logo and username
+    marginLeft: -5,
   },
   greeting: {
     fontSize: 22,

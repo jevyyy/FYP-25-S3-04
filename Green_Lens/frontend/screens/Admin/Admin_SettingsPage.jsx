@@ -1,7 +1,8 @@
 // ./screens/Admin/SettingsPage.jsx
 import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
+import GreenLensLogo from '../../assets/Green_Lens_logo.png'; // adjust path if needed
 
 export default function Admin_SettingsPage() {
   const navigation = useNavigation();
@@ -25,16 +26,13 @@ export default function Admin_SettingsPage() {
             {
               text: 'Ok',
               onPress: () => {
-                // Reset navigation stack to Guest_HomePage
                 navigation.dispatch(
                   CommonActions.reset({
                     index: 0,
                     routes: [
                       {
-                        name: 'GuestFlow', // top-level stack in App.js
-                        state: {
-                          routes: [{ name: 'Guest_HomePage' }],
-                        },
+                        name: 'GuestFlow',
+                        state: { routes: [{ name: 'Guest_HomePage' }] },
                       },
                     ],
                   })
@@ -51,7 +49,10 @@ export default function Admin_SettingsPage() {
 
   return (
     <View style={styles.container}>
-      <Text style={styles.header}>Admin Settings</Text>
+      {/* Green Lens Logo */}
+      <View style={styles.logoContainer}>
+        <Image source={GreenLensLogo} style={styles.logoImage} />
+      </View>
 
       {/* Support Dropdown */}
       <TouchableOpacity
@@ -104,13 +105,9 @@ export default function Admin_SettingsPage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, padding: 20, backgroundColor: '#fff' },
-  header: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    alignSelf: 'flex-start',
-  },
+  container: { flex: 1, padding: 16, backgroundColor: '#fff', paddingTop: 50 },
+  logoContainer: { alignItems: 'flex-start', marginBottom: 20 },
+  logoImage: { width: 150, height: 50, resizeMode: 'contain' },
   option: {
     paddingVertical: 15,
     borderBottomWidth: 1,
