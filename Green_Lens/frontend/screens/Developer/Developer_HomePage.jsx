@@ -1,19 +1,19 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, StyleSheet, ScrollView, ActivityIndicator } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-
-const BASE_URL = __DEV__ ? 'http://192.168.1.13:3000' : 'https://your-production-url.com';
+import { getStorage, ref, listAll } from 'firebase/storage';
+import { app } from '../../firebaseConfig'; // make sure this is your initialized Firebase app
 
 export default function Developer_HomePage({ route }) {
   const [stats, setStats] = useState({
-    totalImages: 15092,
+    totalImages: 0,
     lastTrainingTime: '8 August 2025',
-    modelVersion: '1.0'
+    modelVersion: '1.0',
   });
   const [loading, setLoading] = useState(false);
 
-  // Get username from route params or use default
   const username = route?.params?.username || 'Developer1';
+  const storage = getStorage(app);
 
   useEffect(() => {
     fetchModelStats();
@@ -22,21 +22,18 @@ export default function Developer_HomePage({ route }) {
   const fetchModelStats = async () => {
     setLoading(true);
     try {
-      const response = await fetch(`${BASE_URL}/api/model-stats`, {
-        method: 'GET',
-        headers: { 'Content-Type': 'application/json' },
-      });
+      const categories = ['architecture', 'plants', 'flowers']; // add all your categories
+      let totalImagesCount = 0;
 
-      if (response.ok) {
-        const data = await response.json();
-        setStats({
-          totalImages: data.totalImages || stats.totalImages,
-          lastTrainingTime: data.lastTrainingTime || stats.lastTrainingTime,
-          modelVersion: data.modelVersion || stats.modelVersion
-        });
+      for (const category of categories) {
+        const folderRef = ref(storage, `modelPhotos/${category}/`);
+        const res = await listAll(folderRef);
+        totalImagesCount += res.items.length;
       }
+
+      setStats((prev) => ({ ...prev, totalImages: totalImagesCount }));
     } catch (error) {
-      console.log('Using default stats:', error.message);
+      console.log('Firebase Storage fetch error:', error);
     } finally {
       setLoading(false);
     }
@@ -44,10 +41,7 @@ export default function Developer_HomePage({ route }) {
 
   return (
     <View style={styles.container}>
-      <ScrollView 
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
         {/* Header with logo and greeting */}
         <View style={styles.header}>
           <View style={styles.logoContainer}>
@@ -63,29 +57,19 @@ export default function Developer_HomePage({ route }) {
         <View style={styles.statsContainer}>
           <View style={[styles.statCard, styles.yellowCard]}>
             <Text style={styles.statLabel}>Total Images in Database:</Text>
-            {loading ? (
-              <ActivityIndicator size="small" color="#666" />
-            ) : (
+            {loading ? <ActivityIndicator size="small" color="#666" /> :
               <Text style={styles.statValue}>{stats.totalImages.toLocaleString()}</Text>
-            )}
+            }
           </View>
 
           <View style={[styles.statCard, styles.greenCard]}>
             <Text style={styles.statLabel}>Last Training Time:</Text>
-            {loading ? (
-              <ActivityIndicator size="small" color="#666" />
-            ) : (
-              <Text style={styles.statValue}>{stats.lastTrainingTime}</Text>
-            )}
+            <Text style={styles.statValue}>{stats.lastTrainingTime}</Text>
           </View>
 
           <View style={[styles.statCard, styles.purpleCard]}>
             <Text style={styles.statLabel}>Current Model Version:</Text>
-            {loading ? (
-              <ActivityIndicator size="small" color="#666" />
-            ) : (
-              <Text style={styles.statValue}>{stats.modelVersion}</Text>
-            )}
+            <Text style={styles.statValue}>{stats.modelVersion}</Text>
           </View>
         </View>
       </ScrollView>
@@ -94,76 +78,18 @@ export default function Developer_HomePage({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#f5f5f5',
-  },
-  scrollContent: {
-    paddingBottom: 100,
-  },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    paddingBottom: 30,
-    backgroundColor: '#fff',
-  },
-  logoContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  logo: {
-    width: 50,
-    height: 50,
-    borderRadius: 25,
-    backgroundColor: '#e8f5e9',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginRight: 10,
-  },
-  logoText: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#2E7D32',
-    letterSpacing: 1,
-  },
-  greeting: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  statsContainer: {
-    paddingHorizontal: 20,
-    paddingTop: 30,
-  },
-  statCard: {
-    borderRadius: 20,
-    padding: 20,
-    marginBottom: 20,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  yellowCard: {
-    backgroundColor: '#FFF9C4',
-  },
-  greenCard: {
-    backgroundColor: '#C8E6C9',
-  },
-  purpleCard: {
-    backgroundColor: '#E1BEE7',
-  },
-  statLabel: {
-    fontSize: 16,
-    color: '#555',
-    marginBottom: 8,
-  },
-  statValue: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#333',
-    fontStyle: 'italic',
-  },
+  container: { flex: 1, backgroundColor: '#f5f5f5' },
+  scrollContent: { paddingBottom: 100 },
+  header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 30, backgroundColor: '#fff' },
+  logoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 20 },
+  logo: { width: 50, height: 50, borderRadius: 25, backgroundColor: '#e8f5e9', justifyContent: 'center', alignItems: 'center', marginRight: 10 },
+  logoText: { fontSize: 20, fontWeight: 'bold', color: '#2E7D32', letterSpacing: 1 },
+  greeting: { fontSize: 28, fontWeight: 'bold', color: '#333' },
+  statsContainer: { paddingHorizontal: 20, paddingTop: 30 },
+  statCard: { borderRadius: 20, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  yellowCard: { backgroundColor: '#FFF9C4' },
+  greenCard: { backgroundColor: '#C8E6C9' },
+  purpleCard: { backgroundColor: '#E1BEE7' },
+  statLabel: { fontSize: 16, color: '#555', marginBottom: 8 },
+  statValue: { fontSize: 24, fontWeight: 'bold', color: '#333', fontStyle: 'italic' },
 });
