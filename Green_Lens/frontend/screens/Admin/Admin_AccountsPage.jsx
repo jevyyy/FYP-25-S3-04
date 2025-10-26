@@ -9,6 +9,7 @@ import {
   TextInput,
   Alert,
   ActivityIndicator,
+  Image,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
@@ -16,12 +17,14 @@ import { getFirestore, collection, onSnapshot, doc, getDoc } from "firebase/fire
 import { getAuth, onAuthStateChanged, signOut } from "firebase/auth";
 import { app } from "../../firebaseConfig";
 
-import { LogBox } from "react-native"; // <-- Add this
-LogBox.ignoreAllLogs(false); // <-- Show all warnings and logs
+import GreenLensLogo from "../../assets/Green_Lens_logo.png"; // Adjust path if needed
+
+import { LogBox } from "react-native";
+LogBox.ignoreAllLogs(false);
 
 export default function Admin_AccountsPage() {
   const navigation = useNavigation();
-  const itemsPerPage = 8;
+  const itemsPerPage = 9;
 
   const [users, setUsers] = useState([]);
   const [search, setSearch] = useState("");
@@ -94,7 +97,6 @@ export default function Admin_AccountsPage() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
 
-  // --- Pagination helper ---
   const getVisiblePages = () => {
     const visiblePages = [];
     const maxVisible = 5;
@@ -113,7 +115,6 @@ export default function Admin_AccountsPage() {
 
   const visiblePages = getVisiblePages();
 
-  // --- Show loading until currentUser is fetched ---
   if (loadingUser) {
     return (
       <View style={styles.loadingContainer}>
@@ -125,6 +126,11 @@ export default function Admin_AccountsPage() {
 
   return (
     <View style={styles.container}>
+      {/* Logo */}
+      <View style={styles.logoContainer}>
+        <Image source={GreenLensLogo} style={styles.logoImage} />
+      </View>
+
       {/* Top bar with search + new user */}
       <View style={styles.topBar}>
         <TextInput
@@ -153,7 +159,7 @@ export default function Admin_AccountsPage() {
       <FlatList
         data={currentUsers}
         keyExtractor={(item) => `user-${item.id}`}
-        contentContainerStyle={{ paddingBottom: 120 }}
+        contentContainerStyle={{ paddingBottom: 1200 }}
         scrollEnabled={false}
         renderItem={({ item }) => {
           const username = String(item.username || "");
@@ -192,7 +198,7 @@ export default function Admin_AccountsPage() {
                 onPress={() =>
                   navigation.navigate("Admin_SuspendAccountPage", { user: item })
                 }
-                disabled={!currentUser || item.id === currentUser.uid} // ✅ crash-proof
+                disabled={!currentUser || item.id === currentUser.uid}
                 style={{ opacity: !currentUser || item.id === currentUser.uid ? 0.5 : 1 }}
               >
                 <Ionicons name="ban" size={20} color="red" />
@@ -204,10 +210,7 @@ export default function Admin_AccountsPage() {
 
       {/* Pagination */}
       <View style={styles.pagination}>
-        <TouchableOpacity
-          disabled={currentPage === 1}
-          onPress={() => setCurrentPage(1)}
-        >
+        <TouchableOpacity disabled={currentPage === 1} onPress={() => setCurrentPage(1)}>
           <Text style={[styles.pageArrow, currentPage === 1 && styles.disabled]}>
             {"<<"}
           </Text>
@@ -217,12 +220,7 @@ export default function Admin_AccountsPage() {
 
         {visiblePages.map((page) => (
           <TouchableOpacity key={`page-${page}`} onPress={() => setCurrentPage(page)}>
-            <Text
-              style={[
-                styles.pageNumber,
-                currentPage === page && styles.activePage,
-              ]}
-            >
+            <Text style={[styles.pageNumber, currentPage === page && styles.activePage]}>
               {page}
             </Text>
           </TouchableOpacity>
@@ -232,16 +230,8 @@ export default function Admin_AccountsPage() {
           <Text style={styles.ellipsis}>...</Text>
         )}
 
-        <TouchableOpacity
-          disabled={currentPage === totalPages}
-          onPress={() => setCurrentPage(totalPages)}
-        >
-          <Text
-            style={[
-              styles.pageArrow,
-              currentPage === totalPages && styles.disabled,
-            ]}
-          >
+        <TouchableOpacity disabled={currentPage === totalPages} onPress={() => setCurrentPage(totalPages)}>
+          <Text style={[styles.pageArrow, currentPage === totalPages && styles.disabled]}>
             {">>"}
           </Text>
         </TouchableOpacity>
@@ -252,6 +242,8 @@ export default function Admin_AccountsPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 16, paddingTop: 50 },
+  logoContainer: { alignItems: "center", marginBottom: 16 },
+  logoImage: { width: 150, height: 50, resizeMode: "contain", marginRight: 225 },
   topBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
   searchBar: {
     flex: 1,
@@ -262,40 +254,14 @@ const styles = StyleSheet.create({
   },
   newUserButton: { backgroundColor: "black", padding: 10, borderRadius: 8 },
   newUserText: { color: "white", fontWeight: "600" },
-  listHeader: {
-    flexDirection: "row",
-    paddingVertical: 8,
-    marginBottom: 4,
-    alignItems: "center",
-  },
+  listHeader: { flexDirection: "row", paddingVertical: 8, marginBottom: 4, alignItems: "center" },
   headerText: { fontWeight: "700", fontSize: 14, color: "#000" },
-  userRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-    backgroundColor: "#EDEDED",
-    borderRadius: 8,
-    marginBottom: 8,
-  },
+  userRow: { flexDirection: "row", alignItems: "center", padding: 12, backgroundColor: "#EDEDED", borderRadius: 8, marginBottom: 8 },
   username: { flex: 1, fontWeight: "600", fontSize: 16 },
   role: { flex: 1, textAlign: "center" },
   status: { flex: 1, fontWeight: "600", textAlign: "center" },
-  pagination: {
-    flexDirection: "row",
-    justifyContent: "center",
-    marginVertical: 12,
-    marginBottom: 120,
-    alignItems: "center",
-  },
-  pageNumber: {
-    marginHorizontal: 4,
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-    fontSize: 14,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    borderRadius: 4,
-  },
+  pagination: { flexDirection: "row", justifyContent: "center", marginVertical: 12, marginBottom: 30, alignItems: "center" },
+  pageNumber: { marginHorizontal: 4, paddingVertical: 6, paddingHorizontal: 8, fontSize: 14, borderWidth: 1, borderColor: "#ccc", borderRadius: 4 },
   activePage: { backgroundColor: "black", color: "white" },
   pageArrow: { fontSize: 16, marginHorizontal: 10 },
   disabled: { color: "#aaa" },

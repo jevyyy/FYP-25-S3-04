@@ -1,44 +1,70 @@
 import React, { useState, useEffect } from "react";
-import { View, Text, StyleSheet } from "react-native";
-import { getFirestore, collection, onSnapshot } from "firebase/firestore";
+import { View, Text, StyleSheet, Image, ScrollView } from "react-native";
+import { getFirestore, collection, onSnapshot, doc, getDoc } from "firebase/firestore";
+import { getAuth } from "firebase/auth";
 import { app } from "../../firebaseConfig";
+import GreenLensLogo from "../../assets/Green_Lens_logo.png"; // adjust path if needed
 
 export default function Admin_HomePage() {
   const [totalUsers, setTotalUsers] = useState(0);
   const [activeUsers, setActiveUsers] = useState(0);
   const [inactiveUsers, setInactiveUsers] = useState(0);
   const [feedbackCount, setFeedbackCount] = useState(0);
+  const [username, setUsername] = useState("Admin");
+
+  const db = getFirestore(app);
+  const auth = getAuth(app);
 
   useEffect(() => {
-    const db = getFirestore(app);
+    const currentUser = auth.currentUser;
+
+    // Fetch username from Firestore users collection
+    if (currentUser) {
+      const userDocRef = doc(db, "users", currentUser.uid);
+      getDoc(userDocRef)
+        .then((docSnap) => {
+          if (docSnap.exists()) {
+            setUsername(docSnap.data().username || "Admin");
+          }
+        })
+        .catch((err) => console.log("Error fetching username:", err));
+    }
 
     // Live listener for users collection
     const usersCol = collection(db, "users");
-    const unsubscribeUsers = onSnapshot(usersCol, (snapshot) => {
-      const total = snapshot.size;
-      let active = 0;
-      let inactive = 0;
+    const unsubscribeUsers = onSnapshot(
+      usersCol,
+      (snapshot) => {
+        const total = snapshot.size;
+        let active = 0;
+        let inactive = 0;
 
-      snapshot.forEach((doc) => {
-        const data = doc.data();
-        if (data.status === "active") active++;
-        else if (data.status === "inactive") inactive++;
-      });
+        snapshot.forEach((doc) => {
+          const data = doc.data();
+          if (data.status === "active") active++;
+          else if (data.status === "inactive") inactive++;
+        });
 
-      setTotalUsers(total);
-      setActiveUsers(active);
-      setInactiveUsers(inactive);
-    }, (error) => {
-      console.error("Error fetching users:", error);
-    });
+        setTotalUsers(total);
+        setActiveUsers(active);
+        setInactiveUsers(inactive);
+      },
+      (error) => {
+        console.error("Error fetching users:", error);
+      }
+    );
 
     // Live listener for feedback collection
     const feedbackCol = collection(db, "feedback"); // adjust name
-    const unsubscribeFeedback = onSnapshot(feedbackCol, (snapshot) => {
-      setFeedbackCount(snapshot.size);
-    }, (error) => {
-      console.error("Error fetching feedback:", error);
-    });
+    const unsubscribeFeedback = onSnapshot(
+      feedbackCol,
+      (snapshot) => {
+        setFeedbackCount(snapshot.size);
+      },
+      (error) => {
+        console.error("Error fetching feedback:", error);
+      }
+    );
 
     // Cleanup listeners on unmount
     return () => {
@@ -48,9 +74,14 @@ export default function Admin_HomePage() {
   }, []);
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.greeting}>Hi Admin,</Text>
+    <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 100 }}>
+      {/* Header with logo and username */}
+      <View style={styles.header}>
+        <Image source={GreenLensLogo} style={styles.logoImage} />
+        <Text style={styles.greeting}>Hi {username},</Text>
+      </View>
 
+      {/* Stats Cards */}
       <View style={styles.cardContainer}>
         <View style={[styles.card, { backgroundColor: "#FDE9C9" }]}>
           <Text style={styles.cardTitle}>Total GreenLens Users:</Text>
@@ -72,7 +103,7 @@ export default function Admin_HomePage() {
           <Text style={styles.cardValue}>{feedbackCount}</Text>
         </View>
       </View>
-    </View>
+    </ScrollView>
   );
 }
 
@@ -83,10 +114,21 @@ const styles = StyleSheet.create({
     paddingTop: 60,
     paddingHorizontal: 20,
   },
+  header: {
+  flexDirection: "column", // stack logo and username vertically
+  alignItems: "flex-start", // align everything to left
+  marginBottom: 30,
+  },
+  logoImage: {
+    width: 150,
+    height: 50,
+    resizeMode: "contain",
+    marginBottom: 10, // spacing between logo and username
+  },
   greeting: {
     fontSize: 22,
     fontWeight: "600",
-    marginBottom: 20,
+    color: "#333",
   },
   cardContainer: {
     marginBottom: 100,
