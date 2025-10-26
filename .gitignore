@@ -63,3 +63,9 @@ backend/*.egg-info/
 backend/.installed.cfg
 backend/*.egg
 backend/src/downloaded_model/
+backend/src/output_model/
+
+# Virtual environments
+Green_Lens/backend/venv/
+Green_Lens/backend/src/output_model/
+Green_Lens/backend/src/downloaded_model/
