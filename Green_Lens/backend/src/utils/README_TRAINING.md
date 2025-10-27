@@ -69,11 +69,11 @@ Flower_Classification_102_Classes/
 
 ## Output Structure
 
-Both scripts save their outputs to `Green_Lens/backend/src/output_model/`:
+Both scripts save their outputs to `Green_Lens/backend/downloaded_model/`:
 
 ### Single Model Output:
 ```
-output_model/
+downloaded_model/
 ├── flower_img_classifier_new.keras    # Trained model (.keras format)
 ├── flower_img_classifier_new.h5       # Trained model (.h5 format)
 ├── best_model.keras                   # Best model checkpoint
@@ -83,7 +83,7 @@ output_model/
 
 ### Ensemble Model Output:
 ```
-output_model/
+downloaded_model/
 ├── individual_models/
 │   ├── model_0.keras
 │   ├── model_1.keras

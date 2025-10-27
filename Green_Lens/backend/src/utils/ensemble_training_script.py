@@ -32,8 +32,8 @@ DATASET_BASE = Path('C:\\Users\\User\\Downloads\\Flower_Classification_102_Class
 TRAIN_DATA_PATH = DATASET_BASE / 'train' / 'train'
 VALIDATION_DATA_PATH = DATASET_BASE / 'valid' / 'valid'
 
-# Output directory - uses dynamic path relative to src
-OUTPUT_DIR = SRC_DIR / 'output_model'
+# Output directory - saves to backend/downloaded_model for app.py to use
+OUTPUT_DIR = BACKEND_DIR / 'downloaded_model'
 
 # Model configuration
 INPUT_SIZE = (224, 224)

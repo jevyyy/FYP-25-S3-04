@@ -50,7 +50,7 @@ Green_Lens/backend/src/downloaded_model/
 
 **Changes:**
 - ✅ **Dynamic paths:** Uses `pathlib.Path` for cross-platform compatibility
-- ✅ **Output to src/output_model/:** All outputs now go to dynamically resolved `src/output_model/`
+- ✅ **Output to backend/downloaded_model/:** All outputs now go to dynamically resolved `backend/downloaded_model/`
 - ✅ **Enhanced preprocessing:** Added comprehensive data preprocessing
 - ✅ **Data augmentation:** 
   - Rotation (±40°)
@@ -102,26 +102,23 @@ Green_Lens/backend/src/downloaded_model/
 
 ```
 Green_Lens/backend/
-├── downloaded_model/              # Runtime models (from Firebase)
+├── downloaded_model/              # Training outputs & runtime models
 │   ├── flower_img_classifier.keras
+│   ├── flower_img_classifier_new.keras
+│   ├── flower_img_classifier_new.h5
+│   ├── flower_img_classifier_ensemble.keras
+│   ├── flower_img_classifier_ensemble.h5
 │   ├── class_names.json
-│   └── classes_to_name_dictionary.json
+│   ├── classes_to_name_dictionary.json
+│   ├── training_config.json
+│   └── individual_models/
+│       ├── model_0.keras
+│       ├── model_1.keras
+│       └── ...
 │
 ├── app.py                         # Uses downloaded_model/
 │
 └── src/
-    ├── output_model/              # Training outputs (gitignored)
-    │   ├── flower_img_classifier_new.keras
-    │   ├── flower_img_classifier_new.h5
-    │   ├── flower_img_classifier_ensemble.keras
-    │   ├── flower_img_classifier_ensemble.h5
-    │   ├── class_names.json
-    │   ├── training_config.json
-    │   └── individual_models/
-    │       ├── model_0.keras
-    │       ├── model_1.keras
-    │       └── ...
-    │
     └── utils/
         ├── model_training_script.py         # Single model training
         ├── ensemble_training_script.py      # Ensemble training
@@ -132,11 +129,11 @@ Green_Lens/backend/
 
 ### Training Flow:
 1. **Input:** User provides dataset path (update `DATASET_BASE` in scripts)
-2. **Processing:** Scripts dynamically resolve `SRC_DIR / 'output_model'`
-3. **Output:** All models saved to `Green_Lens/backend/src/output_model/`
+2. **Processing:** Scripts dynamically resolve `BACKEND_DIR / 'downloaded_model'`
+3. **Output:** All models saved to `Green_Lens/backend/downloaded_model/`
 
 ### Deployment Flow:
-1. **Training:** Models saved to `src/output_model/`
+1. **Training:** Models saved to `backend/downloaded_model/`
 2. **Manual Upload:** User uploads models to Firebase Storage
 3. **Runtime:** `app.py` downloads from Firebase to `downloaded_model/`
 4. **Serving:** API uses models from `downloaded_model/`
@@ -191,11 +188,11 @@ python ensemble_training_script.py
 from tensorflow.keras.models import load_model
 import json
 
-# Load ensemble model
-model = load_model('../output_model/flower_img_classifier_ensemble.keras')
+# Load ensemble model from downloaded_model
+model = load_model('../../downloaded_model/flower_img_classifier_ensemble.keras')
 
 # Load class mapping
-with open('../output_model/class_names.json', 'r') as f:
+with open('../../downloaded_model/class_names.json', 'r') as f:
     class_names = json.load(f)
 ```
 
@@ -206,14 +203,14 @@ To use these scripts:
 2. Update `DATASET_BASE` path in the desired script
 3. Run the training script
 4. Wait for training to complete (1-10 hours depending on script)
-5. Models will be saved to `src/output_model/`
-6. Optionally upload the best model to Firebase Storage
-7. Update `app.py` if needed to use the new model
+5. Models will be saved to `backend/downloaded_model/`
+6. Test directly with `app.py` (no upload needed for development)
+7. For production, upload the best model to Firebase Storage
 
 ## Notes
 
-- The `downloaded_model/` folder remains as is (used by `app.py`)
-- The `output_model/` folder is gitignored to avoid committing large model files
+- The `downloaded_model/` folder is used by both training scripts and `app.py`
+- Training scripts save directly to `downloaded_model/` for development testing
 - Training scripts require a GPU for reasonable training times
 - Ensemble training takes ~5x longer than single model training
 - Both scripts save models in both `.keras` and `.h5` formats for compatibility

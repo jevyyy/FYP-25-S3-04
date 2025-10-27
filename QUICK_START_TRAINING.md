@@ -56,7 +56,7 @@ Flower_Classification_102_Classes/
 
 All models will be saved to:
 ```
-Green_Lens/backend/src/output_model/
+Green_Lens/backend/downloaded_model/
 ```
 
 ## What Gets Created
@@ -87,9 +87,9 @@ Both scripts include:
 
 ## After Training
 
-1. Models are saved to `src/output_model/`
-2. Upload desired model to Firebase Storage (optional)
-3. Update `app.py` if needed to use new model
+1. Models are saved to `backend/downloaded_model/`
+2. Test directly with `app.py` (no upload needed for development)
+3. For production, upload desired model to Firebase Storage
 4. Test with `test_api.py`
 
 ## Troubleshooting
