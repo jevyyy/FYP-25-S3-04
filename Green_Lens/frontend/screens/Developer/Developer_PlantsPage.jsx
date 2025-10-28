@@ -39,7 +39,7 @@ import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'fire
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 
-// Import your logo
+// Logo
 import LogoImage from '../../assets/Green_Lens_logo.png';
 
 const db = getFirestore(app);
@@ -52,15 +52,11 @@ export default function Developer_PlantsPage() {
   const [plantImages, setPlantImages] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Upload / preview state
   const [previewUri, setPreviewUri] = useState(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Update state
   const [selectedPlant, setSelectedPlant] = useState(null);
-
-  // Input
   const [plantName, setPlantName] = useState('');
 
   const isMounted = useRef(true);
@@ -138,8 +134,7 @@ export default function Developer_PlantsPage() {
       });
 
       if (!result.canceled && result.assets?.length > 0) {
-        const uri = result.assets[0].uri;
-        setPreviewUri(uri);
+        setPreviewUri(result.assets[0].uri);
         setPreviewModalVisible(true);
       }
     } catch (err) {
@@ -148,20 +143,14 @@ export default function Developer_PlantsPage() {
     }
   };
 
-  // --- Upload or Update with old image deletion ---
+  // --- Upload or Update ---
   const handleConfirmUpload = () => {
-    if (!selectedPlant) {
-      performUploadOrUpdate();
-    } else {
-      Alert.alert(
-        'Confirm Update',
-        'Are you sure you want to apply the changes?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Yes', onPress: () => performUploadOrUpdate() },
-        ]
-      );
-    }
+    if (!selectedPlant) performUploadOrUpdate();
+    else
+      Alert.alert('Confirm Update', 'Are you sure you want to apply the changes?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Yes', onPress: performUploadOrUpdate },
+      ]);
   };
 
   const performUploadOrUpdate = async () => {
@@ -173,67 +162,73 @@ export default function Developer_PlantsPage() {
     setUploading(true);
 
     try {
+      const cleanName = plantName.trim().toLowerCase().replace(/\s+/g, '_');
+      const newStoragePath = `modelPhotos/plants/${cleanName}.jpg`;
+      let newImageUrl = null;
+
       const user = auth.currentUser;
       const uid = user?.uid || 'anonymous';
-      let downloadUrl = previewUri;
+      let uploadedBy = 'Developer';
+
+      try {
+        const userDocRef = doc(db, 'users', uid);
+        const userSnap = await getDoc(userDocRef);
+        if (userSnap.exists() && userSnap.data().username) uploadedBy = userSnap.data().username;
+        else if (user?.email) uploadedBy = user.email.split('@')[0];
+      } catch (e) {}
 
       if (!selectedPlant) {
-        // New upload
-        const response = await fetch(previewUri);
-        const blob = await response.blob();
-        const filename = `modelPhotos/plants/${Date.now()}_${uid}.jpg`;
-        const storageRef = ref(storage, filename);
-        await uploadBytes(storageRef, blob);
-        downloadUrl = await getDownloadURL(storageRef);
-
-        let uploadedBy = 'Developer';
-        try {
-          const userDocRef = doc(db, 'users', uid);
-          const userSnap = await getDoc(userDocRef);
-          if (userSnap.exists() && userSnap.data().username) uploadedBy = userSnap.data().username;
-          else if (user?.email) uploadedBy = user.email.split('@')[0];
-        } catch (e) {
-          uploadedBy = user?.email?.split('@')[0] || uploadedBy;
+        if (!previewUri) {
+          Alert.alert('Error', 'No image selected.');
+          setUploading(false);
+          return;
         }
 
+        const response = await fetch(previewUri);
+        const blob = await response.blob();
+        const storageRef = ref(storage, newStoragePath);
+        await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+        newImageUrl = await getDownloadURL(storageRef);
+
         await addDoc(plantImagesCollectionRef(), {
-          imageUrl: downloadUrl,
+          imageUrl: newImageUrl,
           uploadedBy,
-          name: plantName.trim().toLowerCase(),
+          name: cleanName,
           createdAt: serverTimestamp(),
-          storagePath: filename,
+          storagePath: newStoragePath,
         });
 
         Alert.alert('Success', 'Plant image added!');
       } else {
-        // Update existing
-        let newImageUrl = null;
-        let newStoragePath = null;
-
-        if (previewUri !== selectedPlant.uri) {
+        if (previewUri && previewUri.startsWith('file://')) {
           const response = await fetch(previewUri);
           const blob = await response.blob();
-          const filename = `modelPhotos/plants/${Date.now()}_${selectedPlant.id}.jpg`;
-          const storageRef = ref(storage, filename);
-          await uploadBytes(storageRef, blob);
+          const storageRef = ref(storage, newStoragePath);
+          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
           newImageUrl = await getDownloadURL(storageRef);
-          newStoragePath = filename;
+        } else if (selectedPlant.storagePath !== newStoragePath) {
+          const oldRef = ref(storage, selectedPlant.storagePath);
+          const oldUrl = await getDownloadURL(oldRef);
+          const res = await fetch(oldUrl);
+          const blob = await res.blob();
+          const storageRef = ref(storage, newStoragePath);
+          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+          newImageUrl = await getDownloadURL(storageRef);
+        }
 
-          if (selectedPlant.storagePath) {
-            try {
-              const oldRef = ref(storage, selectedPlant.storagePath);
-              await deleteObject(oldRef);
-            } catch (err) {
-              console.warn('Failed to delete old image:', err);
-            }
+        if (selectedPlant.storagePath && selectedPlant.storagePath !== newStoragePath) {
+          try {
+            const oldRef = ref(storage, selectedPlant.storagePath);
+            await deleteObject(oldRef);
+          } catch (err) {
+            console.warn('Failed to delete old image:', err);
           }
         }
 
-        const plantDocRef = doc(plantImagesCollectionRef(), selectedPlant.id);
-        await updateDoc(plantDocRef, {
-          name: plantName.trim().toLowerCase(),
-          ...(newImageUrl ? { imageUrl: newImageUrl, storagePath: newStoragePath } : {}),
-          updatedAt: serverTimestamp(),
+        await updateDoc(doc(plantImagesCollectionRef(), selectedPlant.id), {
+          name: cleanName,
+          imageUrl: newImageUrl || selectedPlant.uri,
+          storagePath: newStoragePath,
         });
 
         Alert.alert('Success', 'Plant image updated!');
@@ -251,44 +246,37 @@ export default function Developer_PlantsPage() {
     }
   };
 
-  // --- Delete existing plant ---
+  // --- Delete ---
   const handleDeletePlant = () => {
     if (!selectedPlant) return;
 
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this plant image?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setUploading(true);
-            try {
-              const plantDocRef = doc(plantImagesCollectionRef(), selectedPlant.id);
-              await deleteDoc(plantDocRef);
-
-              if (selectedPlant.storagePath) {
-                const oldRef = ref(storage, selectedPlant.storagePath);
-                await deleteObject(oldRef);
-              }
-
-              Alert.alert('Success', 'Plant image deleted!');
-              setPreviewModalVisible(false);
-              setPreviewUri(null);
-              setPlantName('');
-              setSelectedPlant(null);
-            } catch (err) {
-              console.error('Delete error:', err);
-              Alert.alert('Error', 'Failed to delete plant image.');
-            } finally {
-              if (isMounted.current) setUploading(false);
+    Alert.alert('Confirm Delete', 'Are you sure you want to delete this image?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setUploading(true);
+          try {
+            await deleteDoc(doc(plantImagesCollectionRef(), selectedPlant.id));
+            if (selectedPlant.storagePath) {
+              const oldRef = ref(storage, selectedPlant.storagePath);
+              await deleteObject(oldRef);
             }
-          },
+            Alert.alert('Success', 'Plant image deleted!');
+            setPreviewModalVisible(false);
+            setPreviewUri(null);
+            setPlantName('');
+            setSelectedPlant(null);
+          } catch (err) {
+            console.error('Delete error:', err);
+            Alert.alert('Error', 'Failed to delete plant image.');
+          } finally {
+            if (isMounted.current) setUploading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const renderImageItem = ({ item }) => (
@@ -307,9 +295,7 @@ export default function Developer_PlantsPage() {
         <View style={styles.logoContainer}>
           <Image source={LogoImage} style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }} />
         </View>
-
         <Text style={styles.pageTitle}>Dataset Images</Text>
-
         <View style={styles.controlsRow}>
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
@@ -321,7 +307,6 @@ export default function Developer_PlantsPage() {
               onChangeText={setSearchQuery}
             />
           </View>
-
           <TouchableOpacity style={styles.addButton} onPress={handleAddNewPlant} disabled={uploading}>
             <Ionicons name="add" size={20} color="#fff" />
             <Text style={styles.addButtonText}>{uploading ? 'Uploading' : 'New Plant'}</Text>
@@ -360,14 +345,7 @@ export default function Developer_PlantsPage() {
         visible={previewModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => {
-          if (!uploading) {
-            setPreviewModalVisible(false);
-            setPreviewUri(null);
-            setPlantName('');
-            setSelectedPlant(null);
-          }
-        }}
+        onRequestClose={() => {}}
       >
         <TouchableWithoutFeedback
           onPress={() => {
@@ -384,8 +362,9 @@ export default function Developer_PlantsPage() {
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.modalBoxWrapper}
             >
+              {/* Tap inside should NOT close the modal */}
               <TouchableWithoutFeedback onPress={() => {}}>
-                <ScrollView contentContainerStyle={styles.modalBox}>
+                <View style={styles.modalBox}>
                   {previewUri && (
                     <Image
                       source={{ uri: previewUri }}
@@ -435,7 +414,6 @@ export default function Developer_PlantsPage() {
                     </TouchableOpacity>
                   </View>
 
-                  {/* Retake / Update Image Button */}
                   {previewUri && (
                     <TouchableOpacity
                       style={{ marginTop: 8 }}
@@ -450,7 +428,6 @@ export default function Developer_PlantsPage() {
                     </TouchableOpacity>
                   )}
 
-                  {/* Delete Button */}
                   {selectedPlant && (
                     <TouchableOpacity
                       style={{ marginTop: 8 }}
@@ -460,7 +437,7 @@ export default function Developer_PlantsPage() {
                       <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
                     </TouchableOpacity>
                   )}
-                </ScrollView>
+                </View>
               </TouchableWithoutFeedback>
             </KeyboardAvoidingView>
           </View>

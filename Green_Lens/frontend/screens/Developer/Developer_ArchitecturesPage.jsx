@@ -15,7 +15,6 @@ import {
   Platform,
   ScrollView,
   TouchableWithoutFeedback,
-  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -148,7 +147,7 @@ export default function Developer_ArchitecturePage() {
     }
   };
 
-  // --- Upload or Update with old image deletion ---
+  // --- Upload or Update ---
   const handleConfirmUpload = () => {
     if (!selectedArchitecture) {
       performUploadOrUpdate();
@@ -173,67 +172,74 @@ export default function Developer_ArchitecturePage() {
     setUploading(true);
 
     try {
-      const user = auth.currentUser;
-      const uid = user?.uid || 'anonymous';
-      let downloadUrl = previewUri;
+      const cleanName = architectureName.trim().toLowerCase().replace(/\s+/g, '_');
+      let newImageUrl = null;
+      let newStoragePath = `modelPhotos/architecture/${cleanName}.jpg`;
 
       if (!selectedArchitecture) {
-        // New upload
+        if (!previewUri) {
+          Alert.alert('Error', 'No image selected.');
+          setUploading(false);
+          return;
+        }
+
         const response = await fetch(previewUri);
         const blob = await response.blob();
-        const filename = `modelPhotos/architecture/${Date.now()}_${uid}.jpg`;
-        const storageRef = ref(storage, filename);
-        await uploadBytes(storageRef, blob);
-        downloadUrl = await getDownloadURL(storageRef);
+        const storageRef = ref(storage, newStoragePath);
+        await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+        newImageUrl = await getDownloadURL(storageRef);
 
         let uploadedBy = 'Developer';
+        const user = auth.currentUser;
+        const uid = user?.uid || 'anonymous';
         try {
           const userDocRef = doc(db, 'users', uid);
           const userSnap = await getDoc(userDocRef);
           if (userSnap.exists() && userSnap.data().username) uploadedBy = userSnap.data().username;
           else if (user?.email) uploadedBy = user.email.split('@')[0];
-        } catch (e) {
-          uploadedBy = user?.email?.split('@')[0] || uploadedBy;
-        }
+        } catch (e) {}
 
         await addDoc(architectureImagesCollectionRef(), {
-          imageUrl: downloadUrl,
+          imageUrl: newImageUrl,
           uploadedBy,
           name: architectureName.trim().toLowerCase(),
           createdAt: serverTimestamp(),
-          storagePath: filename,
+          storagePath: newStoragePath,
         });
 
         Alert.alert('Success', 'Image added!');
       } else {
-        // Update existing
-        let newImageUrl = null;
-        let newStoragePath = null;
-
-        if (previewUri !== selectedArchitecture.uri) {
+        if (previewUri && previewUri.startsWith('file://')) {
           const response = await fetch(previewUri);
           const blob = await response.blob();
-          const filename = `modelPhotos/architecture/${Date.now()}_${selectedArchitecture.id}.jpg`;
-          const storageRef = ref(storage, filename);
-          await uploadBytes(storageRef, blob);
+          const storageRef = ref(storage, newStoragePath);
+          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
           newImageUrl = await getDownloadURL(storageRef);
-          newStoragePath = filename;
+        } else if (selectedArchitecture.storagePath !== newStoragePath) {
+          const oldRef = ref(storage, selectedArchitecture.storagePath);
+          const oldUrl = await getDownloadURL(oldRef);
+          const res = await fetch(oldUrl);
+          const blob = await res.blob();
 
-          if (selectedArchitecture.storagePath) {
-            try {
-              const oldRef = ref(storage, selectedArchitecture.storagePath);
-              await deleteObject(oldRef);
-            } catch (err) {
-              console.warn('Failed to delete old image:', err);
-            }
+          const storageRef = ref(storage, newStoragePath);
+          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+          newImageUrl = await getDownloadURL(storageRef);
+        }
+
+        if (selectedArchitecture.storagePath && selectedArchitecture.storagePath !== newStoragePath) {
+          try {
+            const oldRef = ref(storage, selectedArchitecture.storagePath);
+            await deleteObject(oldRef);
+          } catch (err) {
+            console.warn('Failed to delete old image:', err);
           }
         }
 
         const architectureDocRef = doc(architectureImagesCollectionRef(), selectedArchitecture.id);
         await updateDoc(architectureDocRef, {
           name: architectureName.trim().toLowerCase(),
-          ...(newImageUrl ? { imageUrl: newImageUrl, storagePath: newStoragePath } : {}),
-          updatedAt: serverTimestamp(),
+          imageUrl: newImageUrl || selectedArchitecture.uri,
+          storagePath: newStoragePath,
         });
 
         Alert.alert('Success', 'Image updated!');
@@ -251,7 +257,7 @@ export default function Developer_ArchitecturePage() {
     }
   };
 
-  // --- Delete existing architecture ---
+  // --- Delete ---
   const handleDeleteArchitecture = () => {
     if (!selectedArchitecture) return;
 
@@ -360,108 +366,92 @@ export default function Developer_ArchitecturePage() {
         visible={previewModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => {
-          if (!uploading) {
-            setPreviewModalVisible(false);
-            setPreviewUri(null);
-            setArchitectureName('');
-            setSelectedArchitecture(null);
-          }
-        }}
+        onRequestClose={() => !uploading && setPreviewModalVisible(false)}
       >
-        <TouchableWithoutFeedback
-          onPress={() => {
-            if (!uploading) {
-              setPreviewModalVisible(false);
-              setPreviewUri(null);
-              setArchitectureName('');
-              setSelectedArchitecture(null);
-            }
-          }}
-        >
+        {/* Only close modal when tapping outside */}
+        <TouchableWithoutFeedback onPress={() => !uploading && setPreviewModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.modalBoxWrapper}
             >
-              <TouchableWithoutFeedback onPress={() => {}}>
-                <ScrollView contentContainerStyle={styles.modalBox}>
-                  {previewUri && (
-                    <Image
-                      source={{ uri: previewUri }}
-                      style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }}
-                    />
-                  )}
+              {/* Inner modal content: prevent taps from propagating */}
+              <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
+                {previewUri && (
+                  <Image
+                    source={{ uri: previewUri }}
+                    style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }}
+                  />
+                )}
 
-                  <View style={{ width: '100%', marginBottom: 12 }}>
-                    <Text style={{ marginBottom: 6, fontWeight: '600' }}>Architecture Name</Text>
-                    <TextInput
-                      value={architectureName}
-                      onChangeText={setArchitectureName}
-                      placeholder="Common name (required)"
-                      style={styles.input}
-                      editable={!uploading}
-                    />
-                  </View>
+                <View style={{ width: '100%', marginBottom: 12 }}>
+                  <Text style={{ marginBottom: 6, fontWeight: '600' }}>Architecture Name</Text>
+                  <TextInput
+                    value={architectureName}
+                    onChangeText={setArchitectureName}
+                    placeholder="Common name (required)"
+                    style={styles.input}
+                    editable={!uploading}
+                  />
+                </View>
 
-                  <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, { backgroundColor: '#ccc' }]}
-                      onPress={() => {
-                        if (!uploading) {
-                          setPreviewModalVisible(false);
-                          setPreviewUri(null);
-                          setArchitectureName('');
-                          setSelectedArchitecture(null);
-                        }
-                      }}
-                      disabled={uploading}
-                    >
-                      <Text style={{ color: '#000', fontWeight: '600' }}>Cancel</Text>
-                    </TouchableOpacity>
+                <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, { backgroundColor: '#ccc' }]}
+                    onPress={() => {
+                      if (!uploading) {
+                        setPreviewModalVisible(false);
+                        setPreviewUri(null);
+                        setArchitectureName('');
+                        setSelectedArchitecture(null);
+                      }
+                    }}
+                    disabled={uploading}
+                  >
+                    <Text style={{ color: '#000', fontWeight: '600' }}>Cancel</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={[styles.modalButton, { backgroundColor: '#2E7D32' }]}
-                      onPress={handleConfirmUpload}
-                      disabled={uploading}
-                    >
-                      {uploading ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={{ color: '#fff', fontWeight: '600' }}>
-                          {selectedArchitecture ? 'Update' : 'Upload'}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Retake / Update Image Button */}
-                  {previewUri && (
-                    <TouchableOpacity
-                      style={{ marginTop: 8 }}
-                      onPress={handleSelectImage}
-                      disabled={uploading}
-                    >
-                      <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
-                        {selectedArchitecture
-                          ? 'Update image from Device Storage'
-                          : 'Retake image from Device Storage'}
+                  <TouchableOpacity
+                    style={[styles.modalButton, { backgroundColor: '#2E7D32' }]}
+                    onPress={handleConfirmUpload}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={{ color: '#fff', fontWeight: '600' }}>
+                        {selectedArchitecture ? 'Update' : 'Upload'}
                       </Text>
-                    </TouchableOpacity>
-                  )}
+                    )}
+                  </TouchableOpacity>
+                </View>
 
-                  {/* Delete Button */}
-                  {selectedArchitecture && (
-                    <TouchableOpacity
-                      style={{ marginTop: 8 }}
-                      onPress={handleDeleteArchitecture}
-                      disabled={uploading}
-                    >
-                      <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
-                    </TouchableOpacity>
-                  )}
-                </ScrollView>
-              </TouchableWithoutFeedback>
+                {/* Retake / Update Image Button */}
+                {previewUri && (
+                  <TouchableOpacity
+                    style={{ marginTop: 8 }}
+                    onPress={handleSelectImage}
+                    disabled={uploading}
+                  >
+                    <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
+                      {selectedArchitecture
+                        ? 'Update image from Device Storage'
+                        : 'Retake image from Device Storage'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {/* Delete Button */}
+                {selectedArchitecture && (
+                  <TouchableOpacity
+                    style={{ marginTop: 8 }}
+                    onPress={handleDeleteArchitecture}
+                    disabled={uploading}
+                  >
+                    <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </KeyboardAvoidingView>
           </View>
         </TouchableWithoutFeedback>
@@ -470,6 +460,7 @@ export default function Developer_ArchitecturePage() {
   );
 }
 
+// --- Styles (unchanged) ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },

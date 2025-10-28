@@ -13,9 +13,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   TouchableWithoutFeedback,
-  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -52,15 +50,11 @@ export default function Developer_FlowerPage() {
   const [flowerImages, setFlowerImages] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Upload / preview state
   const [previewUri, setPreviewUri] = useState(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Update state
   const [selectedFlower, setSelectedFlower] = useState(null);
-
-  // input
   const [flowerName, setFlowerName] = useState('');
 
   const isMounted = useRef(true);
@@ -122,7 +116,6 @@ export default function Developer_FlowerPage() {
     setPreviewModalVisible(true);
   };
 
-  // --- Image Picker ---
   const handleSelectImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -148,7 +141,6 @@ export default function Developer_FlowerPage() {
     }
   };
 
-  // --- Upload or Update with old image deletion ---
   const handleConfirmUpload = () => {
     if (!selectedFlower) {
       performUploadOrUpdate();
@@ -173,67 +165,74 @@ export default function Developer_FlowerPage() {
     setUploading(true);
 
     try {
-      const user = auth.currentUser;
-      const uid = user?.uid || 'anonymous';
-      let downloadUrl = previewUri;
+      const cleanName = flowerName.trim().toLowerCase().replace(/\s+/g, '_');
+      let newImageUrl = null;
+      let newStoragePath = `modelPhotos/flowers/${cleanName}.jpg`;
 
       if (!selectedFlower) {
-        // New upload
+        if (!previewUri) {
+          Alert.alert('Error', 'No image selected.');
+          setUploading(false);
+          return;
+        }
+
         const response = await fetch(previewUri);
         const blob = await response.blob();
-        const filename = `modelPhotos/flowers/${Date.now()}_${uid}.jpg`;
-        const storageRef = ref(storage, filename);
-        await uploadBytes(storageRef, blob);
-        downloadUrl = await getDownloadURL(storageRef);
+        const storageRef = ref(storage, newStoragePath);
+        await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+        newImageUrl = await getDownloadURL(storageRef);
 
         let uploadedBy = 'Developer';
+        const user = auth.currentUser;
+        const uid = user?.uid || 'anonymous';
         try {
           const userDocRef = doc(db, 'users', uid);
           const userSnap = await getDoc(userDocRef);
           if (userSnap.exists() && userSnap.data().username) uploadedBy = userSnap.data().username;
           else if (user?.email) uploadedBy = user.email.split('@')[0];
-        } catch (e) {
-          uploadedBy = user?.email?.split('@')[0] || uploadedBy;
-        }
+        } catch (e) {}
 
         await addDoc(flowersImagesCollectionRef(), {
-          imageUrl: downloadUrl,
+          imageUrl: newImageUrl,
           uploadedBy,
           name: flowerName.trim().toLowerCase(),
           createdAt: serverTimestamp(),
-          storagePath: filename,
+          storagePath: newStoragePath,
         });
 
         Alert.alert('Success', 'Image added!');
       } else {
-        // Update existing
-        let newImageUrl = null;
-        let newStoragePath = null;
-
-        if (previewUri !== selectedFlower.uri) {
+        if (previewUri && previewUri.startsWith('file://')) {
           const response = await fetch(previewUri);
           const blob = await response.blob();
-          const filename = `modelPhotos/flowers/${Date.now()}_${selectedFlower.id}.jpg`;
-          const storageRef = ref(storage, filename);
-          await uploadBytes(storageRef, blob);
+          const storageRef = ref(storage, newStoragePath);
+          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
           newImageUrl = await getDownloadURL(storageRef);
-          newStoragePath = filename;
+        } else if (selectedFlower.storagePath !== newStoragePath) {
+          const oldRef = ref(storage, selectedFlower.storagePath);
+          const oldUrl = await getDownloadURL(oldRef);
+          const res = await fetch(oldUrl);
+          const blob = await res.blob();
 
-          if (selectedFlower.storagePath) {
-            try {
-              const oldRef = ref(storage, selectedFlower.storagePath);
-              await deleteObject(oldRef);
-            } catch (err) {
-              console.warn('Failed to delete old image:', err);
-            }
+          const storageRef = ref(storage, newStoragePath);
+          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
+          newImageUrl = await getDownloadURL(storageRef);
+        }
+
+        if (selectedFlower.storagePath && selectedFlower.storagePath !== newStoragePath) {
+          try {
+            const oldRef = ref(storage, selectedFlower.storagePath);
+            await deleteObject(oldRef);
+          } catch (err) {
+            console.warn('Failed to delete old image:', err);
           }
         }
 
         const flowerDocRef = doc(flowersImagesCollectionRef(), selectedFlower.id);
         await updateDoc(flowerDocRef, {
           name: flowerName.trim().toLowerCase(),
-          ...(newImageUrl ? { imageUrl: newImageUrl, storagePath: newStoragePath } : {}),
-          updatedAt: serverTimestamp(),
+          imageUrl: newImageUrl || selectedFlower.uri,
+          storagePath: newStoragePath,
         });
 
         Alert.alert('Success', 'Image updated!');
@@ -251,7 +250,6 @@ export default function Developer_FlowerPage() {
     }
   };
 
-  // --- Delete existing flower ---
   const handleDeleteFlower = () => {
     if (!selectedFlower) return;
 
@@ -302,15 +300,10 @@ export default function Developer_FlowerPage() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Image
-            source={LogoImage}
-            style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }}
-          />
+          <Image source={LogoImage} style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }} />
         </View>
-
         <Text style={styles.pageTitle}>Dataset Images</Text>
 
         <View style={styles.controlsRow}>
@@ -332,7 +325,6 @@ export default function Developer_FlowerPage() {
         </View>
       </View>
 
-      {/* Image Grid */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
@@ -358,113 +350,84 @@ export default function Developer_FlowerPage() {
         />
       )}
 
-      {/* Preview/Update Modal */}
       <Modal
         visible={previewModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => {
-          if (!uploading) {
-            setPreviewModalVisible(false);
-            setPreviewUri(null);
-            setFlowerName('');
-            setSelectedFlower(null);
-          }
-        }}
+        onRequestClose={() => !uploading && setPreviewModalVisible(false)}
       >
-        <TouchableWithoutFeedback
-          onPress={() => {
-            if (!uploading) {
-              setPreviewModalVisible(false);
-              setPreviewUri(null);
-              setFlowerName('');
-              setSelectedFlower(null);
-            }
-          }}
-        >
+        <TouchableWithoutFeedback onPress={() => !uploading && setPreviewModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.modalBoxWrapper}
             >
-              <TouchableWithoutFeedback onPress={() => {}}>
-                <ScrollView contentContainerStyle={styles.modalBox}>
-                  {previewUri && (
-                    <Image
-                      source={{ uri: previewUri }}
-                      style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }}
-                    />
-                  )}
+              <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
+                {previewUri && (
+                  <Image
+                    source={{ uri: previewUri }}
+                    style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }}
+                  />
+                )}
 
-                  <View style={{ width: '100%', marginBottom: 12 }}>
-                    <Text style={{ marginBottom: 6, fontWeight: '600' }}>Flower Name</Text>
-                    <TextInput
-                      value={flowerName}
-                      onChangeText={setFlowerName}
-                      placeholder="Flower common name (required)"
-                      style={styles.input}
-                      editable={!uploading}
-                    />
-                  </View>
+                <View style={{ width: '100%', marginBottom: 12 }}>
+                  <Text style={{ marginBottom: 6, fontWeight: '600' }}>Flower Name</Text>
+                  <TextInput
+                    value={flowerName}
+                    onChangeText={setFlowerName}
+                    placeholder="Common name (required)"
+                    style={styles.input}
+                    editable={!uploading}
+                  />
+                </View>
 
-                  <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, { backgroundColor: '#ccc' }]}
-                      onPress={() => {
-                        if (!uploading) {
-                          setPreviewModalVisible(false);
-                          setPreviewUri(null);
-                          setFlowerName('');
-                          setSelectedFlower(null);
-                        }
-                      }}
-                      disabled={uploading}
-                    >
-                      <Text style={{ color: '#000', fontWeight: '600' }}>Cancel</Text>
-                    </TouchableOpacity>
+                <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, { backgroundColor: '#ccc' }]}
+                    onPress={() => {
+                      if (!uploading) {
+                        setPreviewModalVisible(false);
+                        setPreviewUri(null);
+                        setFlowerName('');
+                        setSelectedFlower(null);
+                      }
+                    }}
+                    disabled={uploading}
+                  >
+                    <Text style={{ color: '#000', fontWeight: '600' }}>Cancel</Text>
+                  </TouchableOpacity>
 
-                    <TouchableOpacity
-                      style={[styles.modalButton, { backgroundColor: '#2E7D32' }]}
-                      onPress={handleConfirmUpload}
-                      disabled={uploading}
-                    >
-                      {uploading ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={{ color: '#fff', fontWeight: '600' }}>
-                          {selectedFlower ? 'Update' : 'Upload'}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  {/* Retake / Update Image Button */}
-                  {previewUri && (
-                    <TouchableOpacity
-                      style={{ marginTop: 8 }}
-                      onPress={handleSelectImage}
-                      disabled={uploading}
-                    >
-                      <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
-                        {selectedFlower
-                          ? 'Update image from Device Storage'
-                          : 'Retake image from Device Storage'}
+                  <TouchableOpacity
+                    style={[styles.modalButton, { backgroundColor: '#2E7D32' }]}
+                    onPress={handleConfirmUpload}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={{ color: '#fff', fontWeight: '600' }}>
+                        {selectedFlower ? 'Update' : 'Upload'}
                       </Text>
-                    </TouchableOpacity>
-                  )}
+                    )}
+                  </TouchableOpacity>
+                </View>
 
-                  {/* Delete Button */}
-                  {selectedFlower && (
-                    <TouchableOpacity
-                      style={{ marginTop: 8 }}
-                      onPress={handleDeleteFlower}
-                      disabled={uploading}
-                    >
-                      <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
-                    </TouchableOpacity>
-                  )}
-                </ScrollView>
-              </TouchableWithoutFeedback>
+                {previewUri && (
+                  <TouchableOpacity style={{ marginTop: 8 }} onPress={handleSelectImage} disabled={uploading}>
+                    <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
+                      {selectedFlower
+                        ? 'Update image from Device Storage'
+                        : 'Retake image from Device Storage'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedFlower && (
+                  <TouchableOpacity style={{ marginTop: 8 }} onPress={handleDeleteFlower} disabled={uploading}>
+                    <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </KeyboardAvoidingView>
           </View>
         </TouchableWithoutFeedback>
