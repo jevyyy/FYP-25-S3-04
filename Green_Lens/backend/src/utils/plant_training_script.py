@@ -32,6 +32,11 @@ BACKEND_DIR = SRC_DIR.parent
 
 # Dynamic paths for dataset - adjust based on your dataset location
 # Default path structure: botanics_plants/plant_name/images
+# IMPORTANT: Update this path to point to your actual dataset location
+# Examples:
+#   - Windows: Path('C:\\Users\\User\\Downloads\\botanics_plants')
+#   - Linux/Mac: Path('/home/user/datasets/botanics_plants')
+#   - Relative: Path('../datasets/botanics_plants')
 DATASET_BASE = Path('C:\\Users\\User\\Downloads\\botanics_plants')
 
 # For plant dataset, the root contains folders with actual plant names
@@ -197,6 +202,11 @@ history = model.fit(
 # ======================
 print("\n--- Preparing for Fine-Tuning ---")
 base_model.trainable = True
+
+# Unfreeze the last 50 layers of the base model for fine-tuning
+# This allows the model to adapt pre-trained features to our specific task
+# while keeping earlier layers frozen to preserve general image features
+# Note: MobileNetV2 has 155 layers, so this unfreezes roughly the top 1/3
 for layer in base_model.layers[:-50]:
     layer.trainable = False
 
