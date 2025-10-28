@@ -1,12 +1,7 @@
 """
-Single Model Training Script for Plant Classification
-This script trains a single MobileNetV2 model for plant recognition.
+Single Model Training Script for Flower Classification
+This script trains a single MobileNetV2 model for flower/plant recognition.
 Uses dynamic paths and comprehensive preprocessing with data augmentation.
-
-Key Difference from Flower Classification:
-- Plant dataset structure: botanics_plants/actual_plant_name/images
-- Folder names are the actual plant names (no numeric mapping needed)
-- Only generates class_names.json (index to plant name mapping)
 """
 
 import tensorflow as tf
@@ -31,20 +26,10 @@ SRC_DIR = SCRIPT_DIR.parent
 BACKEND_DIR = SRC_DIR.parent
 
 # Dynamic paths for dataset - adjust based on your dataset location
-# Default path structure: botanics_plants/plant_name/images
-# IMPORTANT: Update this path to point to your actual dataset location
-# Examples:
-#   - Windows: Path('C:\\Users\\User\\Downloads\\botanics_plants')
-#   - Linux/Mac: Path('/home/user/datasets/botanics_plants')
-#   - Relative: Path('../datasets/botanics_plants')
-DATASET_BASE = Path('C:\\Users\\User\\Downloads\\botanics_plants')
-
-# For plant dataset, the root contains folders with actual plant names
-train_data_path = DATASET_BASE
-
-# If you have a separate validation directory, specify it here
-# Otherwise, the script will use validation_split from training data
-validation_data_path = None  # Set to a Path if you have separate validation data
+# Default assumes dataset is in the same structure as before
+DATASET_BASE = Path('C:\\Users\\User\\Downloads\\Flower_Classification_102_Classes')
+train_data_path = DATASET_BASE / 'train' / 'train'
+validation_data_path = DATASET_BASE / 'valid' / 'valid'
 
 # Output directory - saves to backend/downloaded_model for app.py to use
 output_dir = BACKEND_DIR / 'downloaded_model'
@@ -61,8 +46,7 @@ learning_rate_finetune = 1e-5
 output_dir.mkdir(parents=True, exist_ok=True)
 print(f"Output directory: {output_dir}")
 print(f"Training data path: {train_data_path}")
-if validation_data_path:
-    print(f"Validation data path: {validation_data_path}")
+print(f"Validation data path: {validation_data_path}")
 
 # ======================
 # 2. Data Preparation, Preprocessing & Augmentation
@@ -87,8 +71,7 @@ validation_datagen = ImageDataGenerator(
     preprocessing_function=preprocess_input
 )
 
-# Create training generator
-# The class_indices will be created automatically from folder names
+# This is where the mapping is created internally
 train_generator = train_datagen.flow_from_directory(
     str(train_data_path),  # Convert Path to string
     target_size=input_size,
@@ -98,9 +81,17 @@ train_generator = train_datagen.flow_from_directory(
     shuffle=True
 )
 
-# Create validation generator
-if validation_data_path and validation_data_path.exists():
-    # Use separate validation directory if provided
+validation_generator = train_datagen.flow_from_directory(
+    str(train_data_path),  # Convert Path to string
+    target_size=input_size,
+    batch_size=batch_size,
+    class_mode='categorical',
+    subset='validation',
+    shuffle=False
+)
+
+# If separate validation directory exists, use it instead
+if validation_data_path.exists():
     validation_generator = validation_datagen.flow_from_directory(
         str(validation_data_path),
         target_size=input_size,
@@ -108,22 +99,12 @@ if validation_data_path and validation_data_path.exists():
         class_mode='categorical',
         shuffle=False
     )
-else:
-    # Use validation split from training data
-    validation_generator = train_datagen.flow_from_directory(
-        str(train_data_path),  # Convert Path to string
-        target_size=input_size,
-        batch_size=batch_size,
-        class_mode='categorical',
-        subset='validation',
-        shuffle=False
-    )
 
 num_classes = len(train_generator.class_indices)
 print(f"\nFound {train_generator.samples} training images belonging to {num_classes} classes.")
 print(f"Found {validation_generator.samples} validation images")
-# This will print the class mapping (folder names to indices)
-print(f"Class Mapping (plant_name -> index): {train_generator.class_indices}")
+# This will print the class mapping
+print(f"Ground Truth Class Mapping: {train_generator.class_indices}")
 
 # ======================
 # 3. Build the Transfer Learning Model with Enhanced Architecture
@@ -171,7 +152,7 @@ reduce_lr = ReduceLROnPlateau(
 )
 
 checkpoint = ModelCheckpoint(
-    str(output_dir / 'best_model.keras'),
+    str(output_dir / 'flower_best_model.keras'),
     monitor='val_accuracy',
     save_best_only=True,
     verbose=1
@@ -202,11 +183,6 @@ history = model.fit(
 # ======================
 print("\n--- Preparing for Fine-Tuning ---")
 base_model.trainable = True
-
-# Unfreeze the last 50 layers of the base model for fine-tuning
-# This allows the model to adapt pre-trained features to our specific task
-# while keeping earlier layers frozen to preserve general image features
-# Note: MobileNetV2 has 155 layers, so this unfreezes roughly the top 1/3
 for layer in base_model.layers[:-50]:
     layer.trainable = False
 
@@ -234,32 +210,31 @@ history_fine = model.fit(
 # 7. Save the Final Model and Class Names
 # =================================================================
 # Save the Keras model in the modern .keras format
-model_save_path = output_dir / 'plant_img_classifier.keras'
+model_save_path = output_dir / 'flower_img_classifier_new.keras'
 model.save(str(model_save_path))
 print(f"\nModel saved successfully to: {model_save_path}")
 
 # Save the Keras model in the legacy .h5 format
-h5_model_path = output_dir / 'plant_img_classifier.h5'
+h5_model_path = output_dir / 'flower_img_classifier_new.h5'
 model.save(str(h5_model_path))
 print(f"Model saved successfully in .h5 format to: {h5_model_path}")
 
 # --- Save class indices mapping ---
-# For plants, the mapping is straightforward: folder names are actual plant names
-# class_indices dictionary holds: {'plant_name': index}
+# We capture the `class_indices` dictionary that ImageDataGenerator created.
+# This dictionary holds the ground truth mapping (e.g., {'1': 0, '10': 1, '2': 2}).
 class_indices = train_generator.class_indices
 
-# Invert it for easier lookup: {'index': 'plant_name'}
-# This is the ONLY mapping needed - no separate dictionary required
+# To make it easier to use in the app, we invert it so we can look up by index.
+# The result will be: {'0': '1', '1': '10', '2': '2'}
 class_names_map = {str(v): k for k, v in class_indices.items()}
 
-# Save this mapping to class_names.json
-class_names_path = output_dir / 'class_names.json'
+# We save this essential mapping to a new JSON file.
+class_names_path = output_dir / 'flower_class_names.json'
 with open(class_names_path, 'w') as f:
     json.dump(class_names_map, f, indent=4)
 
 print(f"\nClass mapping saved to: {class_names_path}")
-print("NOTE: For plants, the class names ARE the actual plant names.")
-print("No separate classes_to_name_dictionary.json is needed.")
+print("IMPORTANT: Use this file in your application to interpret predictions.")
 
 # Save training configuration for reference
 config = {
@@ -271,7 +246,6 @@ config = {
     'learning_rate_finetune': learning_rate_finetune,
     'num_classes': num_classes,
     'model_architecture': 'MobileNetV2 + Custom Head',
-    'dataset_type': 'plant',
     'augmentation': {
         'rotation_range': 40,
         'width_shift_range': 0.2,
@@ -283,7 +257,7 @@ config = {
     }
 }
 
-config_path = output_dir / 'training_config.json'
+config_path = output_dir / 'flower_training_config.json'
 with open(config_path, 'w') as f:
     json.dump(config, f, indent=4)
 
@@ -298,7 +272,3 @@ print(f"Final Validation Accuracy: {final_accuracy:.4f}")
 print("\n" + "="*80)
 print("Training Complete!")
 print("="*80)
-print("\nUsage in Application:")
-print(f"1. Load model from: {model_save_path}")
-print(f"2. Load class mapping from: {class_names_path}")
-print("3. The prediction index maps directly to plant names via class_names.json")
