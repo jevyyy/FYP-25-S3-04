@@ -172,7 +172,7 @@ export default function Developer_ArchitecturePage() {
     setUploading(true);
 
     try {
-      const cleanName = architectureName.trim().toLowerCase().replace(/\s+/g, '_');
+      const cleanName = architectureName.trim().toLowerCase();
       let newImageUrl = null;
       let newStoragePath = `modelPhotos/architecture/${cleanName}.jpg`;
 

@@ -165,7 +165,7 @@ export default function Developer_FlowerPage() {
     setUploading(true);
 
     try {
-      const cleanName = flowerName.trim().toLowerCase().replace(/\s+/g, '_');
+      const cleanName = flowerName.trim().toLowerCase();
       let newImageUrl = null;
       let newStoragePath = `modelPhotos/flowers/${cleanName}.jpg`;
 

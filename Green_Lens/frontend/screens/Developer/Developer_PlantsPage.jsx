@@ -13,9 +13,7 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
-  ScrollView,
   TouchableWithoutFeedback,
-  Keyboard,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
@@ -61,12 +59,12 @@ export default function Developer_PlantsPage() {
 
   const isMounted = useRef(true);
 
-  const plantImagesCollectionRef = () =>
+  const plantsImagesCollectionRef = () =>
     collection(doc(collection(db, 'modelPhotos'), 'plants'), 'images');
 
   useEffect(() => {
     isMounted.current = true;
-    const q = query(plantImagesCollectionRef(), orderBy('createdAt', 'desc'));
+    const q = query(plantsImagesCollectionRef(), orderBy('createdAt', 'desc'));
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -118,7 +116,6 @@ export default function Developer_PlantsPage() {
     setPreviewModalVisible(true);
   };
 
-  // --- Image Picker ---
   const handleSelectImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -134,7 +131,8 @@ export default function Developer_PlantsPage() {
       });
 
       if (!result.canceled && result.assets?.length > 0) {
-        setPreviewUri(result.assets[0].uri);
+        const uri = result.assets[0].uri;
+        setPreviewUri(uri);
         setPreviewModalVisible(true);
       }
     } catch (err) {
@@ -143,14 +141,19 @@ export default function Developer_PlantsPage() {
     }
   };
 
-  // --- Upload or Update ---
   const handleConfirmUpload = () => {
-    if (!selectedPlant) performUploadOrUpdate();
-    else
-      Alert.alert('Confirm Update', 'Are you sure you want to apply the changes?', [
-        { text: 'Cancel', style: 'cancel' },
-        { text: 'Yes', onPress: performUploadOrUpdate },
-      ]);
+    if (!selectedPlant) {
+      performUploadOrUpdate();
+    } else {
+      Alert.alert(
+        'Confirm Update',
+        'Are you sure you want to apply the changes?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { text: 'Yes', onPress: () => performUploadOrUpdate() },
+        ]
+      );
+    }
   };
 
   const performUploadOrUpdate = async () => {
@@ -162,7 +165,7 @@ export default function Developer_PlantsPage() {
     setUploading(true);
 
     try {
-      const cleanName = plantName.trim().toLowerCase().replace(/\s+/g, '_');
+      const cleanName = plantName.trim().toLowerCase();
       const newStoragePath = `modelPhotos/plants/${cleanName}.jpg`;
       let newImageUrl = null;
 
@@ -190,7 +193,7 @@ export default function Developer_PlantsPage() {
         await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
         newImageUrl = await getDownloadURL(storageRef);
 
-        await addDoc(plantImagesCollectionRef(), {
+        await addDoc(plantsImagesCollectionRef(), {
           imageUrl: newImageUrl,
           uploadedBy,
           name: cleanName,
@@ -225,7 +228,8 @@ export default function Developer_PlantsPage() {
           }
         }
 
-        await updateDoc(doc(plantImagesCollectionRef(), selectedPlant.id), {
+        const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
+        await updateDoc(plantDocRef, {
           name: cleanName,
           imageUrl: newImageUrl || selectedPlant.uri,
           storagePath: newStoragePath,
@@ -246,37 +250,43 @@ export default function Developer_PlantsPage() {
     }
   };
 
-  // --- Delete ---
   const handleDeletePlant = () => {
     if (!selectedPlant) return;
 
-    Alert.alert('Confirm Delete', 'Are you sure you want to delete this image?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Delete',
-        style: 'destructive',
-        onPress: async () => {
-          setUploading(true);
-          try {
-            await deleteDoc(doc(plantImagesCollectionRef(), selectedPlant.id));
-            if (selectedPlant.storagePath) {
-              const oldRef = ref(storage, selectedPlant.storagePath);
-              await deleteObject(oldRef);
+    Alert.alert(
+      'Confirm Delete',
+      'Are you sure you want to delete this image?',
+      [
+        { text: 'Cancel', style: 'cancel' },
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: async () => {
+            setUploading(true);
+            try {
+              const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
+              await deleteDoc(plantDocRef);
+
+              if (selectedPlant.storagePath) {
+                const oldRef = ref(storage, selectedPlant.storagePath);
+                await deleteObject(oldRef);
+              }
+
+              Alert.alert('Success', 'Plant image deleted!');
+              setPreviewModalVisible(false);
+              setPreviewUri(null);
+              setPlantName('');
+              setSelectedPlant(null);
+            } catch (err) {
+              console.error('Delete error:', err);
+              Alert.alert('Error', 'Failed to delete plant image.');
+            } finally {
+              if (isMounted.current) setUploading(false);
             }
-            Alert.alert('Success', 'Plant image deleted!');
-            setPreviewModalVisible(false);
-            setPreviewUri(null);
-            setPlantName('');
-            setSelectedPlant(null);
-          } catch (err) {
-            console.error('Delete error:', err);
-            Alert.alert('Error', 'Failed to delete plant image.');
-          } finally {
-            if (isMounted.current) setUploading(false);
-          }
+          },
         },
-      },
-    ]);
+      ]
+    );
   };
 
   const renderImageItem = ({ item }) => (
@@ -290,12 +300,12 @@ export default function Developer_PlantsPage() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image source={LogoImage} style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }} />
         </View>
         <Text style={styles.pageTitle}>Dataset Images</Text>
+
         <View style={styles.controlsRow}>
           <View style={styles.searchContainer}>
             <Ionicons name="search" size={20} color="#999" style={styles.searchIcon} />
@@ -307,6 +317,7 @@ export default function Developer_PlantsPage() {
               onChangeText={setSearchQuery}
             />
           </View>
+
           <TouchableOpacity style={styles.addButton} onPress={handleAddNewPlant} disabled={uploading}>
             <Ionicons name="add" size={20} color="#fff" />
             <Text style={styles.addButtonText}>{uploading ? 'Uploading' : 'New Plant'}</Text>
@@ -314,7 +325,6 @@ export default function Developer_PlantsPage() {
         </View>
       </View>
 
-      {/* Image Grid */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
@@ -340,105 +350,84 @@ export default function Developer_PlantsPage() {
         />
       )}
 
-      {/* Preview/Update Modal */}
       <Modal
         visible={previewModalVisible}
         transparent
         animationType="slide"
-        onRequestClose={() => {}}
+        onRequestClose={() => !uploading && setPreviewModalVisible(false)}
       >
-        <TouchableWithoutFeedback
-          onPress={() => {
-            if (!uploading) {
-              setPreviewModalVisible(false);
-              setPreviewUri(null);
-              setPlantName('');
-              setSelectedPlant(null);
-            }
-          }}
-        >
+        <TouchableWithoutFeedback onPress={() => !uploading && setPreviewModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.modalBoxWrapper}
             >
-              {/* Tap inside should NOT close the modal */}
-              <TouchableWithoutFeedback onPress={() => {}}>
-                <View style={styles.modalBox}>
-                  {previewUri && (
-                    <Image
-                      source={{ uri: previewUri }}
-                      style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }}
-                    />
-                  )}
+              <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
+                {previewUri && (
+                  <Image
+                    source={{ uri: previewUri }}
+                    style={{ width: 320, height: 320, borderRadius: 10, marginBottom: 16 }}
+                  />
+                )}
 
-                  <View style={{ width: '100%', marginBottom: 12 }}>
-                    <Text style={{ marginBottom: 6, fontWeight: '600' }}>Plant Name</Text>
-                    <TextInput
-                      value={plantName}
-                      onChangeText={setPlantName}
-                      placeholder="Common name (required)"
-                      style={styles.input}
-                      editable={!uploading}
-                    />
-                  </View>
-
-                  <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <TouchableOpacity
-                      style={[styles.modalButton, { backgroundColor: '#ccc' }]}
-                      onPress={() => {
-                        if (!uploading) {
-                          setPreviewModalVisible(false);
-                          setPreviewUri(null);
-                          setPlantName('');
-                          setSelectedPlant(null);
-                        }
-                      }}
-                      disabled={uploading}
-                    >
-                      <Text style={{ color: '#000', fontWeight: '600' }}>Cancel</Text>
-                    </TouchableOpacity>
-
-                    <TouchableOpacity
-                      style={[styles.modalButton, { backgroundColor: '#2E7D32' }]}
-                      onPress={handleConfirmUpload}
-                      disabled={uploading}
-                    >
-                      {uploading ? (
-                        <ActivityIndicator color="#fff" />
-                      ) : (
-                        <Text style={{ color: '#fff', fontWeight: '600' }}>
-                          {selectedPlant ? 'Update' : 'Upload'}
-                        </Text>
-                      )}
-                    </TouchableOpacity>
-                  </View>
-
-                  {previewUri && (
-                    <TouchableOpacity
-                      style={{ marginTop: 8 }}
-                      onPress={handleSelectImage}
-                      disabled={uploading}
-                    >
-                      <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
-                        {selectedPlant
-                          ? 'Update image from Device Storage'
-                          : 'Retake image from Device Storage'}
-                      </Text>
-                    </TouchableOpacity>
-                  )}
-
-                  {selectedPlant && (
-                    <TouchableOpacity
-                      style={{ marginTop: 8 }}
-                      onPress={handleDeletePlant}
-                      disabled={uploading}
-                    >
-                      <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
-                    </TouchableOpacity>
-                  )}
+                <View style={{ width: '100%', marginBottom: 12 }}>
+                  <Text style={{ marginBottom: 6, fontWeight: '600' }}>Plant Name</Text>
+                  <TextInput
+                    value={plantName}
+                    onChangeText={setPlantName}
+                    placeholder="Common name (required)"
+                    style={styles.input}
+                    editable={!uploading}
+                  />
                 </View>
-              </TouchableWithoutFeedback>
+
+                <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <TouchableOpacity
+                    style={[styles.modalButton, { backgroundColor: '#ccc' }]}
+                    onPress={() => {
+                      if (!uploading) {
+                        setPreviewModalVisible(false);
+                        setPreviewUri(null);
+                        setPlantName('');
+                        setSelectedPlant(null);
+                      }
+                    }}
+                    disabled={uploading}
+                  >
+                    <Text style={{ color: '#000', fontWeight: '600' }}>Cancel</Text>
+                  </TouchableOpacity>
+
+                  <TouchableOpacity
+                    style={[styles.modalButton, { backgroundColor: '#2E7D32' }]}
+                    onPress={handleConfirmUpload}
+                    disabled={uploading}
+                  >
+                    {uploading ? (
+                      <ActivityIndicator color="#fff" />
+                    ) : (
+                      <Text style={{ color: '#fff', fontWeight: '600' }}>
+                        {selectedPlant ? 'Update' : 'Upload'}
+                      </Text>
+                    )}
+                  </TouchableOpacity>
+                </View>
+
+                {previewUri && (
+                  <TouchableOpacity style={{ marginTop: 8 }} onPress={handleSelectImage} disabled={uploading}>
+                    <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
+                      {selectedPlant
+                        ? 'Update image from Device Storage'
+                        : 'Retake image from Device Storage'}
+                    </Text>
+                  </TouchableOpacity>
+                )}
+
+                {selectedPlant && (
+                  <TouchableOpacity style={{ marginTop: 8 }} onPress={handleDeletePlant} disabled={uploading}>
+                    <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
             </KeyboardAvoidingView>
           </View>
         </TouchableWithoutFeedback>
