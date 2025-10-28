@@ -1,6 +1,6 @@
 # Model Training Scripts
 
-This directory contains scripts for training flower classification models using transfer learning with MobileNetV2.
+This directory contains scripts for training flower and plant classification models using transfer learning with MobileNetV2.
 
 ## Available Scripts
 
@@ -24,7 +24,33 @@ python model_training_script.py
 **Configuration:**
 Update the `DATASET_BASE` path in the script to point to your dataset location.
 
-### 2. ensemble_training_script.py
+### 2. plant_training_script.py
+Single model training script specifically designed for plant classification.
+
+**Features:**
+- Transfer learning using MobileNetV2
+- Dynamic path configuration
+- Comprehensive data augmentation (rotation, shift, zoom, brightness, etc.)
+- Two-stage training (head training + fine-tuning)
+- Callbacks for early stopping and learning rate reduction
+- Saves both .keras and .h5 model formats
+- **Simplified mapping**: Only generates class_names.json (no separate dictionary needed)
+
+**Usage:**
+```bash
+cd Green_Lens/backend/src/utils
+python plant_training_script.py
+```
+
+**Configuration:**
+Update the `DATASET_BASE` path in the script to point to your plant dataset location (e.g., `C:\Users\User\Downloads\botanics_plants`).
+
+**Key Difference from Flower Script:**
+- Plant dataset folders are named with actual plant names (e.g., `botanics_plants/Rose/images`)
+- Only generates `class_names.json` mapping index directly to plant names
+- No need for separate `classes_to_name_dictionary.json`
+
+### 3. ensemble_training_script.py
 Homogeneous ensemble learning script using bagging method.
 
 **Features:**
@@ -47,37 +73,71 @@ Adjust `NUM_MODELS` to change the number of models in the ensemble (default: 5).
 
 ## Dataset Structure
 
-The scripts expect the dataset to be organized as follows:
+### Flower Classification Dataset (model_training_script.py, ensemble_training_script.py)
+
+The flower scripts expect the dataset to be organized as follows:
 
 ```
 Flower_Classification_102_Classes/
 ├── train/
 │   └── train/
-│       ├── class_1/
+│       ├── 1/              # Numeric class folders
 │       │   ├── image1.jpg
 │       │   ├── image2.jpg
 │       │   └── ...
-│       ├── class_2/
+│       ├── 2/
 │       │   └── ...
 │       └── ...
 └── valid/
     └── valid/
-        ├── class_1/
-        ├── class_2/
+        ├── 1/
+        ├── 2/
         └── ...
 ```
+
+**Note:** Flower dataset uses numeric folder names that require mapping files (class_names.json + classes_to_name_dictionary.json).
+
+### Plant Classification Dataset (plant_training_script.py)
+
+The plant script expects the dataset to be organized as follows:
+
+```
+botanics_plants/
+├── Rose/                    # Actual plant name folders
+│   ├── image1.jpg
+│   ├── image2.jpg
+│   └── ...
+├── Sunflower/
+│   ├── image1.jpg
+│   └── ...
+├── Tulip/
+│   └── ...
+└── ...
+```
+
+**Note:** Plant dataset uses actual plant names as folder names, requiring only class_names.json mapping.
 
 ## Output Structure
 
 Both scripts save their outputs to `Green_Lens/backend/downloaded_model/`:
 
-### Single Model Output:
+### Single Model Output (Flower):
 ```
 downloaded_model/
 ├── flower_img_classifier_new.keras    # Trained model (.keras format)
 ├── flower_img_classifier_new.h5       # Trained model (.h5 format)
 ├── best_model.keras                   # Best model checkpoint
 ├── class_names.json                   # Class index to ID mapping
+└── training_config.json               # Training configuration
+```
+
+### Single Model Output (Plant):
+```
+downloaded_model/
+├── plant_img_classifier.keras         # Trained model (.keras format)
+├── plant_img_classifier.h5            # Trained model (.h5 format)
+├── best_model.keras                   # Best model checkpoint
+├── class_names.json                   # Class index to plant name mapping (ONLY file needed)
 └── training_config.json               # Training configuration
 ```
 
@@ -182,20 +242,39 @@ Approximate training times (with GPU):
 
 ## Using Trained Models
 
-### Loading the Model:
+### Loading the Model (Flowers):
 ```python
 from tensorflow.keras.models import load_model
 import json
 
 # Load model
-model = load_model('output_model/flower_img_classifier_new.keras')
+model = load_model('downloaded_model/flower_img_classifier_new.keras')
 
 # Load class mapping
-with open('output_model/class_names.json', 'r') as f:
+with open('downloaded_model/class_names.json', 'r') as f:
     class_names = json.load(f)
+
+# Load flower name dictionary
+with open('downloaded_model/classes_to_name_dictionary.json', 'r') as f:
+    class_dict = json.load(f)
 ```
 
-### Making Predictions:
+### Loading the Model (Plants):
+```python
+from tensorflow.keras.models import load_model
+import json
+
+# Load model
+model = load_model('downloaded_model/plant_img_classifier.keras')
+
+# Load class mapping (plant names directly)
+with open('downloaded_model/class_names.json', 'r') as f:
+    class_names = json.load(f)
+
+# No need for separate dictionary - class_names contains actual plant names
+```
+
+### Making Predictions (Flowers):
 ```python
 from tensorflow.keras.preprocessing import image
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
@@ -211,9 +290,32 @@ img_array = preprocess_input(img_array)
 predictions = model.predict(img_array)
 top_idx = np.argmax(predictions[0])
 class_id = class_names[str(top_idx)]
+flower_name = class_dict[class_id]  # Need to lookup in dictionary
 confidence = predictions[0][top_idx]
 
-print(f"Predicted class: {class_id}")
+print(f"Predicted flower: {flower_name}")
+print(f"Confidence: {confidence:.2%}")
+```
+
+### Making Predictions (Plants):
+```python
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+import numpy as np
+
+# Load and preprocess image
+img = image.load_img('plant.jpg', target_size=(224, 224))
+img_array = image.img_to_array(img)
+img_array = np.expand_dims(img_array, axis=0)
+img_array = preprocess_input(img_array)
+
+# Predict
+predictions = model.predict(img_array)
+top_idx = np.argmax(predictions[0])
+plant_name = class_names[str(top_idx)]  # Direct mapping to plant name
+confidence = predictions[0][top_idx]
+
+print(f"Predicted plant: {plant_name}")
 print(f"Confidence: {confidence:.2%}")
 ```
 
