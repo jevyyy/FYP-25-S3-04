@@ -50,7 +50,33 @@ Update the `DATASET_BASE` path in the script to point to your plant dataset loca
 - Only generates `class_names.json` mapping index directly to plant names
 - No need for separate `classes_to_name_dictionary.json`
 
-### 3. ensemble_training_script.py
+### 3. architecture_model_training_script.py
+Single model training script specifically designed for architectural plant classification.
+
+**Features:**
+- Transfer learning using MobileNetV2
+- Dynamic path configuration
+- Comprehensive data augmentation (rotation, shift, zoom, brightness, etc.)
+- Two-stage training (head training + fine-tuning)
+- Callbacks for early stopping and learning rate reduction
+- Saves both .keras and .h5 model formats
+- **Simplified mapping**: Only generates class_names.json (no separate dictionary needed)
+
+**Usage:**
+```bash
+cd Green_Lens/backend/src/utils
+python architecture_model_training_script.py
+```
+
+**Configuration:**
+Update the `DATASET_BASE` path in the script to point to your architecture dataset location (e.g., `C:\Users\User\Downloads\botanics_architecture`).
+
+**Key Features:**
+- Architecture dataset folders are named with actual plant names (e.g., `botanics_architecture/Fern/images`)
+- Only generates `architecture_class_names.json` mapping index directly to plant names
+- Output files follow naming convention: `architecture_best_model.keras`, `architecture_class_names.json`, `architecture_training_config.json`
+
+### 4. ensemble_training_script.py
 Homogeneous ensemble learning script using bagging method.
 
 **Features:**
@@ -117,9 +143,29 @@ botanics_plants/
 
 **Note:** Plant dataset uses actual plant names as folder names, requiring only class_names.json mapping.
 
+### Architecture Plant Classification Dataset (architecture_model_training_script.py)
+
+The architecture script expects the dataset to be organized as follows:
+
+```
+botanics_architecture/
+├── Fern/                    # Actual plant name folders
+│   ├── image1.jpg
+│   ├── image2.jpg
+│   └── ...
+├── Palm/
+│   ├── image1.jpg
+│   └── ...
+├── Bamboo/
+│   └── ...
+└── ...
+```
+
+**Note:** Architecture dataset uses actual plant names as folder names, requiring only architecture_class_names.json mapping.
+
 ## Output Structure
 
-Both scripts save their outputs to `Green_Lens/backend/downloaded_model/`:
+All scripts save their outputs to `Green_Lens/backend/downloaded_model/`:
 
 ### Single Model Output (Flower):
 ```
@@ -136,9 +182,19 @@ downloaded_model/
 downloaded_model/
 ├── plant_img_classifier.keras         # Trained model (.keras format)
 ├── plant_img_classifier.h5            # Trained model (.h5 format)
-├── best_model.keras                   # Best model checkpoint
-├── class_names.json                   # Class index to plant name mapping (ONLY file needed)
-└── training_config.json               # Training configuration
+├── plant_best_model.keras             # Best model checkpoint
+├── plant_class_names.json             # Class index to plant name mapping (ONLY file needed)
+└── plant_training_config.json         # Training configuration
+```
+
+### Single Model Output (Architecture):
+```
+downloaded_model/
+├── architecture_img_classifier.keras       # Trained model (.keras format)
+├── architecture_img_classifier.h5          # Trained model (.h5 format)
+├── architecture_best_model.keras           # Best model checkpoint
+├── architecture_class_names.json           # Class index to plant name mapping (ONLY file needed)
+└── architecture_training_config.json       # Training configuration
 ```
 
 ### Ensemble Model Output:
@@ -268,7 +324,22 @@ import json
 model = load_model('downloaded_model/plant_img_classifier.keras')
 
 # Load class mapping (plant names directly)
-with open('downloaded_model/class_names.json', 'r') as f:
+with open('downloaded_model/plant_class_names.json', 'r') as f:
+    class_names = json.load(f)
+
+# No need for separate dictionary - class_names contains actual plant names
+```
+
+### Loading the Model (Architecture):
+```python
+from tensorflow.keras.models import load_model
+import json
+
+# Load model
+model = load_model('downloaded_model/architecture_img_classifier.keras')
+
+# Load class mapping (plant names directly)
+with open('downloaded_model/architecture_class_names.json', 'r') as f:
     class_names = json.load(f)
 
 # No need for separate dictionary - class_names contains actual plant names
@@ -316,6 +387,28 @@ plant_name = class_names[str(top_idx)]  # Direct mapping to plant name
 confidence = predictions[0][top_idx]
 
 print(f"Predicted plant: {plant_name}")
+print(f"Confidence: {confidence:.2%}")
+```
+
+### Making Predictions (Architecture):
+```python
+from tensorflow.keras.preprocessing import image
+from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
+import numpy as np
+
+# Load and preprocess image
+img = image.load_img('architecture_plant.jpg', target_size=(224, 224))
+img_array = image.img_to_array(img)
+img_array = np.expand_dims(img_array, axis=0)
+img_array = preprocess_input(img_array)
+
+# Predict
+predictions = model.predict(img_array)
+top_idx = np.argmax(predictions[0])
+plant_name = class_names[str(top_idx)]  # Direct mapping to plant name
+confidence = predictions[0][top_idx]
+
+print(f"Predicted architecture plant: {plant_name}")
 print(f"Confidence: {confidence:.2%}")
 ```
 
