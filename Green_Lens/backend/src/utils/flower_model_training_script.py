@@ -210,12 +210,12 @@ history_fine = model.fit(
 # 7. Save the Final Model and Class Names
 # =================================================================
 # Save the Keras model in the modern .keras format
-model_save_path = output_dir / 'flower_img_classifier_new.keras'
+model_save_path = output_dir / 'flower_img_classifier.keras'
 model.save(str(model_save_path))
 print(f"\nModel saved successfully to: {model_save_path}")
 
 # Save the Keras model in the legacy .h5 format
-h5_model_path = output_dir / 'flower_img_classifier_new.h5'
+h5_model_path = output_dir / 'flower_img_classifier.h5'
 model.save(str(h5_model_path))
 print(f"Model saved successfully in .h5 format to: {h5_model_path}")
 
