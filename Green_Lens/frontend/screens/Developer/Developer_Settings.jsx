@@ -1,10 +1,9 @@
 // ./screens/Developer/Developer_SettingsPage.jsx
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useRef } from 'react';
 import { 
   View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Linking, Image, Modal, FlatList, ActivityIndicator 
 } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 
 // Firebase
 import { app } from '../../firebaseConfig';
@@ -33,6 +32,10 @@ export default function Developer_SettingsPage() {
   const [pretrainCategory, setPretrainCategory] = useState(null);
   const [pretrainImages, setPretrainImages] = useState([]);
   const [loadingPretrainImages, setLoadingPretrainImages] = useState(false);
+
+  // --- Silent buffer overlays ---
+  const [trainingBuffer, setTrainingBuffer] = useState(false);
+  const [pretrainingBuffer, setPretrainingBuffer] = useState(false);
 
   const isMounted = useRef(true);
 
@@ -122,20 +125,32 @@ export default function Developer_SettingsPage() {
     </>
   );
 
+  //Terence, your Script i think can put here
   const handleTrainPress = () => setTrainModalVisible(true);
   const handleCategorySelect = (category) => { setSelectedCategory(category); fetchImages(category); };
   const handleTrainConfirm = () => {
-    Alert.alert('Training', `Training model for ${selectedCategory}...`);
     setTrainModalVisible(false);
-    setTimeout(() => { Alert.alert('Done', `Training for ${selectedCategory} completed!`); setSelectedCategory(null); }, 5000);
-  };
+    setTrainingBuffer(true); // show overlay
 
+    setTimeout(() => {
+      setTrainingBuffer(false); // hide overlay
+      Alert.alert('Done', `Training Model Completed!`);
+      setSelectedCategory(null);
+    }, 5000); // buffer 5s
+  };
+  
+  //Terence, your Script i think can put here
   const handlePretrainPress = () => setPretrainModalVisible(true);
   const handlePretrainCategorySelect = (category) => { setPretrainCategory(category); fetchPretrainImages(category); };
   const handlePretrainConfirm = () => {
-    Alert.alert('Pre-training', `Pre-training model for ${pretrainCategory}...`);
     setPretrainModalVisible(false);
-    setTimeout(() => { Alert.alert('Done', `Pre-training for ${pretrainCategory} completed!`); setPretrainCategory(null); }, 5000);
+    setPretrainingBuffer(true); // show overlay
+
+    setTimeout(() => {
+      setPretrainingBuffer(false); // hide overlay
+      Alert.alert('Done', `Pre-Training Model Completed!`);
+      setPretrainCategory(null);
+    }, 5000); // buffer 5s
   };
 
   const renderImageItem = ({ item }) => (
@@ -212,11 +227,13 @@ export default function Developer_SettingsPage() {
             {!selectedCategory ? (
               <>
                 <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15 }}>Select Category</Text>
-                {['plants', 'flowers', 'architecture'].map((cat) => (
-                  <TouchableOpacity key={cat} style={styles.greenButton} onPress={() => handleCategorySelect(cat)}>
-                    <Text style={styles.buttonText}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
-                  </TouchableOpacity>
-                ))}
+                <View style={styles.categoryGrid}>
+                  {['plants', 'flowers', 'architecture'].map((cat) => (
+                    <TouchableOpacity key={cat} style={styles.categoryButton} onPress={() => handleCategorySelect(cat)}>
+                      <Text style={styles.categoryButtonText}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <TouchableOpacity style={[styles.greenButton, { backgroundColor: '#ccc' }]} onPress={() => setTrainModalVisible(false)}>
                   <Text style={[styles.buttonText, { color: '#000' }]}>Cancel</Text>
                 </TouchableOpacity>
@@ -259,11 +276,13 @@ export default function Developer_SettingsPage() {
             {!pretrainCategory ? (
               <>
                 <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15 }}>Select Category</Text>
-                {['plants', 'flowers', 'architecture'].map((cat) => (
-                  <TouchableOpacity key={cat} style={styles.greenButton} onPress={() => handlePretrainCategorySelect(cat)}>
-                    <Text style={styles.buttonText}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
-                  </TouchableOpacity>
-                ))}
+                <View style={styles.categoryGrid}>
+                  {['plants', 'flowers', 'architecture'].map((cat) => (
+                    <TouchableOpacity key={cat} style={styles.categoryButton} onPress={() => handlePretrainCategorySelect(cat)}>
+                      <Text style={styles.categoryButtonText}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
                 <TouchableOpacity style={[styles.greenButton, { backgroundColor: '#ccc' }]} onPress={() => setPretrainModalVisible(false)}>
                   <Text style={[styles.buttonText, { color: '#000' }]}>Cancel</Text>
                 </TouchableOpacity>
@@ -298,6 +317,25 @@ export default function Developer_SettingsPage() {
           </View>
         </View>
       </Modal>
+
+      {/* --- Silent Buffer Overlays --- */}
+      {trainingBuffer && (
+        <View style={styles.bufferOverlay}>
+          <View style={styles.bufferBox}>
+            <Text style={{ fontSize: 16 }}>Training model for {selectedCategory}...</Text>
+            <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 10 }} />
+          </View>
+        </View>
+      )}
+
+      {pretrainingBuffer && (
+        <View style={styles.bufferOverlay}>
+          <View style={styles.bufferBox}>
+            <Text style={{ fontSize: 16 }}>Pre-training model for {pretrainCategory}...</Text>
+            <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 10 }} />
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -318,4 +356,13 @@ const styles = StyleSheet.create({
   imageCard: { width: '48%', marginBottom: 10, borderRadius: 8, overflow: 'hidden', backgroundColor: '#f0f0f0' },
   imageThumb: { width: '100%', height: 120 },
   imageName: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginVertical: 4 },
+
+  // --- new grid styles ---
+  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 15 },
+  categoryButton: { flexBasis: '48%', backgroundColor: '#2E7D32', paddingVertical: 15, borderRadius: 8, marginBottom: 10, alignItems: 'center' },
+  categoryButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
+
+  // --- buffer overlay styles ---
+  bufferOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
+  bufferBox: { padding: 20, backgroundColor: '#fff', borderRadius: 10, alignItems: 'center' },
 });
