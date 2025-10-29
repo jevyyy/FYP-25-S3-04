@@ -1,0 +1,26 @@
+{
+    "input_size": [
+        224,
+        224
+    ],
+    "batch_size": 32,
+    "epoch_head": 10,
+    "epoch_finetune": 10,
+    "learning_rate_head": 0.001,
+    "learning_rate_finetune": 1e-05,
+    "num_classes": 18,
+    "model_architecture": "MobileNetV2 + Custom Head",
+    "dataset_type": "plant",
+    "augmentation": {
+        "rotation_range": 40,
+        "width_shift_range": 0.2,
+        "height_shift_range": 0.2,
+        "shear_range": 0.2,
+        "zoom_range": 0.2,
+        "horizontal_flip": true,
+        "brightness_range": [
+            0.8,
+            1.2
+        ]
+    }
+}
