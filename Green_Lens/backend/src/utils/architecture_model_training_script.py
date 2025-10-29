@@ -189,9 +189,9 @@ model.compile(
 print("\n--- Training the new classifier head ---")
 history = model.fit(
     train_generator,
-    steps_per_epoch=train_generator.samples // batch_size,
+    steps_per_epoch=max(1, train_generator.samples // batch_size),
     validation_data=validation_generator,
-    validation_steps=validation_generator.samples // batch_size,
+    validation_steps=max(1, validation_generator.samples // batch_size),
     epochs=epoch_head,
     callbacks=[early_stopping, reduce_lr, checkpoint],
     verbose=1
@@ -221,9 +221,9 @@ model.summary()
 print("\n--- Fine-tuning the top layers of the base model ---")
 history_fine = model.fit(
     train_generator,
-    steps_per_epoch=train_generator.samples // batch_size,
+    steps_per_epoch=max(1, train_generator.samples // batch_size),
     validation_data=validation_generator,
-    validation_steps=validation_generator.samples // batch_size,
+    validation_steps=max(1, validation_generator.samples // batch_size),
     epochs=epoch_head + epoch_finetune,
     initial_epoch=history.epoch[-1],
     callbacks=[early_stopping, reduce_lr, checkpoint],
