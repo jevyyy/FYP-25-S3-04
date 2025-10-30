@@ -1,12 +1,22 @@
 // seedUsers.js
 // Run with: node seedUsers.js
 
-import { getAuth, createUserWithEmailAndPassword } from "firebase/auth";
-import { getFirestore, doc, setDoc } from "firebase/firestore";
-import { app } from '../firebaseConfig';
+import admin from 'firebase-admin';
+import fs from 'fs';
 
-const auth = getAuth(app);
-const db = getFirestore(app);
+// Load service account JSON
+const serviceAccount = JSON.parse(
+  fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-9af6311d8b.json', 'utf8')
+);
+
+// Initialize Admin SDK (safe check for re-run)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
+const db = admin.firestore();
 
 const users = [
   {
