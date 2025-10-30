@@ -1,15 +1,27 @@
 // seedQuestions.js
-import { app } from '../firebaseConfig';
-import { getFirestore, collection, addDoc } from 'firebase/firestore';
+import admin from 'firebase-admin';
+import fs from 'fs';
 
-const db = getFirestore(app);
+// Load service account JSON
+const serviceAccount = JSON.parse(
+  fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-9af6311d8b.json', 'utf8')
+);
 
-// Sample questions to add (3 per topic)
+// Initialize Admin SDK (safe check for re-run)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
+const db = admin.firestore();
+
+// Sample questions
 const questions = [
   // Flower
   {
     category: 'Flower',
-    question: 'What flower is red and often given on Valentine\'s Day?',
+    question: "What flower is red and often given on Valentine's Day?",
     options: ['Rose', 'Marigold', 'Sunflower', 'Tulip'],
     correctAnswer: 'Rose',
     imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/rose.jpg',
@@ -78,13 +90,19 @@ const questions = [
 
 async function seedQuestions() {
   try {
+    const batch = db.batch();
+    const collectionRef = db.collection('quizQuestions');
+
     for (const q of questions) {
-      await addDoc(collection(db, 'quizQuestions'), q);
-      console.log('Added question:', q.question);
+      const docRef = collectionRef.doc(); // auto ID
+      batch.set(docRef, q);
+      console.log('Queued:', q.question);
     }
-    console.log('All questions added successfully!');
+
+    await batch.commit();
+    console.log('✅ All questions added successfully!');
   } catch (err) {
-    console.error('Error adding questions:', err);
+    console.error('❌ Error adding questions:', err);
   }
 }
 
