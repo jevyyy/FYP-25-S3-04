@@ -1,4 +1,6 @@
+
 // populateObjectInfo.js
+// seedQuestions.js
 import admin from 'firebase-admin';
 import fs from 'fs';
 
@@ -16,7 +18,16 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Sample questions to add (3 per topic)
+// Initialize Admin SDK (safe check for re-run)
+if (!admin.apps.length) {
+  admin.initializeApp({
+    credential: admin.credential.cert(serviceAccount),
+  });
+}
+
+const db = admin.firestore();
+
+// Sample questions
 const questions = [
   // Flower
   {
@@ -125,13 +136,19 @@ const questions = [
 
 async function seedQuestions() {
   try {
+    const batch = db.batch();
+    const collectionRef = db.collection('quizQuestions');
+
     for (const q of questions) {
-      await addDoc(collection(db, 'quizQuestions'), q);
-      console.log('Added question:', q.question);
+      const docRef = collectionRef.doc(); // auto ID
+      batch.set(docRef, q);
+      console.log('Queued:', q.question);
     }
-    console.log('All questions added successfully!');
+
+    await batch.commit();
+    console.log('✅ All questions added successfully!');
   } catch (err) {
-    console.error('Error adding questions:', err);
+    console.error('❌ Error adding questions:', err);
   }
 }
 
