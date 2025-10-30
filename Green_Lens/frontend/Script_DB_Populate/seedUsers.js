@@ -40,33 +40,54 @@ const users = [
 async function seedUsers() {
   for (const user of users) {
     try {
-      const userCredential = await createUserWithEmailAndPassword(
-        auth,
-        user.email,
-        user.password
-      );
-      const uid = userCredential.user.uid;
+      // Generate random score (0–30)
+      const randomScore = Math.floor(Math.random() * 30);
 
-      // Firestore document with role + status
-      await setDoc(doc(db, "users", uid), {
-        email: user.email,
-        name: user.name,
-        username: user.username,
-        role: user.role,
-        status: user.status, // 👈 saved in Firestore
-      });
-
-      console.log(`✅ Created user: ${user.email} | role: ${user.role} | status: ${user.status}`);
-    } catch (error) {
-      if (error.code === "auth/email-already-in-use") {
-        console.log(`⚠️ User already exists: ${user.email}`);
-      } else {
-        console.error("❌ Error creating user:", error.message);
+      // Check if user exists in Firebase Auth
+      let userRecord;
+      try {
+        userRecord = await admin.auth().getUserByEmail(user.email);
+        console.log(`ℹ️ User already exists in Auth: ${user.email}`);
+      } catch {
+        // Create user if not found
+        userRecord = await admin.auth().createUser({
+          email: user.email,
+          password: user.password,
+          displayName: user.name,
+        });
+        console.log(`Created new Auth user: ${user.email}`);
       }
+
+      const userRef = db.collection("users").doc(userRecord.uid);
+      const userDoc = await userRef.get();
+
+      if (userDoc.exists) {
+        // Update existing Firestore doc
+        await userRef.update({
+          score: randomScore,
+          updatedAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log(`Updated score for ${user.email} → ${randomScore}`);
+      } else {
+        // Create new Firestore doc
+        await userRef.set({
+          email: user.email,
+          name: user.name,
+          username: user.username,
+          role: user.role,
+          status: user.status,
+          score: randomScore,
+          createdAt: admin.firestore.FieldValue.serverTimestamp(),
+        });
+        console.log(`✅ Created Firestore doc for ${user.email} with score ${randomScore}`);
+      }
+    } catch (error) {
+      console.error(`❌ Error processing ${user.email}:`, error.message);
     }
   }
 }
 
+//Run the seeding process
 seedUsers().then(() => {
   console.log("🎉 Seeding complete!");
   process.exit(0);
