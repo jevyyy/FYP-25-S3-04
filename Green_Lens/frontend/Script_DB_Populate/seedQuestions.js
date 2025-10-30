@@ -18,15 +18,6 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-// Initialize Admin SDK (safe check for re-run)
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
-
-const db = admin.firestore();
-
 // Sample questions
 const questions = [
   // Flower

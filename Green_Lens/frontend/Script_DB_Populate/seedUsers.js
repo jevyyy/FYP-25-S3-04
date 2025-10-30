@@ -18,10 +18,12 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
+// Default password for all users
+const DEFAULT_PASSWORD = "#Redjoker1412";
+
 const users = [
   {
     email: "kuanxun4@gmail.com",
-    password: "#Redjoker1412",
     name: "Admin1",
     username: "admin1",
     role: "admin",
@@ -29,7 +31,6 @@ const users = [
   },
   {
     email: "killerx246@hotmail.com",
-    password: "#Redjoker1412",
     name: "Developer1",
     username: "developer1",
     role: "developer",
@@ -41,7 +42,7 @@ async function seedUsers() {
   for (const user of users) {
     try {
       // Generate random score (0–30)
-      const randomScore = Math.floor(Math.random() * 30);
+      const totalPoints = Math.floor(Math.random() * 30);
 
       // Check if user exists in Firebase Auth
       let userRecord;
@@ -64,10 +65,10 @@ async function seedUsers() {
       if (userDoc.exists) {
         // Update existing Firestore doc
         await userRef.update({
-          score: randomScore,
+          score: totalPoints,
           updatedAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-        console.log(`Updated score for ${user.email} → ${randomScore}`);
+        console.log(`Updated score for ${user.email} → ${totalPoints}`);
       } else {
         // Create new Firestore doc
         await userRef.set({
@@ -76,10 +77,10 @@ async function seedUsers() {
           username: user.username,
           role: user.role,
           status: user.status,
-          score: randomScore,
+          score: totalPoints,
           createdAt: admin.firestore.FieldValue.serverTimestamp(),
         });
-        console.log(`✅ Created Firestore doc for ${user.email} with score ${randomScore}`);
+        console.log(`✅ Created Firestore doc for ${user.email} with score ${totalPoints}`);
       }
     } catch (error) {
       console.error(`❌ Error processing ${user.email}:`, error.message);
