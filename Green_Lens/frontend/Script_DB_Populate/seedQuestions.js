@@ -1,5 +1,3 @@
-
-// populateObjectInfo.js
 // seedQuestions.js
 import admin from 'firebase-admin';
 import fs from 'fs';
@@ -9,12 +7,10 @@ const serviceAccount = JSON.parse(
   fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-9af6311d8b.json', 'utf8')
 );
 
-// Initialize Admin SDK (safe check for re-run)
-if (!admin.apps.length) {
-  admin.initializeApp({
-    credential: admin.credential.cert(serviceAccount),
-  });
-}
+// Initialize Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+}); 
 
 const db = admin.firestore();
 

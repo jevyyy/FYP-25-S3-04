@@ -21,22 +21,23 @@ const db = admin.firestore();
 // Default password for all users
 const DEFAULT_PASSWORD = "#Redjoker1412";
 
-const users = [
-  {
-    email: "kuanxun4@gmail.com",
-    name: "Admin1",
-    username: "admin1",
-    role: "admin",
-    status: "active", // 👈 new field
-  },
-  {
-    email: "killerx246@hotmail.com",
-    name: "Developer1",
-    username: "developer1",
-    role: "developer",
-    status: "active", // 👈 new field
-  },
-];
+//Function to generate random test users
+function generateRandomUsers(count = 10) {
+  const users = [];
+  for (let i = 1; i <= count; i++) {
+    const randomNum = Math.floor(1000 + Math.random() * 9000); //4-digit random suffix e.g., 1234
+    users.push({
+      email: `testuser${randomNum}@example.com`,
+      name: `Test ${i}`,
+      username: `user${randomNum}`,
+      role: "user",
+      status: "active",
+    });
+  }
+  return users;
+}
+
+const users = generateRandomUsers(10);
 
 async function seedUsers() {
   for (const user of users) {
