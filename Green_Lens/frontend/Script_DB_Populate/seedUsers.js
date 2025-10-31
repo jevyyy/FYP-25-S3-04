@@ -19,70 +19,117 @@ const db = admin.firestore();
 //Default password for all users
 const DEFAULT_PASSWORD = "#Redjoker1412";
 
-//Generate 10 Admins + 10 Developers
-function generateFixedAccounts() {
-  const accounts = [];
-  for (let i = 1; i <= 20; i++) {
-    const suffix = String(i).padStart(3, "0");
-    const isAdmin = i <= 10;
-    const role = isAdmin ? "admin" : "developer";
-    const username = `${role}${suffix}`;
-    const email = `${username}@fyp.com`;
-    const name = `${isAdmin ? "Admin" : "Developer"} ${suffix}`;
+// Generate 10 Named Admin Accounts
+function generateAdmins() {
+  const adminNames = [
+    "Rachel Tan",
+    "Isaac Lim",
+    "Cheryl Ong",
+    "Nicholas Lee",
+    "Grace Ho",
+    "Ryan Koh",
+    "Celine Chua",
+    "Marcus Goh",
+    "Amanda Yeo",
+    "Daniel Teo",
+  ];
 
-    accounts.push({
+  return adminNames.map((name) => { 
+    const username = name.toLowerCase().replace(/\s+/g, "");
+    const email = `${username}@greenlens.com`;
+    return {
       email,
       name,
       username,
-      role,
+      role: "Admin",
       status: "active",
-      includePoints: false, // flag to skip totalPoints
-    });
-  }
-  return accounts;
+      includePoints: false,
+    };
+  });
 }
 
-// Generate 10 Random Test Users (Role: user)
-function generateRandomUsers(count = 10) {
-  const users = [];
-  for (let i = 1; i <= count; i++) {
-    const randomNum = Math.floor(100 + Math.random() * 900); // 3-digit unique suffix
-    users.push({
-      email: `testuser${randomNum}@fyp.com`,
-      name: `Tester${i}`,
-      username: `user${randomNum}`,
-      role: "user",
+// Generate 10 Named Developer Accounts
+function generateDevelopers() {
+  const devNames = [
+    "Lucas Wong",
+    "Mei Lin Chen",
+    "Benjamin Tan",
+    "Irfan Rahim",
+    "Natalie Lim",
+    "Sean Toh",
+    "Clara Ng",
+    "Hafiz Abdullah",
+    "Sophia Tay",
+    "Darren Lau",
+  ];
+
+  return devNames.map((name) => {
+    const username = name.toLowerCase().replace(/\s+/g, "");
+    const email = `${username}@greenlens.com`;
+    return {
+      email,
+      name,
+      username,
+      role: "Developer",
       status: "active",
-      includePoints: true, // flag to add totalPoints
-    });
-  }
-  return users;
+      includePoints: false,
+    };
+  });
 }
 
-// Combine both sets
-const users = [...generateFixedAccounts(), ...generateRandomUsers(10)];
+// Generate 10 Named User Accounts (with totalPoints)
+function generateUsers() {
+  const userNames = [
+    "Emma Tan",
+    "Jason Lim",
+    "Nurul Azizah",
+    "Benjamin Lee",
+    "Sarah Koh",
+    "David Ong",
+    "Priya Raj",
+    "Daniel Wong",
+    "Hannah Ng",
+    "Ethan Goh",
+  ];
+
+  return userNames.map((name) => {
+    const username = name.toLowerCase().replace(/\s+/g, "");
+    const email = `${username}@gmail.com`;
+    return {
+      email,
+      name,
+      username,
+      role: "User",
+      status: "active",
+      includePoints: true,
+    };
+  });
+}
+
+// Combine all 30 accounts
+const users = [...generateAdmins(), ...generateDevelopers(), ...generateUsers()];
 
 // Seed Users into Firebase Auth + Firestore
 async function seedUsers() {
   for (const user of users) {
     try {
-      //Generate random totalPoints only if applicable
+      // Generate totalPoints (only for user role)
       const totalPoints = user.includePoints ? Math.floor(Math.random() * 51) : null;
 
-      // Check if user exists in Firebase Auth
+      // Check if user already exists in Firebase Auth
       let userRecord;
       try {
         userRecord = await admin.auth().getUserByEmail(user.email);
         console.log(`ℹ️ User already exists: ${user.email}`);
 
-        // Reset password + update displayName
+        // Reset password and update name
         await admin.auth().updateUser(userRecord.uid, {
           password: DEFAULT_PASSWORD,
           displayName: user.name,
         });
-        console.log(`🔐 Password reset for existing user: ${user.email}`);
+        console.log(`🔐 Updated existing Auth user: ${user.email}`);
       } catch {
-        // Create user if not found
+        // Create new Auth user
         userRecord = await admin.auth().createUser({
           email: user.email,
           password: DEFAULT_PASSWORD,
@@ -91,11 +138,10 @@ async function seedUsers() {
         console.log(`✅ Created new Auth user: ${user.email}`);
       }
 
-      // Prepare Firestore reference
+      // Firestore doc reference
       const userRef = db.collection("users").doc(userRecord.uid);
       const userDoc = await userRef.get();
 
-      // Prepare common Firestore data
       const baseData = {
         email: user.email,
         name: user.name,
@@ -105,7 +151,6 @@ async function seedUsers() {
       };
 
       if (userDoc.exists) {
-        // Update Firestore doc
         await userRef.update({
           ...baseData,
           ...(user.includePoints && { totalPoints }),
@@ -117,7 +162,6 @@ async function seedUsers() {
           }`
         );
       } else {
-        // Create new Firestore doc
         await userRef.set({
           ...baseData,
           ...(user.includePoints && { totalPoints }),
@@ -135,7 +179,7 @@ async function seedUsers() {
   }
 
   console.log("\n🎉 Seeding complete!");
-  console.log("👥 Created 20 Admin/Developer + 10 Test User accounts");
+  console.log("👩‍💼 10 Admins, 👨‍💻 10 Developers, 👤 10 Users created.");
   console.log("🔑 Default password for all: #Redjoker1412\n");
   process.exit(0);
 }
