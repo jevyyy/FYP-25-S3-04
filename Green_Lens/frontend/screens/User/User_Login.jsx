@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { auth, app } from '../../firebaseConfig';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import { signInWithEmailAndPassword, signOut } from 'firebase/auth';
 import { getFirestore, collection, query, where, getDocs } from 'firebase/firestore';
 
 const db = getFirestore(app);
@@ -12,6 +12,17 @@ export default function User_Login() {
   const navigation = useNavigation();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+
+  const checkPasswordStrength = (password) => {
+    // Check if password meets strong requirements
+    const hasMinLength = password.length >= 8;
+    const hasUpperCase = /[A-Z]/.test(password);
+    const hasLowerCase = /[a-z]/.test(password);
+    const hasNumber = /\d/.test(password);
+    const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
+
+    return hasMinLength && hasUpperCase && hasLowerCase && hasNumber && hasSymbol;
+  };
 
   const handleLogin = async () => {
     if (!username || !password) {
@@ -41,6 +52,38 @@ export default function User_Login() {
 
       // Sign in with Firebase Auth
       await signInWithEmailAndPassword(auth, email, password);
+
+      // Check password strength AFTER successful login
+      const isStrongPassword = checkPasswordStrength(password);
+
+      if (!isStrongPassword) {
+        // Password is weak - SIGN OUT and force them to change it
+        await signOut(auth);
+        
+        Alert.alert(
+          'Weak Password Detected',
+          'Your current password does not meet our security requirements. Please reset your password using "Forgot Password".\n\n' +
+          'Requirements:\n' +
+          '• At least 8 characters\n' +
+          '• One uppercase letter (A-Z)\n' +
+          '• One lowercase letter (a-z)\n' +
+          '• One number (0-9)\n' +
+          '• One special character (!@#$%^&*)',
+          [
+            {
+              text: 'Reset Password',
+              onPress: () => {
+                navigation.navigate('Forgot_PasswordPage');
+              },
+            },
+            {
+              text: 'Cancel',
+              style: 'cancel',
+            },
+          ]
+        );
+        return;
+      }
 
       // Navigate to home page
       navigation.replace('UserFlow', {
@@ -101,7 +144,7 @@ export default function User_Login() {
       </TouchableOpacity>
 
       <View style={styles.registerContainer}>
-        <Text style={styles.registerText}>Don’t have an account? </Text>
+        <Text style={styles.registerText}>Don't have an account? </Text>
         <TouchableOpacity onPress={goToRegister}>
           <Text style={styles.registerLink}>Register</Text>
         </TouchableOpacity>

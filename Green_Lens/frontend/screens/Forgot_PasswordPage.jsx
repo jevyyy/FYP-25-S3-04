@@ -9,18 +9,7 @@ export default function Forgot_PasswordPage({ route }) {
   const navigation = useNavigation();
   const [email, setEmail] = useState('');
   const [newPassword, setNewPassword] = useState('');
-
-  // If your app handles deep links, the oobCode can be passed via route.params
-  const { oobCode } = route.params || {}; 
-
-  const validatePassword = (password) => {
-    const strongPassword =
-      /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
-    if (!strongPassword.test(password)) {
-      return '*Password too weak (at least 8 chars, include uppercase, lowercase, number & special character)';
-    }
-    return null;
-  };
+  const { oobCode } = route.params || {};
 
   // Step 1: Send reset email
   const handleSendResetEmail = async () => {
@@ -31,19 +20,9 @@ export default function Forgot_PasswordPage({ route }) {
 
     try {
       await sendPasswordResetEmail(auth, email);
-
-      // Show alert and navigate back to login
-      Alert.alert(
-        'Success',
-        'Password reset link sent to your email!',
-        [
-          {
-            text: 'Return to Login',
-            onPress: () => navigation.navigate('User_Login'),
-          },
-        ],
-        { cancelable: false }
-      );
+      Alert.alert('Success', 'Password reset link sent to your email!', [
+        { text: 'Return to Login', onPress: () => navigation.navigate('User_Login') },
+      ]);
     } catch (error) {
       if (error.code === 'auth/user-not-found') {
         Alert.alert('Error', 'No user found with this email');
@@ -57,9 +36,8 @@ export default function Forgot_PasswordPage({ route }) {
 
   // Step 2: Set new password (after clicking link)
   const handleSetNewPassword = async () => {
-    const passwordError = validatePassword(newPassword);
-    if (passwordError) {
-      Alert.alert('Error', passwordError);
+    if (!newPassword.trim()) {
+      Alert.alert('Error', 'Please enter a new password');
       return;
     }
 
@@ -90,7 +68,6 @@ export default function Forgot_PasswordPage({ route }) {
 
       {!oobCode ? (
         <>
-          {/* Step 1: Ask for email only */}
           <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
@@ -107,7 +84,6 @@ export default function Forgot_PasswordPage({ route }) {
         </>
       ) : (
         <>
-          {/* Step 2: Set new password */}
           <Text style={styles.label}>New Password</Text>
           <TextInput
             style={styles.input}
