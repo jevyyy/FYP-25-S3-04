@@ -62,13 +62,14 @@ export default function User_Login() {
         
         Alert.alert(
           'Weak Password Detected',
-          'Your current password does not meet our security requirements. Please reset your password using "Forgot Password".\n\n' +
+          'Your current password does not meet the password requirements \n\n' +
           'Requirements:\n' +
           '• At least 8 characters\n' +
           '• One uppercase letter (A-Z)\n' +
           '• One lowercase letter (a-z)\n' +
           '• One number (0-9)\n' +
-          '• One special character (!@#$%^&*)',
+          '• One special character (!@#$%^&*)'+
+          '\n\nPlease reset your password again by pressing "RESET PASSWORD"',
           [
             {
               text: 'Reset Password',
