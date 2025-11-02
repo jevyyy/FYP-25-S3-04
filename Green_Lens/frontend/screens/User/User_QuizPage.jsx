@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image, TouchableWithoutFeedback } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { 
   getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, doc, setDoc, updateDoc, increment, getDoc 
 } from 'firebase/firestore';
