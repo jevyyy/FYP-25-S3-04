@@ -49,13 +49,13 @@ validation_data_path = None  # Set to a Path if you have separate validation dat
 # Output directory - saves to backend/downloaded_model for app.py to use
 output_dir = BACKEND_DIR / 'downloaded_model'
 
-# Model hyperparameters
+# Model hyperparameters (optimized for small datasets)
 input_size = (224, 224)
-batch_size = 32
-epoch_head = 10
-epoch_finetune = 10
-learning_rate_head = 1e-3
-learning_rate_finetune = 1e-5
+batch_size = 8  # Smaller batch size for limited data
+epoch_head = 15  # More epochs for better learning
+epoch_finetune = 15
+learning_rate_head = 1e-3  # Higher learning rate to improve learning
+learning_rate_finetune = 5e-5  # Slightly higher for fine-tuning
 
 # Create the output directory if it doesn't exist
 output_dir.mkdir(parents=True, exist_ok=True)
@@ -68,17 +68,20 @@ if validation_data_path:
 # 2. Data Preparation, Preprocessing & Augmentation
 # ======================
 
-# Training data generator with comprehensive augmentation
+# Training data generator with VERY AGGRESSIVE augmentation for small datasets
+# This helps the model generalize better when data is extremely limited
 train_datagen = ImageDataGenerator(
     preprocessing_function=preprocess_input,  # MobileNetV2 preprocessing
-    rotation_range=40,                        # Randomly rotate images by 40 degrees
-    width_shift_range=0.2,                    # Randomly shift images horizontally
-    height_shift_range=0.2,                   # Randomly shift images vertically
-    shear_range=0.2,                          # Shear transformations
-    zoom_range=0.2,                           # Random zoom
+    rotation_range=50,                        # Very aggressive rotation
+    width_shift_range=0.3,                    # Aggressive horizontal shift
+    height_shift_range=0.3,                   # Aggressive vertical shift
+    shear_range=0.3,                          # Aggressive shear
+    zoom_range=0.3,                           # Aggressive zoom
     horizontal_flip=True,                     # Random horizontal flips
+    vertical_flip=True,                       # Add vertical flips for more variety
     fill_mode='nearest',                      # Fill strategy for pixels after transformation
-    brightness_range=[0.8, 1.2],             # Random brightness adjustments
+    brightness_range=[0.6, 1.4],             # Very wide brightness range
+    channel_shift_range=30.0,                # More color variation
     validation_split=0.2                      # Use 20% of data for validation
 )
 
@@ -138,12 +141,14 @@ base_model = MobileNetV2(
 
 base_model.trainable = False
 
+# Reduced dropout to help with underfitting
 inputs = tf.keras.Input(shape=(224, 224, 3))
 x = base_model(inputs, training=False)
+x = layers.Dropout(0.3)(x)  # Moderate dropout after base model
 x = layers.Dense(256, activation='relu')(x)
-x = layers.Dropout(0.3)(x)
+x = layers.Dropout(0.2)(x)  # Lower dropout to allow more learning
 x = layers.Dense(128, activation='relu')(x)
-x = layers.Dropout(0.2)(x)
+x = layers.Dropout(0.1)(x)  # Minimal dropout
 outputs = layers.Dense(num_classes, activation='softmax')(x)
 
 model = Model(inputs, outputs)
@@ -154,10 +159,10 @@ model.summary()
 # 4. Compile the Model with Callbacks
 # ======================
 
-# Callbacks for better training
+# Callbacks for better training with small datasets
 early_stopping = EarlyStopping(
     monitor='val_loss',
-    patience=5,
+    patience=8,  # Increased patience for small datasets
     restore_best_weights=True,
     verbose=1
 )
@@ -165,7 +170,7 @@ early_stopping = EarlyStopping(
 reduce_lr = ReduceLROnPlateau(
     monitor='val_loss',
     factor=0.5,
-    patience=3,
+    patience=5,  # Increased patience
     min_lr=1e-7,
     verbose=1
 )
@@ -203,11 +208,10 @@ history = model.fit(
 print("\n--- Preparing for Fine-Tuning ---")
 base_model.trainable = True
 
-# Unfreeze the last 50 layers of the base model for fine-tuning
-# This allows the model to adapt pre-trained features to our specific task
-# while keeping earlier layers frozen to preserve general image features
-# Note: MobileNetV2 has 155 layers, so this unfreezes roughly the top 1/3
-for layer in base_model.layers[:-50]:
+# Unfreeze more layers (last 70) to help the model learn better
+# With underfitting, we need to give the model more capacity to learn
+# Note: MobileNetV2 has 155 layers, so this unfreezes roughly the top 45%
+for layer in base_model.layers[:-70]:
     layer.trainable = False
 
 model.compile(
