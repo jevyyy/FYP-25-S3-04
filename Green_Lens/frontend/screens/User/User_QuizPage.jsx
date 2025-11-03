@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image, TouchableWithoutFeedback } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
 import { 
   getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, doc, setDoc, updateDoc, increment, getDoc 
 } from 'firebase/firestore';
@@ -122,20 +123,29 @@ export default function User_QuizPage({ navigation }) {
 
   return (
     <View style={styles.container}>
+      {/* Ranking Button */}
       <View style={styles.topRow}>
         <TouchableOpacity style={styles.rankingButton} onPress={goToRanking}>
-          <Text style={styles.rankingButtonText}>Ranking</Text>
+          <Ionicons name="trophy-outline" size={18} color="#000" />
+          <Text style={styles.rankingText}>Ranking</Text>
         </TouchableOpacity>
       </View>
 
+      {/* Category Cards */}
       <View style={styles.categoryContainer}>
-        {['Flower', 'Plant', 'Architecture'].map((cat) => (
-          <TouchableOpacity key={cat} style={styles.categoryButton} onPress={() => handlePressCategory(cat)}>
+        {[
+          { cat: 'Flower', icon: 'flower-outline' },
+          { cat: 'Plant', icon: 'leaf-outline' },
+          { cat: 'Architecture', icon: 'business-outline' },
+        ].map(({ cat, icon }) => (
+          <TouchableOpacity key={cat} style={styles.categoryCard} onPress={() => handlePressCategory(cat)}>
+            <Ionicons name={icon} size={32} color="#000" style={{ marginBottom: 8 }} />
             <Text style={styles.categoryText}>{cat}</Text>
           </TouchableOpacity>
         ))}
       </View>
 
+      {/* Quiz Modal */}
       <Modal transparent visible={quizVisible} animationType="slide" onRequestClose={handleReturn}>
         <TouchableWithoutFeedback onPress={handleReturn}>
           <View style={styles.modalOverlay}>
@@ -175,12 +185,44 @@ export default function User_QuizPage({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
+
+  // Ranking
   topRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 },
-  rankingButton: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#000', borderRadius: 10 },
-  rankingButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
-  categoryContainer: { flexDirection: 'row', justifyContent: 'space-around', marginBottom: 50 },
-  categoryButton: { width: 100, height: 100, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center', borderRadius: 12 },
-  categoryText: { color: '#fff', fontWeight: '600', textAlign: 'center' },
+  rankingButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#FFD43B',
+    borderRadius: 10,
+    paddingVertical: 6,
+    paddingHorizontal: 12,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+  rankingText: {
+    fontWeight: '600',
+    color: '#000',
+    fontSize: 14,
+    marginLeft: 4,
+  },
+
+  // Category
+  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  categoryCard: {
+    backgroundColor: '#EAF7EA',
+    borderRadius: 15,
+    width: '30%',
+    paddingVertical: 18,
+    alignItems: 'center',
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 2,
+  },
+  categoryText: { fontSize: 14, fontWeight: '600', color: '#333', textAlign: 'center' },
+
+  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center' },
   questionText: { fontSize: 16, fontWeight: '600', marginBottom: 15, textAlign: 'center' },

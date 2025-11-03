@@ -1,5 +1,6 @@
 // ./screens/User/User_Explore.jsx
 import React, { useState, useEffect } from 'react';
+import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, Alert, FlatList } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
@@ -219,12 +220,14 @@ export default function User_Explore() {
     <View style={styles.container}>
       {/* Buttons */}
       <View style={styles.buttonContainer}>
-        <TouchableOpacity style={[styles.button, { marginRight: 15 }]} onPress={handleSelectPhoto}>
-          <Text style={styles.buttonText}>Upload</Text>
+        <TouchableOpacity style={[styles.actionButton, styles.uploadButton]} onPress={handleSelectPhoto}>
+          <Ionicons name="cloud-upload-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
+          <Text style={[styles.buttonText, { color: '#fff' }]}>Upload</Text>
         </TouchableOpacity>
-
-        <TouchableOpacity style={styles.button} onPress={() => navigation.navigate('User_RankingPage')}>
-          <Text style={styles.buttonText}>Ranking</Text>
+        
+        <TouchableOpacity style={[styles.actionButton, styles.rankingButton]} onPress={() => navigation.navigate('User_RankingPage')}>
+          <Ionicons name="trophy-outline" size={18} color="#000" style={{ marginRight: 6 }} />
+          <Text style={[styles.buttonText, { color: '#000' }]}>Ranking</Text>
         </TouchableOpacity>
       </View>
 
@@ -272,17 +275,51 @@ export default function User_Explore() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
-  buttonContainer: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 30 },
-  button: { backgroundColor: '#000', paddingVertical: 12, paddingHorizontal: 20, borderRadius: 10, elevation: 2 },
-  buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
+
+  buttonContainer: {
+    flexDirection: 'row',
+    justifyContent: 'flex-end',
+    alignItems: 'center',
+    marginBottom: 30,
+    gap: 12,
+  },
+
+  actionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    paddingVertical: 10,
+    paddingHorizontal: 18,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 3,
+    elevation: 2,
+  },
+
+  uploadButton: { backgroundColor: '#000' },
+  rankingButton: { backgroundColor: '#FFD43B' },
+
+  buttonText: { fontSize: 15, fontWeight: '600' },
+
   recentLabel: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
-  postContainer: { marginBottom: 20, backgroundColor: '#fff', borderRadius: 10, padding: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, elevation: 2 },
+
+  postContainer: {
+    marginBottom: 20,
+    backgroundColor: '#fff',
+    borderRadius: 10,
+    padding: 10,
+    shadowColor: '#000',
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    elevation: 2,
+  },
   imagePlaceholder: { width: '100%', height: 200, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
   postFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
   username: { fontSize: 16, fontWeight: '600', color: '#333', flex: 1 },
   actions: { flexDirection: 'row', alignItems: 'center' },
   voteButton: { marginHorizontal: 5, alignItems: 'center' },
   voteText: { fontSize: 18 },
+
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center', position: 'relative' },
   modalText: { marginTop: 20, fontSize: 16, fontWeight: '600', color: '#333', textAlign: 'center' },
