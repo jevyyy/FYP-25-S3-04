@@ -4,7 +4,7 @@ import { getStorage, ref, listAll } from 'firebase/storage';
 import { getFirestore, doc, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { app } from '../../firebaseConfig';
-import GreenLensLogo from '../../assets/Green_Lens_logo.png'; // your logo
+import GreenLensLogo from '../../assets/Green_Lens_logo.png';
 
 export default function Developer_HomePage() {
   const [stats, setStats] = useState({
@@ -22,6 +22,10 @@ export default function Developer_HomePage() {
   useEffect(() => {
     fetchUsername();
     fetchModelStats();
+
+    // 🔁 auto-refresh every 10 seconds
+    const interval = setInterval(fetchModelStats, 5000);
+    return () => clearInterval(interval);
   }, []);
 
   const fetchUsername = async () => {
@@ -50,7 +54,7 @@ export default function Developer_HomePage() {
         totalImagesCount += res.items.length;
       }
 
-      setStats((prev) => ({ ...prev, totalImages: totalImagesCount }));
+      setStats(prev => ({ ...prev, totalImages: totalImagesCount }));
     } catch (error) {
       console.log('Firebase Storage fetch error:', error);
     } finally {
@@ -61,19 +65,19 @@ export default function Developer_HomePage() {
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Header with logo and greeting */}
         <View style={styles.header}>
           <Image source={GreenLensLogo} style={styles.logoImage} />
           <Text style={styles.greeting}>Hi {username},</Text>
         </View>
 
-        {/* Stats Cards */}
         <View style={styles.statsContainer}>
           <View style={[styles.statCard, styles.yellowCard]}>
             <Text style={styles.statLabel}>Total Images in Database:</Text>
-            {loading ? <ActivityIndicator size="small" color="#666" /> :
+            {loading ? (
+              <ActivityIndicator size="small" color="#666" />
+            ) : (
               <Text style={styles.statValue}>{stats.totalImages.toLocaleString()}</Text>
-            }
+            )}
           </View>
 
           <View style={[styles.statCard, styles.greenCard]}>
@@ -92,13 +96,22 @@ export default function Developer_HomePage() {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: '#fff' }, // completely white page
+  container: { flex: 1, backgroundColor: '#fff' },
   scrollContent: { paddingBottom: 100 },
   header: { paddingHorizontal: 20, paddingTop: 60, paddingBottom: 30, backgroundColor: '#fff' },
   logoImage: { width: 150, height: 50, resizeMode: 'contain', marginBottom: 10 },
   greeting: { fontSize: 28, fontWeight: 'bold', color: '#333' },
-  statsContainer: { paddingHorizontal: 20,},
-  statCard: { borderRadius: 20, padding: 20, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  statsContainer: { paddingHorizontal: 20 },
+  statCard: {
+    borderRadius: 20,
+    padding: 20,
+    marginBottom: 20,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   yellowCard: { backgroundColor: '#FFF9C4' },
   greenCard: { backgroundColor: '#C8E6C9' },
   purpleCard: { backgroundColor: '#E1BEE7' },
