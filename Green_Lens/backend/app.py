@@ -21,13 +21,13 @@ SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), 'service-account.
 
 # Local paths for downloaded files
 LOCAL_MODEL_DIR = os.path.join(os.path.dirname(__file__), 'downloaded_model')
-LOCAL_MODEL_PATH = os.path.join(LOCAL_MODEL_DIR, 'flower_img_classifier.keras')
-LOCAL_CLASS_NAMES_PATH = os.path.join(LOCAL_MODEL_DIR, 'class_names.json')
+LOCAL_MODEL_PATH = os.path.join(LOCAL_MODEL_DIR, 'flower_best_model.keras')
+LOCAL_CLASS_NAMES_PATH = os.path.join(LOCAL_MODEL_DIR, 'flower_class_names.json')
 LOCAL_CLASS_DICT_PATH = os.path.join(LOCAL_MODEL_DIR, 'classes_to_name_dictionary.json')
 
 # Firebase Storage paths
-FIREBASE_MODEL_PATH = 'flower_img_classifier.keras'
-FIREBASE_CLASS_NAMES_PATH = 'class_names.json'
+FIREBASE_MODEL_PATH = 'flower_best_model.keras'
+FIREBASE_CLASS_NAMES_PATH = 'flower_class_names.json'
 FIREBASE_CLASS_DICT_PATH = 'classes_to_name_dictionary.json'
 
 # Global variables for model and class names
