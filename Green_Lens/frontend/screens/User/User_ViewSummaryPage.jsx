@@ -21,9 +21,21 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
 
 export default function User_ViewSummaryPage({ route }) {
-  const { photoUri, predictionData } = route.params || {};
+  const { photoUri, predictionData, category = 'flower' } = route.params || {};
   const topPrediction = predictionData?.top_prediction || null;
-  const objectName = topPrediction?.flower_name || 'Unknown Object';
+  
+  // Get object name based on category
+  let objectName = 'Unknown Object';
+  if (topPrediction) {
+    if (category === 'flower') {
+      objectName = topPrediction.flower_name || topPrediction.name || 'Unknown Flower';
+    } else if (category === 'plant') {
+      objectName = topPrediction.plant_name || topPrediction.name || 'Unknown Plant';
+    } else if (category === 'architecture') {
+      objectName = topPrediction.architecture_name || topPrediction.name || 'Unknown Architecture';
+    }
+  }
+  
   const confidence = topPrediction?.confidence_percentage || 0;
 
   const [summaryData, setSummaryData] = useState(null);

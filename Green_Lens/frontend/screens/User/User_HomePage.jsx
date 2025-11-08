@@ -66,12 +66,20 @@ export default function User_HomePage() {
   const cameraRef = useRef(null);
   const [selectedImageUri, setSelectedImageUri] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
+  const [selectedCategory, setSelectedCategory] = useState('flower');
   const drawerStatus = useDrawerStatus();
   const isDrawerOpen = drawerStatus === 'open';
 
   // 🌿 Tip system (show all tips)
   const [showTips, setShowTips] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
+
+  // Category configuration
+  const categories = [
+    { id: 'flower', label: 'Flower', icon: '🌸' },
+    { id: 'plant', label: 'Plant', icon: '🌿' },
+    { id: 'architecture', label: 'Architecture', icon: '🏛️' },
+  ];
 
   const tips = [
     '------------------------------Helpful Tips------------------------------',
@@ -127,16 +135,17 @@ export default function User_HomePage() {
   const processImage = async (photoUri) => {
     setIsProcessing(true);
     try {
-      const result = await predictPlant(photoUri);
+      const result = await predictPlant(photoUri, selectedCategory);
       if (result.success) {
         navigation.navigate('User_ViewSummary', {
           photoUri: photoUri,
           predictionData: result.data,
+          category: selectedCategory,
         });
       } else {
         Alert.alert(
           'Recognition Failed',
-          result.error || 'Unable to recognize the plant. Please try again.'
+          result.error || `Unable to recognize the ${selectedCategory}. Please try again.`
         );
       }
     } catch (error) {
@@ -174,9 +183,34 @@ export default function User_HomePage() {
       {isProcessing && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#ffffff" />
-          <Text style={styles.loadingText}>Recognizing plant...</Text>
+          <Text style={styles.loadingText}>Recognizing {selectedCategory}...</Text>
         </View>
       )}
+
+      {/* Category selector */}
+      <View style={styles.categorySelector}>
+        {categories.map((category) => (
+          <TouchableOpacity
+            key={category.id}
+            style={[
+              styles.categoryButton,
+              selectedCategory === category.id && styles.categoryButtonActive,
+            ]}
+            onPress={() => setSelectedCategory(category.id)}
+            disabled={isProcessing}
+          >
+            <Text style={styles.categoryIcon}>{category.icon}</Text>
+            <Text
+              style={[
+                styles.categoryLabel,
+                selectedCategory === category.id && styles.categoryLabelActive,
+              ]}
+            >
+              {category.label}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
 
       {/* Help icon */}
       <TouchableOpacity style={styles.helpIcon} onPress={toggleTips}>
@@ -279,4 +313,37 @@ const styles = StyleSheet.create({
     zIndex: 10,
   },
   loadingText: { color: '#ffffff', fontSize: 16, marginTop: 10 },
+  categorySelector: {
+    position: 'absolute',
+    top: 20,
+    left: 20,
+    flexDirection: 'row',
+    gap: 10,
+  },
+  categoryButton: {
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    paddingVertical: 8,
+    paddingHorizontal: 12,
+    borderRadius: 20,
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 2,
+    borderColor: 'transparent',
+  },
+  categoryButtonActive: {
+    backgroundColor: 'rgba(76, 175, 80, 0.8)',
+    borderColor: '#fff',
+  },
+  categoryIcon: {
+    fontSize: 16,
+    marginRight: 4,
+  },
+  categoryLabel: {
+    color: '#fff',
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  categoryLabelActive: {
+    fontWeight: 'bold',
+  },
 });

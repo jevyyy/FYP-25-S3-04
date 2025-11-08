@@ -21,19 +21,42 @@ SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), 'service-account.
 
 # Local paths for downloaded files
 LOCAL_MODEL_DIR = os.path.join(os.path.dirname(__file__), 'downloaded_model')
-LOCAL_MODEL_PATH = os.path.join(LOCAL_MODEL_DIR, 'flower_best_model.keras')
-LOCAL_CLASS_NAMES_PATH = os.path.join(LOCAL_MODEL_DIR, 'flower_class_names.json')
-LOCAL_CLASS_DICT_PATH = os.path.join(LOCAL_MODEL_DIR, 'classes_to_name_dictionary.json')
 
-# Firebase Storage paths
-FIREBASE_MODEL_PATH = 'flower_best_model.keras'
-FIREBASE_CLASS_NAMES_PATH = 'flower_class_names.json'
-FIREBASE_CLASS_DICT_PATH = 'classes_to_name_dictionary.json'
+# Configuration for each category
+CATEGORIES = {
+    'flower': {
+        'model_file': 'flower_best_model.keras',
+        'class_names_file': 'flower_class_names.json',
+        'class_dict_file': 'classes_to_name_dictionary.json',  # Flower uses 2-step mapping
+        'firebase_model': 'flower_best_model.keras',
+        'firebase_class_names': 'flower_class_names.json',
+        'firebase_class_dict': 'classes_to_name_dictionary.json',
+        'use_class_dict': True  # Flower uses class_id -> name mapping
+    },
+    'plant': {
+        'model_file': 'plant_best_model.keras',
+        'class_names_file': 'plant_class_names.json',
+        'class_dict_file': None,  # Plant uses direct mapping
+        'firebase_model': 'plant_best_model.keras',
+        'firebase_class_names': 'plant_class_names.json',
+        'firebase_class_dict': None,
+        'use_class_dict': False  # Plant has direct index -> name mapping
+    },
+    'architecture': {
+        'model_file': 'architecture_best_model.keras',
+        'class_names_file': 'architecture_class_names.json',
+        'class_dict_file': None,  # Architecture uses direct mapping
+        'firebase_model': 'architecture_best_model.keras',
+        'firebase_class_names': 'architecture_class_names.json',
+        'firebase_class_dict': None,
+        'use_class_dict': False  # Architecture has direct index -> name mapping
+    }
+}
 
-# Global variables for model and class names
-model = None
-class_names = None
-class_dict = None
+# Global variables for models and class names
+models = {}  # Dictionary to store loaded models by category
+class_names_dict = {}  # Dictionary to store class names by category
+class_dict_dict = {}  # Dictionary to store class dictionaries by category (for flower)
 firebase_initialized = False
 
 def initialize_firebase():
@@ -69,42 +92,80 @@ def download_file_from_firebase(firebase_path, local_path):
         print(f"Error downloading {firebase_path}: {str(e)}")
         raise e
 
-def load_model_and_classes():
-    """Load the trained model and class mappings from Firebase Storage"""
-    global model, class_names, class_dict
+def load_model_and_classes_for_category(category):
+    """Load the trained model and class mappings for a specific category"""
+    global models, class_names_dict, class_dict_dict
+    
+    if category not in CATEGORIES:
+        raise ValueError(f"Invalid category: {category}. Must be one of {list(CATEGORIES.keys())}")
     
     try:
-        # Initialize Firebase if not already done
-        initialize_firebase()
+        config = CATEGORIES[category]
         
-        # Create local directory for downloaded files
-        os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
-        print(f"Created directory: {LOCAL_MODEL_DIR}")
+        # Define local paths
+        local_model_path = os.path.join(LOCAL_MODEL_DIR, config['model_file'])
+        local_class_names_path = os.path.join(LOCAL_MODEL_DIR, config['class_names_file'])
         
-        # Download model file from Firebase Storage
-        print("Downloading model files from Firebase Storage...")
-        download_file_from_firebase(FIREBASE_MODEL_PATH, LOCAL_MODEL_PATH)
-        download_file_from_firebase(FIREBASE_CLASS_NAMES_PATH, LOCAL_CLASS_NAMES_PATH)
-        download_file_from_firebase(FIREBASE_CLASS_DICT_PATH, LOCAL_CLASS_DICT_PATH)
+        # Check if files already exist locally (skip Firebase download if they do)
+        files_exist = os.path.exists(local_model_path) and os.path.exists(local_class_names_path)
         
-        # Load the model from local file
-        print(f"Loading model from: {LOCAL_MODEL_PATH}")
-        model = load_model(LOCAL_MODEL_PATH)
-        print("Model loaded successfully")
+        if config['use_class_dict']:
+            local_class_dict_path = os.path.join(LOCAL_MODEL_DIR, config['class_dict_file'])
+            files_exist = files_exist and os.path.exists(local_class_dict_path)
         
-        # Load class names mapping (index to class ID)
-        with open(LOCAL_CLASS_NAMES_PATH, 'r') as f:
-            class_names = json.load(f)
-        print(f"Loaded {len(class_names)} class names")
+        # Download from Firebase if files don't exist locally
+        if not files_exist:
+            print(f"Downloading {category} model files from Firebase Storage...")
+            initialize_firebase()
+            download_file_from_firebase(config['firebase_model'], local_model_path)
+            download_file_from_firebase(config['firebase_class_names'], local_class_names_path)
+            
+            if config['use_class_dict']:
+                download_file_from_firebase(config['firebase_class_dict'], local_class_dict_path)
+        else:
+            print(f"Using existing local files for {category} model")
         
-        # Load class dictionary (class ID to flower name)
-        with open(LOCAL_CLASS_DICT_PATH, 'r') as f:
-            class_dict = json.load(f)
-        print(f"Loaded {len(class_dict)} class descriptions")
+        # Load the model
+        print(f"Loading {category} model from: {local_model_path}")
+        models[category] = load_model(local_model_path)
+        print(f"{category.capitalize()} model loaded successfully")
+        
+        # Load class names mapping
+        with open(local_class_names_path, 'r') as f:
+            class_names_dict[category] = json.load(f)
+        print(f"Loaded {len(class_names_dict[category])} {category} class names")
+        
+        # Load class dictionary if needed (only for flower)
+        if config['use_class_dict']:
+            with open(local_class_dict_path, 'r') as f:
+                class_dict_dict[category] = json.load(f)
+            print(f"Loaded {len(class_dict_dict[category])} {category} class descriptions")
+        else:
+            class_dict_dict[category] = None
         
     except Exception as e:
-        print(f"Error loading model or classes: {str(e)}")
+        print(f"Error loading {category} model or classes: {str(e)}")
         raise e
+
+def load_all_models():
+    """Load all category models on startup"""
+    os.makedirs(LOCAL_MODEL_DIR, exist_ok=True)
+    print(f"Created directory: {LOCAL_MODEL_DIR}")
+    
+    for category in CATEGORIES.keys():
+        try:
+            print(f"\n{'='*60}")
+            print(f"Loading {category.upper()} model...")
+            print(f"{'='*60}")
+            load_model_and_classes_for_category(category)
+        except Exception as e:
+            print(f"Failed to load {category} model: {str(e)}")
+            print(f"Continuing with other models...")
+    
+    print(f"\n{'='*60}")
+    print(f"Loaded {len(models)} models successfully")
+    print(f"Available categories: {list(models.keys())}")
+    print(f"{'='*60}\n")
 
 def preprocess_image(image_bytes):
     """Preprocess the image for model prediction"""
@@ -139,14 +200,32 @@ def health_check():
     """Health check endpoint"""
     return jsonify({
         'status': 'healthy',
-        'model_loaded': model is not None,
-        'classes_loaded': class_names is not None
+        'models_loaded': len(models),
+        'available_categories': list(models.keys()),
+        'flower_loaded': 'flower' in models,
+        'plant_loaded': 'plant' in models,
+        'architecture_loaded': 'architecture' in models
     })
 
 @app.route('/predict', methods=['POST'])
 def predict():
-    """Predict the plant/flower from an uploaded image"""
+    """Predict the plant/flower/architecture from an uploaded image"""
     try:
+        # Get category from form data (default to 'flower' for backwards compatibility)
+        category = request.form.get('category', 'flower').lower()
+        
+        # Validate category
+        if category not in CATEGORIES:
+            return jsonify({
+                'error': f'Invalid category: {category}. Must be one of {list(CATEGORIES.keys())}'
+            }), 400
+        
+        # Check if model for this category is loaded
+        if category not in models:
+            return jsonify({
+                'error': f'Model for category {category} is not loaded'
+            }), 503
+        
         # Check if image is in request
         if 'image' not in request.files:
             return jsonify({'error': 'No image provided'}), 400
@@ -163,6 +242,11 @@ def predict():
         # Preprocess the image
         processed_image = preprocess_image(image_bytes)
         
+        # Get the appropriate model and class mappings
+        model = models[category]
+        class_names = class_names_dict[category]
+        class_dict = class_dict_dict.get(category)
+        
         # Make prediction
         predictions = model.predict(processed_image)
         
@@ -171,25 +255,49 @@ def predict():
         
         results = []
         for idx in top_5_indices:
-            class_id = class_names[str(idx)]
-            flower_name = class_dict.get(class_id, f"Unknown (Class {class_id})")
+            idx_str = str(idx)
+            
+            # For flower: use 2-step mapping (index -> class_id -> name)
+            # For plant/architecture: use direct mapping (index -> name)
+            if CATEGORIES[category]['use_class_dict']:
+                class_id = class_names.get(idx_str, idx_str)
+                object_name = class_dict.get(class_id, f"Unknown (Class {class_id})")
+            else:
+                class_id = idx_str
+                object_name = class_names.get(idx_str, f"Unknown (Index {idx_str})")
+            
             confidence = float(predictions[0][idx])
             
-            results.append({
+            result = {
                 'class_id': class_id,
-                'flower_name': flower_name,
                 'confidence': confidence,
                 'confidence_percentage': round(confidence * 100, 2)
-            })
+            }
+            
+            # Use appropriate field name based on category
+            if category == 'flower':
+                result['flower_name'] = object_name
+            elif category == 'plant':
+                result['plant_name'] = object_name
+            elif category == 'architecture':
+                result['architecture_name'] = object_name
+            
+            # Also add generic 'name' field for easier access
+            result['name'] = object_name
+            
+            results.append(result)
         
         return jsonify({
             'success': True,
+            'category': category,
             'predictions': results,
             'top_prediction': results[0] if results else None
         })
     
     except Exception as e:
         print(f"Error during prediction: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return jsonify({
             'success': False,
             'error': str(e)
@@ -197,12 +305,39 @@ def predict():
 
 @app.route('/classes', methods=['GET'])
 def get_classes():
-    """Get all available classes"""
+    """Get all available classes for a specific category"""
     try:
+        # Get category from query parameter (default to 'flower')
+        category = request.args.get('category', 'flower').lower()
+        
+        # Validate category
+        if category not in CATEGORIES:
+            return jsonify({
+                'error': f'Invalid category: {category}. Must be one of {list(CATEGORIES.keys())}'
+            }), 400
+        
+        # Check if model for this category is loaded
+        if category not in class_names_dict:
+            return jsonify({
+                'error': f'Classes for category {category} are not loaded'
+            }), 503
+        
+        class_names = class_names_dict[category]
+        class_dict = class_dict_dict.get(category)
+        
+        # Build classes response
+        if CATEGORIES[category]['use_class_dict']:
+            # For flower: return the class dictionary
+            classes = class_dict
+        else:
+            # For plant/architecture: return the class names directly
+            classes = class_names
+        
         return jsonify({
             'success': True,
-            'total_classes': len(class_dict),
-            'classes': class_dict
+            'category': category,
+            'total_classes': len(classes),
+            'classes': classes
         })
     except Exception as e:
         return jsonify({
@@ -210,9 +345,18 @@ def get_classes():
             'error': str(e)
         }), 500
 
+@app.route('/categories', methods=['GET'])
+def get_categories():
+    """Get list of available categories"""
+    return jsonify({
+        'success': True,
+        'categories': list(CATEGORIES.keys()),
+        'loaded_categories': list(models.keys())
+    })
+
 if __name__ == '__main__':
-    # Load model and classes on startup
-    load_model_and_classes()
+    # Load all models on startup
+    load_all_models()
     
     # Run the Flask app
     port = int(os.environ.get('PORT', 5000))
