@@ -114,7 +114,7 @@ async function seedUsers() {
   for (const user of users) {
     try {
       // Generate totalPoints (only for user role)
-      const totalPoints = user.includePoints ? Math.floor(Math.random() * 51) : null;
+      const totalPoints = user.includePoints ? Math.floor(Math.random() * 5001) : null;
 
       // Check if user already exists in Firebase Auth
       let userRecord;
