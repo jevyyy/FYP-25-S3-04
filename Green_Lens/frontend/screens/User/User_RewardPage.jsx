@@ -43,19 +43,6 @@ export default function User_RewardPage() {
     }
   };
 
-  const addTestPoints = async () => {
-    if (!currentUser) return;
-    try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, { totalPoints: increment(100) });
-      setPoints(prev => prev + 100);
-      Alert.alert('Test Points Added', '+100 points');
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to add test points.');
-    }
-  };
-
   const resolveImageUrl = async (imagePath) => {
     if (!imagePath) return 'https://via.placeholder.com/150';
     if (imagePath.startsWith('http')) return imagePath;
@@ -116,7 +103,6 @@ export default function User_RewardPage() {
       const rewardRef = doc(db, 'rewards', selectedReward.id);
       const userRef = doc(db, 'users', currentUser.uid);
 
-      // Fetch one unused voucher
       const vouchersRef = collection(rewardRef, 'vouchers');
       const q = query(vouchersRef, where('redeemed', '==', false), limit(1));
       const voucherSnap = await getDocs(q);
@@ -129,18 +115,14 @@ export default function User_RewardPage() {
       const voucherDoc = voucherSnap.docs[0];
       const voucherData = voucherDoc.data();
 
-      // Deduct points and update reward quantity
       await updateDoc(userRef, { totalPoints: increment(-selectedReward.cost) });
       await updateDoc(rewardRef, { quantity: increment(-1) });
 
-      // Mark voucher as redeemed
       await updateDoc(voucherDoc.ref, { redeemed: true, redeemedBy: currentUser.uid, redeemedAt: new Date() });
 
-      // Show voucher code
       setVoucherCode(voucherData.code);
       setPoints(prev => prev - selectedReward.cost);
 
-      // Save redemption
       await addDoc(collection(db, 'redemptions'), {
         userId: currentUser.uid,
         rewardId: selectedReward.id,
@@ -149,7 +131,6 @@ export default function User_RewardPage() {
         redeemedAt: new Date()
       });
 
-      // Update state
       const updatedRewards = rewardsState.map(r =>
         r.id === selectedReward.id ? { ...r, quantity: r.quantity - 1 } : r
       );
@@ -177,10 +158,6 @@ export default function User_RewardPage() {
         <Text style={styles.topLabel}>Rewards</Text>
         <Text style={styles.points}>{points} pt</Text>
       </View>
-
-      <TouchableOpacity style={styles.testButton} onPress={addTestPoints}>
-        <Text style={styles.testButtonText}>+100 pt (Demo Purpose Only)</Text>
-      </TouchableOpacity>
 
       <FlatList
         data={rewardsState}
@@ -243,8 +220,6 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   topLabel: { fontSize: 24, fontWeight: 'bold' },
   points: { fontSize: 20, fontWeight: '600', color: '#000' },
-  testButton: { backgroundColor: '#4caf50', padding: 10, borderRadius: 8, alignItems: 'center', marginBottom: 15 },
-  testButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   grid: { justifyContent: 'space-between' },
   rewardCard: { width: rewardCardWidth, height: rewardCardWidth, backgroundColor: '#f2f2f2', margin: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', padding: 10 },
   rewardImage: { width: '80%', height: '50%', resizeMode: 'contain', marginBottom: 5 },
