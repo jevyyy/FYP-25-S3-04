@@ -108,51 +108,12 @@ export default function Admin_HomePage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingTop: 50,
-    paddingHorizontal: 20,
-  },
-  header: {
-    flexDirection: "column", // stack logo and username vertically
-    alignItems: "flex-start", // align everything to left
-    marginBottom: 30,
-  },
-  logoImage: {
-    width: 150,
-    height: 50,
-    resizeMode: "contain",
-    marginBottom: 10, // spacing between logo and username
-    marginLeft: -5,
-  },
-  greeting: {
-    fontSize: 22,
-    fontWeight: "600",
-    color: "#333",
-  },
-  cardContainer: {
-    marginBottom: 100,
-  },
-  card: {
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 16,
-    shadowColor: "#000",
-    shadowOpacity: 0.05,
-    shadowOffset: { width: 0, height: 3 },
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  cardTitle: {
-    fontSize: 14,
-    color: "#333",
-    marginBottom: 8,
-  },
-  cardValue: {
-    fontSize: 20,
-    fontWeight: "700",
-    fontStyle: "italic",
-    color: "#222",
-  },
+  container: { flex: 1, backgroundColor: "#fff", paddingTop: 50, paddingHorizontal: 20 },
+  header: { flexDirection: "column", alignItems: "flex-start", marginBottom: 30 },
+  logoImage: { width: 150, height: 50, resizeMode: "contain", marginBottom: 10, marginLeft: -5 },
+  greeting: { fontSize: 22, fontWeight: "600", color: "#333" },
+  cardContainer: { marginBottom: 100 },
+  card: { borderRadius: 12, padding: 20, marginBottom: 16, shadowColor: "#000", shadowOpacity: 0.05, shadowOffset: { width: 0, height: 3 }, shadowRadius: 6, elevation: 2 },
+  cardTitle: { fontSize: 14, color: "#333", marginBottom: 8 },
+  cardValue: { fontSize: 20, fontWeight: "700", fontStyle: "italic", color: "#222" },
 });

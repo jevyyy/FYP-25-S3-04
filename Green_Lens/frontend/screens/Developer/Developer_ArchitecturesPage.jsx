@@ -10,7 +10,6 @@ import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 import LogoImage from '../../assets/Green_Lens_logo.png';
 
-
 const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);

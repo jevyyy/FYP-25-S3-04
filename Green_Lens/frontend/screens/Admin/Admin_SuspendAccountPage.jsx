@@ -5,7 +5,6 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation, useRoute } from "@react-navigation/native";
 import { getAuth, onAuthStateChanged } from "firebase/auth";
 import { app } from "../../firebaseConfig";
-
 import { LogBox } from "react-native"; // <-- Add this
 LogBox.ignoreAllLogs(false); // <-- Show all warnings and logs
 
@@ -131,57 +130,15 @@ export default function Admin_SuspendAccountPage() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingHorizontal: 24,
-    paddingTop: 50,
-  },
-  header: {
-    fontSize: 22,
-    fontWeight: "600",
-    textAlign: "center",
-    marginBottom: 30,
-  },
-  infoBox: {
-    backgroundColor: "#f5f6fa",
-    padding: 16,
-    borderRadius: 10,
-    marginBottom: 30,
-  },
-  label: {
-    fontSize: 14,
-    color: "#333",
-    fontWeight: "500",
-    marginTop: 10,
-  },
-  value: {
-    fontSize: 15,
-    color: "#555",
-  },
-  buttonRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-  },
-  button: {
-    flex: 1,
-    paddingVertical: 14,
-    borderRadius: 10,
-    alignItems: "center",
-    marginHorizontal: 5,
-  },
-  cancelButton: {
-    backgroundColor: "#333",
-  },
-  suspendButton: {
-    backgroundColor: "red",
-  },
-  reactivateButton: {
-    backgroundColor: "green",
-  },
-  buttonText: {
-    color: "#fff",
-    fontSize: 15,
-    fontWeight: "500",
-  },
+  container: { flex: 1, backgroundColor: "#fff", paddingHorizontal: 24, paddingTop: 50 },
+  header: { fontSize: 22, fontWeight: "600", textAlign: "center", marginBottom: 30 },
+  infoBox: { backgroundColor: "#f5f6fa", padding: 16, borderRadius: 10, marginBottom: 30 },
+  label: { fontSize: 14, color: "#333", fontWeight: "500", marginTop: 10 },
+  value: { fontSize: 15, color: "#555" },
+  buttonRow: { flexDirection: "row", justifyContent: "space-between" },
+  button: { flex: 1, paddingVertical: 14, borderRadius: 10, alignItems: "center", marginHorizontal: 5 },
+  cancelButton: { backgroundColor: "#333" },
+  suspendButton: { backgroundColor: "red" },
+  reactivateButton: { backgroundColor: "green" },
+  buttonText: { color: "#fff", fontSize: 15, fontWeight: "500" },
 });

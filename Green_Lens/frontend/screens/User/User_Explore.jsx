@@ -6,12 +6,10 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { useNavigation } from '@react-navigation/native';
-import { 
-  getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, getDoc, orderBy
-} from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, getDoc, orderBy } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
-import { app } from '../../firebaseConfig'; 
+import { app } from '../../firebaseConfig';
 
 const db = getFirestore(app);
 const storage = getStorage(app);

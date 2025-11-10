@@ -1,16 +1,5 @@
 import React, { useRef, useState, useEffect } from 'react';
-import {
-  Button,
-  Image,
-  StyleSheet,
-  Text,
-  TouchableOpacity,
-  View,
-  Alert,
-  Animated,
-  ActivityIndicator,
-  ScrollView,
-} from 'react-native';
+import { Button, Image, StyleSheet, Text, TouchableOpacity, View, Alert, Animated, ActivityIndicator, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
