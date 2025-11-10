@@ -17,18 +17,18 @@ export default function User_RankingPage() {
         const users = snapshot.docs
           .map((doc) => ({
             userId: doc.id,
-            username: doc.data().username || 'Anonymous',
+            name: doc.data().name || doc.data().displayName || 'Anonymous',
             pt: doc.data().totalPoints || 0,
             role: doc.data().role || 'User',
           }))
-          .filter((user) => user.role === 'User')// <-- only include users with role "user"
+          .filter((user) => user.role === 'User') // only include users with role "User"
           // Sort by points descending
           users.sort((a, b) => b.pt - a.pt);
 
-          // Assign rank
-          users.forEach((user, index) => {
-            user.rank = index + 1;
-          });
+        // Assign rank
+        users.forEach((user, index) => {
+          user.rank = index + 1;
+        });
 
         // Only top 10 users
         setTopUsers(users.slice(0, 10));
@@ -55,12 +55,12 @@ export default function User_RankingPage() {
   const remainingUsers = topUsers.slice(3);
 
   const renderItem = ({ item }) => {
-    const isUser = item.username.toLowerCase() === 'you'; //highlight own user 
+    const isUser = item.name.toLowerCase() === 'you'; //highlight own user 
 
     return (
       <View style={[styles.listItem, isUser && styles.currentUser]}>
         <Text style={styles.rankText}>{item.rank}</Text>
-        <Text style={styles.usernameText}>{item.username}</Text>
+        <Text style={styles.nameText}>{item.name}</Text>
         <Text style={styles.pointsText}>{item.pt} PT</Text>
       </View>
     );
@@ -78,7 +78,7 @@ export default function User_RankingPage() {
             <View style={[styles.circle, { backgroundColor: '#D1E7DD' }]}>
               <Text style={styles.rankCircle}>🥈</Text>
             </View>
-            <Text style={styles.podiumName}>{topThree[1].username}</Text>
+            <Text style={styles.podiumName}>{topThree[1].name}</Text>
             <Text style={styles.podiumPoints}>{topThree[1].pt} PT</Text>
           </View>
         )}
@@ -89,7 +89,7 @@ export default function User_RankingPage() {
             <View style={[styles.circle, styles.goldCircle]}>
               <Text style={styles.rankCircle}>🥇</Text>
             </View>
-            <Text style={[styles.podiumName, styles.winnerName]}>{topThree[0].username}</Text>
+            <Text style={[styles.podiumName, styles.winnerName]}>{topThree[0].name}</Text>
             <Text style={[styles.podiumPoints, styles.winnerPoints]}>
               {topThree[0].pt} PT
             </Text>
@@ -102,7 +102,7 @@ export default function User_RankingPage() {
             <View style={[styles.circle, { backgroundColor: '#FADADD' }]}>
               <Text style={styles.rankCircle}>🥉</Text>
             </View>
-            <Text style={styles.podiumName}>{topThree[2].username}</Text>
+            <Text style={styles.podiumName}>{topThree[2].name}</Text>
             <Text style={styles.podiumPoints}>{topThree[2].pt} PT</Text>
           </View>
         )}
@@ -199,7 +199,7 @@ const styles = StyleSheet.create({
     width: 25,
     color: '#000',
   },
-  usernameText: {
+  nameText: {
     flex: 1,
     fontSize: 16,
     fontWeight: '600',
