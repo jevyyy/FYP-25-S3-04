@@ -103,52 +103,11 @@ export default function Forgot_PasswordPage({ route }) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    backgroundColor: '#f9f9f9',
-    alignItems: 'center',
-  },
-  logo: {
-    width: 200,
-    height: 80,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    marginBottom: 30,
-    alignSelf: 'flex-start',
-  },
-  label: {
-    alignSelf: 'flex-start',
-    fontSize: 16,
-    fontWeight: '600',
-    marginBottom: 5,
-    color: '#333',
-  },
-  input: {
-    width: '100%',
-    height: 50,
-    borderWidth: 1,
-    borderColor: '#333',
-    borderRadius: 10,
-    paddingHorizontal: 15,
-    marginBottom: 20,
-    backgroundColor: '#fff',
-  },
-  button: {
-    width: '100%',
-    paddingVertical: 15,
-    borderRadius: 10,
-    backgroundColor: '#000',
-    alignItems: 'center',
-    marginTop: 10,
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 60, backgroundColor: '#f9f9f9', alignItems: 'center' },
+  logo: { width: 200, height: 80, marginBottom: 20 },
+  title: { fontSize: 24, fontWeight: 'bold', marginBottom: 30, alignSelf: 'flex-start' },
+  label: { alignSelf: 'flex-start', fontSize: 16, fontWeight: '600', marginBottom: 5, color: '#333' },
+  input: { width: '100%', height: 50, borderWidth: 1, borderColor: '#333', borderRadius: 10, paddingHorizontal: 15, marginBottom: 20, backgroundColor: '#fff' },
+  button: { width: '100%', paddingVertical: 15, borderRadius: 10, backgroundColor: '#000', alignItems: 'center', marginTop: 10 },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
 });

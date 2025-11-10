@@ -185,44 +185,12 @@ export default function User_QuizPage({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
-
-  // Ranking
   topRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 },
-  rankingButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD43B',
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  rankingText: {
-    fontWeight: '600',
-    color: '#000',
-    fontSize: 14,
-    marginLeft: 4,
-  },
-
-  // Category
+  rankingButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFD43B', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
+  rankingText: { fontWeight: '600', color: '#000', fontSize: 14, marginLeft: 4 },
   categoryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  categoryCard: {
-    backgroundColor: '#EAF7EA',
-    borderRadius: 15,
-    width: '30%',
-    paddingVertical: 18,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+  categoryCard: { backgroundColor: '#EAF7EA', borderRadius: 15, width: '30%', paddingVertical: 18, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
   categoryText: { fontSize: 14, fontWeight: '600', color: '#333', textAlign: 'center' },
-
-  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center' },
   questionText: { fontSize: 16, fontWeight: '600', marginBottom: 15, textAlign: 'center' },

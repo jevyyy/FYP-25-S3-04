@@ -31,37 +31,10 @@ export default function LoginSelectionPage() {
 }
 
 const styles = StyleSheet.create({
-  outerContainer: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 60,
-    backgroundColor: '#f9f9f9',
-    alignItems: 'center', // center everything horizontally
-  },
-  logo: {
-    width: 200,  // adjust size as needed
-    height: 80,
-    marginBottom: 20,
-  },
-  title: {
-    fontSize: 22,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-  },
-  button: {
-    width: '80%',
-    paddingVertical: 15,
-    borderRadius: 10,
-    marginVertical: 10,
-    alignItems: 'center',
-    borderWidth: 2,
-    borderColor: '#333',
-    backgroundColor: '#000',
-  },
-  buttonText: {
-    color: '#fff',
-    fontSize: 18,
-    fontWeight: '600',
-  },
+  outerContainer: { flex: 1, paddingHorizontal: 20, paddingTop: 60, backgroundColor: '#f9f9f9', alignItems: 'center' },
+  logo: { width: 200, height: 80, marginBottom: 20 },
+  title: { fontSize: 22, fontWeight: 'bold', textAlign: 'center', marginBottom: 20 },
+  button: { width: '80%', paddingVertical: 15, borderRadius: 10, marginVertical: 10, alignItems: 'center', borderWidth: 2, borderColor: '#333', backgroundColor: '#000' },
+  buttonText: { color: '#fff', fontSize: 18, fontWeight: '600' },
 });
+
