@@ -205,10 +205,10 @@ const styles = StyleSheet.create({
   },
 
   // Category
- categoryContainer: { flexDirection: 'column', justifyContent: 'center', alignItems: 'center' },
+ categoryContainer: { flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginTop: 10 },
   imageCard: {
     width: '95%',
-    height: 200,
+    height: 100,
     borderRadius: 25,
     marginBottom: 20,
     overflow: 'hidden',
@@ -230,7 +230,7 @@ const styles = StyleSheet.create({
   // Modal
   rankingButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFD43B', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
   rankingText: { fontWeight: '600', color: '#000', fontSize: 14, marginLeft: 4 },
-  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
+  categoryContainer: { flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginTop: 10 },
   categoryCard: { backgroundColor: '#EAF7EA', borderRadius: 15, width: '30%', paddingVertical: 18, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
   categoryText: { fontSize: 14, fontWeight: '600', color: '#333', textAlign: 'center' },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
