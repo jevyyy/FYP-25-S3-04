@@ -132,15 +132,16 @@ export default function User_QuizPage({ navigation }) {
       </View>
 
       {/* Category Cards */}
-      <View style={styles.categoryContainer}>
+     <View style={styles.categoryContainer}>
         {[
-          { cat: 'Flower', icon: 'flower-outline' },
-          { cat: 'Plant', icon: 'leaf-outline' },
-          { cat: 'Architecture', icon: 'business-outline' },
-        ].map(({ cat, icon }) => (
-          <TouchableOpacity key={cat} style={styles.categoryCard} onPress={() => handlePressCategory(cat)}>
-            <Ionicons name={icon} size={32} color="#000" style={{ marginBottom: 8 }} />
-            <Text style={styles.categoryText}>{cat}</Text>
+          { cat: 'Flower', label: 'Flowers', img: require('../../assets/quiz_flowers.jpg') },
+          { cat: 'Plant', label: 'Plants', img: require('../../assets/quiz_plants.jpg') },
+          { cat: 'Architecture', label: 'Architecture', img: require('../../assets/quiz_architecture.jpg') },
+        ].map(({ cat, label, img }) => (
+          <TouchableOpacity key={cat} style={styles.imageCard} onPress={() => handlePressCategory(cat)}>
+            <Image source={img} style={styles.imageBackground} />
+            <View style={styles.overlay} />
+            <Text style={styles.imageText}>{label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -208,25 +209,40 @@ const styles = StyleSheet.create({
   },
 
   // Category
-  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  categoryCard: {
-    backgroundColor: '#EAF7EA',
-    borderRadius: 15,
-    width: '30%',
-    paddingVertical: 18,
+ categoryContainer: { flexDirection: 'column', justifyContent: 'center', alignItems: 'center' },
+  imageCard: {
+    width: '95%',
+    height: 200,
+    borderRadius: 25,
+    marginBottom: 20,
+    overflow: 'hidden',
+    justifyContent: 'center',
     alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  categoryText: { fontSize: 14, fontWeight: '600', color: '#333', textAlign: 'center' },
+  imageBackground: { width: '100%', height: '100%', resizeMode: 'cover' },
+  overlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0,0,0,0.15)',
+  },
+  imageText: {
+    position: 'absolute',
+    color: '#fff',
+    fontSize: 24,
+    fontWeight: '700',
+  },
 
   // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center' },
   questionText: { fontSize: 16, fontWeight: '600', marginBottom: 15, textAlign: 'center' },
-  answerButton: { width: '100%', padding: 12, backgroundColor: '#000', borderRadius: 8, marginBottom: 10, alignItems: 'center' },
+  answerButton: {
+    width: '100%',
+    padding: 12,
+    backgroundColor: '#000',
+    borderRadius: 8,
+    marginBottom: 10,
+    alignItems: 'center',
+  },
   answerText: { color: '#fff', fontWeight: '600' },
   resultText: { fontSize: 18, fontWeight: 'bold', marginBottom: 10 },
   pointText: { fontSize: 16, fontWeight: '600', marginBottom: 15 },
