@@ -6,12 +6,10 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { useNavigation } from '@react-navigation/native';
-import { 
-  getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, getDoc
-} from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, getDoc, orderBy } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
-import { app } from '../../firebaseConfig'; 
+import { app } from '../../firebaseConfig';
 
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -29,14 +27,15 @@ export default function User_Explore() {
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(u => {
       setCurrentUser(u);
-      console.log("👤 Current user:", u?.email);
     });
     return unsubscribe;
   }, []);
 
   const fetchPosts = async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'posts'));
+      const postsRef = collection(db, 'posts');
+      const q = query(postsRef, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPosts(data);
     } catch (error) {
@@ -89,13 +88,13 @@ export default function User_Explore() {
 
       const userRef = doc(db, 'users', currentUser.uid);
       const userSnap = await getDoc(userRef);
-      const username = userSnap.exists() && userSnap.data().username
-        ? userSnap.data().username
-        : currentUser.email?.split('@')[0] || 'Anonymous';
+      const name = userSnap.exists() && userSnap.data().name
+        ? userSnap.data().name
+        : currentUser.displayName || 'Anonymous';
 
       await addDoc(collection(db, 'posts'), {
         imageUrl: downloadUrl,
-        uploadedBy: username,
+        uploadedBy: name,
         createdAt: new Date(),
         votesUp: 0,
         votesDown: 0,
@@ -198,7 +197,7 @@ export default function User_Explore() {
       </View>
 
       <View style={styles.postFooter}>
-        <Text style={styles.username}>
+        <Text style={styles.name}>
           @{item.uploadedBy}
         </Text>
         <View style={styles.actions}>
@@ -275,51 +274,19 @@ export default function User_Explore() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
-
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginBottom: 30,
-    gap: 12,
-  },
-
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-
+  buttonContainer: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 30, gap: 12 },
+  actionButton: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
   uploadButton: { backgroundColor: '#000' },
   rankingButton: { backgroundColor: '#FFD43B' },
-
   buttonText: { fontSize: 15, fontWeight: '600' },
-
   recentLabel: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
-
-  postContainer: {
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
+  postContainer: { marginBottom: 20, backgroundColor: '#fff', borderRadius: 10, padding: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, elevation: 2 },
   imagePlaceholder: { width: '100%', height: 200, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
   postFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-  username: { fontSize: 16, fontWeight: '600', color: '#333', flex: 1 },
+  name: { fontSize: 16, fontWeight: '600', color: '#333', flex: 1 },
   actions: { flexDirection: 'row', alignItems: 'center' },
   voteButton: { marginHorizontal: 5, alignItems: 'center' },
   voteText: { fontSize: 18 },
-
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center', position: 'relative' },
   modalText: { marginTop: 20, fontSize: 16, fontWeight: '600', color: '#333', textAlign: 'center' },

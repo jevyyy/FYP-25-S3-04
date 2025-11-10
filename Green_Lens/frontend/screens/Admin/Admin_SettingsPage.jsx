@@ -108,22 +108,10 @@ const styles = StyleSheet.create({
   container: { flex: 1, padding: 16, backgroundColor: '#fff', paddingTop: 50 },
   logoContainer: { alignItems: 'flex-start', marginBottom: 20 },
   logoImage: { width: 150, height: 50, resizeMode: 'contain' },
-  option: {
-    paddingVertical: 15,
-    borderBottomWidth: 1,
-    borderBottomColor: '#ccc',
-  },
-  optionRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
+  option: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#ccc' },
+  optionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   arrow: { fontSize: 22, color: '#333' },
   optionText: { fontSize: 18, color: '#333' },
-  dropdownInfo: {
-    paddingVertical: 10,
-    paddingLeft: 15,
-    backgroundColor: '#f2f2f2',
-    marginBottom: 10,
-  },
+  dropdownInfo: { paddingVertical: 10, paddingLeft: 15, backgroundColor: '#f2f2f2', marginBottom: 10 },
 });
+

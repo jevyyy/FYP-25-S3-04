@@ -1,20 +1,12 @@
 // Admin_UpdateAccountPage.js
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { SafeAreaView } from "react-native-safe-area-context"; 
+import { SafeAreaView } from "react-native-safe-area-context";
 import { getAuth } from "firebase/auth";
-
-import { LogBox } from "react-native"; // <-- Add this
-LogBox.ignoreAllLogs(false); // <-- Show all warnings and logs
+import { LogBox } from "react-native"; 
+LogBox.ignoreAllLogs(false);
 
 export default function Admin_UpdateAccountPage() {
   const navigation = useNavigation();
@@ -186,17 +178,7 @@ const styles = StyleSheet.create({
   header: { fontSize: 22, fontWeight: "600", textAlign: "center", marginBottom: 30 },
   inputContainer: { marginBottom: 20 },
   label: { fontSize: 14, color: "#333", marginBottom: 6 },
-  input: {
-    backgroundColor: "#f5f6fa",
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 15,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.1,
-    shadowRadius: 2,
-    elevation: 1,
-  },
+  input: { backgroundColor: "#f5f6fa", borderRadius: 10, padding: 12, fontSize: 15, shadowColor: "#000", shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 2, elevation: 1 },
   pickerContainer: { backgroundColor: "#f5f6fa", borderRadius: 10, overflow: "hidden" },
   picker: { height: 50, width: "100%" },
   buttonRow: { flexDirection: "row", justifyContent: "space-between", marginTop: 30 },

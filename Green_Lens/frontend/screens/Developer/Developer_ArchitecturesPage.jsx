@@ -1,44 +1,13 @@
 // ./screens/Developer/Developer_ArchitecturePage.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Image,
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  ScrollView,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, FlatList, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-// Firebase
 import { app } from '../../firebaseConfig';
-import {
-  getFirestore,
-  collection,
-  doc,
-  addDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-} from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, getDoc, updateDoc, where, getDocs } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
-
-// Import your logo
 import LogoImage from '../../assets/Green_Lens_logo.png';
 
 const db = getFirestore(app);
@@ -51,15 +20,11 @@ export default function Developer_ArchitecturePage() {
   const [architectureImages, setArchitectureImages] = useState([]);
   const [loading, setLoading] = useState(true);
 
-  // Upload / preview state
   const [previewUri, setPreviewUri] = useState(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
 
-  // Update state
   const [selectedArchitecture, setSelectedArchitecture] = useState(null);
-
-  // Input
   const [architectureName, setArchitectureName] = useState('');
 
   const isMounted = useRef(true);
@@ -106,7 +71,6 @@ export default function Developer_ArchitecturePage() {
     (img.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // --- Add new architecture ---
   const handleAddNewArchitecture = async () => {
     setSelectedArchitecture(null);
     setArchitectureName('');
@@ -121,7 +85,6 @@ export default function Developer_ArchitecturePage() {
     setPreviewModalVisible(true);
   };
 
-  // --- Image Picker ---
   const handleSelectImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -147,7 +110,6 @@ export default function Developer_ArchitecturePage() {
     }
   };
 
-  // --- Upload or Update ---
   const handleConfirmUpload = () => {
     if (!selectedArchitecture) {
       performUploadOrUpdate();
@@ -173,8 +135,38 @@ export default function Developer_ArchitecturePage() {
 
     try {
       const cleanName = architectureName.trim().toLowerCase();
+      const newStoragePath = `modelPhotos/architecture/${cleanName}.jpg`;
+      const newImageRef = ref(storage, newStoragePath);
+
+      // 🔹 Duplicate Checks
+      const nameQuery = query(architectureImagesCollectionRef(), where('name', '==', cleanName));
+      const querySnapshot = await getDocs(nameQuery);
+      if (!querySnapshot.empty && (!selectedArchitecture || selectedArchitecture.name !== cleanName)) {
+        Alert.alert('Duplicate Name', 'An architecture dataset image with this name already exists.');
+        setUploading(false);
+        return;
+      }
+
+      try {
+        await getMetadata(newImageRef);
+        if (!selectedArchitecture || selectedArchitecture.storagePath !== newStoragePath) {
+          Alert.alert(
+            'Duplicate File',
+            'An image file with this name already exists in storage. Rename or delete the existing one first.'
+          );
+          setUploading(false);
+          return;
+        }
+      } catch (err) {
+        if (err.code !== 'storage/object-not-found') {
+          console.error('Error checking file existence:', err);
+          Alert.alert('Error', 'Could not verify file existence.');
+          setUploading(false);
+          return;
+        }
+      }
+
       let newImageUrl = null;
-      let newStoragePath = `modelPhotos/architecture/${cleanName}.jpg`;
 
       if (!selectedArchitecture) {
         if (!previewUri) {
@@ -185,9 +177,8 @@ export default function Developer_ArchitecturePage() {
 
         const response = await fetch(previewUri);
         const blob = await response.blob();
-        const storageRef = ref(storage, newStoragePath);
-        await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-        newImageUrl = await getDownloadURL(storageRef);
+        await uploadBytes(newImageRef, blob, { contentType: 'image/jpeg' });
+        newImageUrl = await getDownloadURL(newImageRef);
 
         let uploadedBy = 'Developer';
         const user = auth.currentUser;
@@ -197,12 +188,12 @@ export default function Developer_ArchitecturePage() {
           const userSnap = await getDoc(userDocRef);
           if (userSnap.exists() && userSnap.data().username) uploadedBy = userSnap.data().username;
           else if (user?.email) uploadedBy = user.email.split('@')[0];
-        } catch (e) {}
+        } catch {}
 
         await addDoc(architectureImagesCollectionRef(), {
           imageUrl: newImageUrl,
           uploadedBy,
-          name: architectureName.trim().toLowerCase(),
+          name: cleanName,
           createdAt: serverTimestamp(),
           storagePath: newStoragePath,
         });
@@ -212,18 +203,15 @@ export default function Developer_ArchitecturePage() {
         if (previewUri && previewUri.startsWith('file://')) {
           const response = await fetch(previewUri);
           const blob = await response.blob();
-          const storageRef = ref(storage, newStoragePath);
-          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-          newImageUrl = await getDownloadURL(storageRef);
+          await uploadBytes(newImageRef, blob, { contentType: 'image/jpeg' });
+          newImageUrl = await getDownloadURL(newImageRef);
         } else if (selectedArchitecture.storagePath !== newStoragePath) {
           const oldRef = ref(storage, selectedArchitecture.storagePath);
           const oldUrl = await getDownloadURL(oldRef);
           const res = await fetch(oldUrl);
           const blob = await res.blob();
-
-          const storageRef = ref(storage, newStoragePath);
-          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-          newImageUrl = await getDownloadURL(storageRef);
+          await uploadBytes(newImageRef, blob, { contentType: 'image/jpeg' });
+          newImageUrl = await getDownloadURL(newImageRef);
         }
 
         if (selectedArchitecture.storagePath && selectedArchitecture.storagePath !== newStoragePath) {
@@ -237,7 +225,7 @@ export default function Developer_ArchitecturePage() {
 
         const architectureDocRef = doc(architectureImagesCollectionRef(), selectedArchitecture.id);
         await updateDoc(architectureDocRef, {
-          name: architectureName.trim().toLowerCase(),
+          name: cleanName,
           imageUrl: newImageUrl || selectedArchitecture.uri,
           storagePath: newStoragePath,
         });
@@ -257,7 +245,6 @@ export default function Developer_ArchitecturePage() {
     }
   };
 
-  // --- Delete ---
   const handleDeleteArchitecture = () => {
     if (!selectedArchitecture) return;
 
@@ -335,7 +322,6 @@ export default function Developer_ArchitecturePage() {
         </View>
       </View>
 
-      {/* Image Grid */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
@@ -368,14 +354,12 @@ export default function Developer_ArchitecturePage() {
         animationType="slide"
         onRequestClose={() => !uploading && setPreviewModalVisible(false)}
       >
-        {/* Only close modal when tapping outside */}
         <TouchableWithoutFeedback onPress={() => !uploading && setPreviewModalVisible(false)}>
           <View style={styles.modalOverlay}>
             <KeyboardAvoidingView
               behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
               style={styles.modalBoxWrapper}
             >
-              {/* Inner modal content: prevent taps from propagating */}
               <View style={styles.modalBox} onStartShouldSetResponder={() => true}>
                 {previewUri && (
                   <Image
@@ -426,7 +410,6 @@ export default function Developer_ArchitecturePage() {
                   </TouchableOpacity>
                 </View>
 
-                {/* Retake / Update Image Button */}
                 {previewUri && (
                   <TouchableOpacity
                     style={{ marginTop: 8 }}
@@ -441,7 +424,6 @@ export default function Developer_ArchitecturePage() {
                   </TouchableOpacity>
                 )}
 
-                {/* Delete Button */}
                 {selectedArchitecture && (
                   <TouchableOpacity
                     style={{ marginTop: 8 }}
@@ -460,7 +442,6 @@ export default function Developer_ArchitecturePage() {
   );
 }
 
-// --- Styles (unchanged) ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
