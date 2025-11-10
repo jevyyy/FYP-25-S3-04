@@ -1,52 +1,13 @@
 // ./screens/Developer/Developer_PlantsPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Image,
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, FlatList, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-// Firebase
 import { app } from '../../firebaseConfig';
-import {
-  getFirestore,
-  collection,
-  doc,
-  addDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-  getDocs,
-  where,
-} from 'firebase/firestore';
-import {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-  getMetadata,
-} from 'firebase/storage';
+import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, getDoc, updateDoc, getDocs, where } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
-
-// Logo
 import LogoImage from '../../assets/Green_Lens_logo.png';
 
 const db = getFirestore(app);
@@ -495,37 +456,14 @@ export default function Developer_PlantsPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: {
-    paddingHorizontal: 20,
-    paddingTop: 50,
-    paddingBottom: 15,
-    backgroundColor: '#fff',
-    borderBottomWidth: 1,
-    borderBottomColor: '#f0f0f0',
-  },
+  header: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
   logoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
   pageTitle: { fontSize: 26, fontWeight: 'bold', color: '#333', marginBottom: 15 },
   controlsRow: { flexDirection: 'row', alignItems: 'center' },
-  searchContainer: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f5f5f5',
-    borderRadius: 10,
-    paddingHorizontal: 12,
-    height: 45,
-  },
+  searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f5f5', borderRadius: 10, paddingHorizontal: 12, height: 45 },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: 16, color: '#333' },
-  addButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#66BB6A',
-    paddingHorizontal: 15,
-    paddingVertical: 12,
-    borderRadius: 10,
-    marginLeft: 8,
-  },
+  addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#66BB6A', paddingHorizontal: 15, paddingVertical: 12, borderRadius: 10, marginLeft: 8 },
   addButtonText: { color: '#fff', fontSize: 15, fontWeight: '600', marginLeft: 8 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, fontSize: 16, color: '#666' },
@@ -533,18 +471,7 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, color: '#666', textAlign: 'center' },
   imageGrid: { paddingHorizontal: 15, paddingTop: 15, paddingBottom: 20 },
   row: { justifyContent: 'space-between' },
-  imageCard: {
-    width: '48%',
-    marginBottom: 15,
-    backgroundColor: '#fff',
-    borderRadius: 12,
-    overflow: 'hidden',
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
+  imageCard: { width: '48%', marginBottom: 15, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
   imageThumb: { width: '100%', height: 150, backgroundColor: '#f0f0f0' },
   imageName: { fontSize: 14, color: '#333', fontWeight: '600' },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)' },

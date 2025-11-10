@@ -1,24 +1,12 @@
 // Admin_AccountsPage.jsx
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { getFirestore, collection, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { getAuth, signOut } from "firebase/auth";
 import { app } from "../../firebaseConfig";
-
 import GreenLensLogo from "../../assets/Green_Lens_logo.png";
-
 import { LogBox } from "react-native";
 LogBox.ignoreAllLogs(false);
 

@@ -1,46 +1,15 @@
 // ./screens/Developer/Developer_ArchitecturePage.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Image,
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, FlatList, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-// Firebase
 import { app } from '../../firebaseConfig';
-import {
-  getFirestore,
-  collection,
-  doc,
-  addDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-  where,
-  getDocs,
-} from 'firebase/firestore';
+import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, getDoc, updateDoc, where, getDocs } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
-
-// Import your logo
 import LogoImage from '../../assets/Green_Lens_logo.png';
+
 
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -474,7 +443,6 @@ export default function Developer_ArchitecturePage() {
   );
 }
 
-// --- Styles (unchanged) ---
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
   header: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },

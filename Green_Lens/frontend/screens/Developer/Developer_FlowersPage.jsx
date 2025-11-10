@@ -1,52 +1,13 @@
 // ./screens/Developer/Developer_FlowerPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Image,
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, FlatList, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-// Firebase
 import { app } from '../../firebaseConfig';
-import {
-  getFirestore,
-  collection,
-  doc,
-  addDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-  where,
-  getDocs,
-} from 'firebase/firestore';
-import {
-  getStorage,
-  ref,
-  uploadBytes,
-  getDownloadURL,
-  deleteObject,
-  getMetadata,
-} from 'firebase/storage';
+import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, getDoc, updateDoc, where, getDocs } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
-
-// Import your logo
 import LogoImage from '../../assets/Green_Lens_logo.png';
 
 const db = getFirestore(app);

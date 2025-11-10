@@ -1,15 +1,9 @@
 // ./screens/Developer/Developer_SettingsPage.jsx
 import React, { useState, useRef } from 'react';
-import { 
-  View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Linking, Image, Modal, FlatList, ActivityIndicator 
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Linking, Image, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
-
-// Firebase
 import { app } from '../../firebaseConfig';
 import { getFirestore, collection, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
-
-// Logo
 import GreenLensLogo from '../../assets/Green_Lens_logo.png';
 
 const db = getFirestore(app);

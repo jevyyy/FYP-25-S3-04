@@ -1,20 +1,12 @@
 // Admin_UpdateAccountPage.js
 import React, { useState } from "react";
-import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  Alert,
-} from "react-native";
+import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from "react-native";
 import { Picker } from "@react-native-picker/picker";
 import { useNavigation, useRoute } from "@react-navigation/native";
-import { SafeAreaView } from "react-native-safe-area-context"; 
+import { SafeAreaView } from "react-native-safe-area-context";
 import { getAuth } from "firebase/auth";
-
-import { LogBox } from "react-native"; // <-- Add this
-LogBox.ignoreAllLogs(false); // <-- Show all warnings and logs
+import { LogBox } from "react-native"; 
+LogBox.ignoreAllLogs(false);
 
 export default function Admin_UpdateAccountPage() {
   const navigation = useNavigation();
