@@ -32,8 +32,17 @@ import {
   serverTimestamp,
   getDoc,
   updateDoc,
+  getDocs,
+  where,
 } from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import {
+  getStorage,
+  ref,
+  uploadBytes,
+  getDownloadURL,
+  deleteObject,
+  getMetadata,
+} from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 
@@ -77,7 +86,11 @@ export default function Developer_PlantsPage() {
             name: data.name || data.uploadedBy || 'User Upload',
             uploadedBy: data.uploadedBy || '',
             storagePath: data.storagePath || null,
-            createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : data.createdAt) : null,
+            createdAt: data.createdAt
+              ? data.createdAt.toDate
+                ? data.createdAt.toDate()
+                : data.createdAt
+              : null,
           };
         });
         setPlantImages(items);
@@ -145,14 +158,10 @@ export default function Developer_PlantsPage() {
     if (!selectedPlant) {
       performUploadOrUpdate();
     } else {
-      Alert.alert(
-        'Confirm Update',
-        'Are you sure you want to apply the changes?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Yes', onPress: () => performUploadOrUpdate() },
-        ]
-      );
+      Alert.alert('Confirm Update', 'Are you sure you want to apply the changes?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Yes', onPress: () => performUploadOrUpdate() },
+      ]);
     }
   };
 
@@ -179,6 +188,38 @@ export default function Developer_PlantsPage() {
         if (userSnap.exists() && userSnap.data().username) uploadedBy = userSnap.data().username;
         else if (user?.email) uploadedBy = user.email.split('@')[0];
       } catch (e) {}
+
+      // --- 🔹 DUPLICATE CHECKS START ---
+      // Check if name already exists in Firestore
+      const q = query(plantsImagesCollectionRef(), where('name', '==', cleanName));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty && (!selectedPlant || selectedPlant.name !== cleanName)) {
+        Alert.alert('Duplicate Name', 'A plant dataset image with this name already exists.');
+        setUploading(false);
+        return;
+      }
+
+      // Check if filename already exists in Storage
+      const storageRefCheck = ref(storage, newStoragePath);
+      try {
+        await getMetadata(storageRefCheck);
+        if (!selectedPlant || selectedPlant.storagePath !== newStoragePath) {
+          Alert.alert(
+            'Duplicate File',
+            'An image file with this name already exists in storage. Rename or delete the existing one first.'
+          );
+          setUploading(false);
+          return;
+        }
+      } catch (err) {
+        if (err.code !== 'storage/object-not-found') {
+          console.error('Error checking file existence:', err);
+          Alert.alert('Error', 'Could not verify file existence.');
+          setUploading(false);
+          return;
+        }
+      }
+      // --- 🔹 DUPLICATE CHECKS END ---
 
       if (!selectedPlant) {
         if (!previewUri) {
@@ -253,47 +294,45 @@ export default function Developer_PlantsPage() {
   const handleDeletePlant = () => {
     if (!selectedPlant) return;
 
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this image?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setUploading(true);
-            try {
-              const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
-              await deleteDoc(plantDocRef);
+    Alert.alert('Confirm Delete', 'Are you sure you want to delete this image?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setUploading(true);
+          try {
+            const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
+            await deleteDoc(plantDocRef);
 
-              if (selectedPlant.storagePath) {
-                const oldRef = ref(storage, selectedPlant.storagePath);
-                await deleteObject(oldRef);
-              }
-
-              Alert.alert('Success', 'Plant image deleted!');
-              setPreviewModalVisible(false);
-              setPreviewUri(null);
-              setPlantName('');
-              setSelectedPlant(null);
-            } catch (err) {
-              console.error('Delete error:', err);
-              Alert.alert('Error', 'Failed to delete plant image.');
-            } finally {
-              if (isMounted.current) setUploading(false);
+            if (selectedPlant.storagePath) {
+              const oldRef = ref(storage, selectedPlant.storagePath);
+              await deleteObject(oldRef);
             }
-          },
+
+            Alert.alert('Success', 'Plant image deleted!');
+            setPreviewModalVisible(false);
+            setPreviewUri(null);
+            setPlantName('');
+            setSelectedPlant(null);
+          } catch (err) {
+            console.error('Delete error:', err);
+            Alert.alert('Error', 'Failed to delete plant image.');
+          } finally {
+            if (isMounted.current) setUploading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const renderImageItem = ({ item }) => (
     <TouchableOpacity style={styles.imageCard} onPress={() => handleImagePress(item)}>
       <Image source={{ uri: item.uri }} style={styles.imageThumb} resizeMode="cover" />
       <View style={{ padding: 10 }}>
-        <Text style={styles.imageName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.imageName} numberOfLines={1}>
+          {item.name}
+        </Text>
       </View>
     </TouchableOpacity>
   );
@@ -302,7 +341,10 @@ export default function Developer_PlantsPage() {
     <View style={styles.container}>
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Image source={LogoImage} style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }} />
+          <Image
+            source={LogoImage}
+            style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }}
+          />
         </View>
         <Text style={styles.pageTitle}>Dataset Images</Text>
 
@@ -381,7 +423,14 @@ export default function Developer_PlantsPage() {
                   />
                 </View>
 
-                <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    width: '100%',
+                    justifyContent: 'space-between',
+                    marginBottom: 12,
+                  }}
+                >
                   <TouchableOpacity
                     style={[styles.modalButton, { backgroundColor: '#ccc' }]}
                     onPress={() => {
@@ -413,7 +462,11 @@ export default function Developer_PlantsPage() {
                 </View>
 
                 {previewUri && (
-                  <TouchableOpacity style={{ marginTop: 8 }} onPress={handleSelectImage} disabled={uploading}>
+                  <TouchableOpacity
+                    style={{ marginTop: 8 }}
+                    onPress={handleSelectImage}
+                    disabled={uploading}
+                  >
                     <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
                       {selectedPlant
                         ? 'Update image from Device Storage'
@@ -423,7 +476,11 @@ export default function Developer_PlantsPage() {
                 )}
 
                 {selectedPlant && (
-                  <TouchableOpacity style={{ marginTop: 8 }} onPress={handleDeletePlant} disabled={uploading}>
+                  <TouchableOpacity
+                    style={{ marginTop: 8 }}
+                    onPress={handleDeletePlant}
+                    disabled={uploading}
+                  >
                     <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
                   </TouchableOpacity>
                 )}
@@ -438,14 +495,37 @@ export default function Developer_PlantsPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#fff' },
-  header: { paddingHorizontal: 20, paddingTop: 50, paddingBottom: 15, backgroundColor: '#fff', borderBottomWidth: 1, borderBottomColor: '#f0f0f0' },
+  header: {
+    paddingHorizontal: 20,
+    paddingTop: 50,
+    paddingBottom: 15,
+    backgroundColor: '#fff',
+    borderBottomWidth: 1,
+    borderBottomColor: '#f0f0f0',
+  },
   logoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
   pageTitle: { fontSize: 26, fontWeight: 'bold', color: '#333', marginBottom: 15 },
   controlsRow: { flexDirection: 'row', alignItems: 'center' },
-  searchContainer: { flex: 1, flexDirection: 'row', alignItems: 'center', backgroundColor: '#f5f5f5', borderRadius: 10, paddingHorizontal: 12, height: 45 },
+  searchContainer: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#f5f5f5',
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    height: 45,
+  },
   searchIcon: { marginRight: 8 },
   searchInput: { flex: 1, fontSize: 16, color: '#333' },
-  addButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#66BB6A', paddingHorizontal: 15, paddingVertical: 12, borderRadius: 10, marginLeft: 8 },
+  addButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#66BB6A',
+    paddingHorizontal: 15,
+    paddingVertical: 12,
+    borderRadius: 10,
+    marginLeft: 8,
+  },
   addButtonText: { color: '#fff', fontSize: 15, fontWeight: '600', marginLeft: 8 },
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   loadingText: { marginTop: 10, fontSize: 16, color: '#666' },
@@ -453,7 +533,18 @@ const styles = StyleSheet.create({
   emptyText: { fontSize: 16, color: '#666', textAlign: 'center' },
   imageGrid: { paddingHorizontal: 15, paddingTop: 15, paddingBottom: 20 },
   row: { justifyContent: 'space-between' },
-  imageCard: { width: '48%', marginBottom: 15, backgroundColor: '#fff', borderRadius: 12, overflow: 'hidden', shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4, elevation: 3 },
+  imageCard: {
+    width: '48%',
+    marginBottom: 15,
+    backgroundColor: '#fff',
+    borderRadius: 12,
+    overflow: 'hidden',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.1,
+    shadowRadius: 4,
+    elevation: 3,
+  },
   imageThumb: { width: '100%', height: 150, backgroundColor: '#f0f0f0' },
   imageName: { fontSize: 14, color: '#333', fontWeight: '600' },
   modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.45)' },
