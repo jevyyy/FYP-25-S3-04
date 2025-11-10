@@ -33,12 +33,13 @@ export const checkHealth = async () => {
 };
 
 /**
- * Get all available plant/flower classes
+ * Get all available plant/flower/architecture classes for a category
+ * @param {string} category - Category to get classes for (flower, plant, or architecture)
  * @returns {Promise<Object>} Classes response
  */
-export const getClasses = async () => {
+export const getClasses = async (category = 'flower') => {
   try {
-    const response = await fetch(`${API_BASE_URL}/classes`);
+    const response = await fetch(`${API_BASE_URL}/classes?category=${category}`);
     const data = await response.json();
     return {
       success: true,
@@ -54,11 +55,33 @@ export const getClasses = async () => {
 };
 
 /**
- * Predict plant/flower from an image
+ * Get list of available categories
+ * @returns {Promise<Object>} Categories response
+ */
+export const getCategories = async () => {
+  try {
+    const response = await fetch(`${API_BASE_URL}/categories`);
+    const data = await response.json();
+    return {
+      success: true,
+      data
+    };
+  } catch (error) {
+    console.error('Get categories failed:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
+
+/**
+ * Predict plant/flower/architecture from an image
  * @param {string} imageUri - URI of the image to predict
+ * @param {string} category - Category to predict (flower, plant, or architecture)
  * @returns {Promise<Object>} Prediction results
  */
-export const predictPlant = async (imageUri) => {
+export const predictPlant = async (imageUri, category = 'flower') => {
   try {
     // Create form data
     const formData = new FormData();
@@ -72,6 +95,9 @@ export const predictPlant = async (imageUri) => {
       type: 'image/jpeg', // Adjust if needed
       name: filename
     });
+    
+    // Append the category
+    formData.append('category', category);
     
     // Send request
     const response = await fetch(`${API_BASE_URL}/predict`, {
@@ -166,6 +192,7 @@ export const getApiBaseUrl = () => {
 export default {
   checkHealth,
   getClasses,
+  getCategories,
   predictPlant,
   predictPlantFromBase64,
   setApiBaseUrl,
