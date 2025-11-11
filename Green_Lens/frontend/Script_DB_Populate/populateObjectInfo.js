@@ -797,7 +797,7 @@ const plantData = [
     funFact: "During the 1900s, Angsana was one of the most widely planted roadside trees in Singapore before being affected by a fungal disease outbreak."
   },
   {
-    id: "bamboo",
+    id: "bamboo (giant bamboo)",
     name: "Bamboo",
     description: "A versatile fast-growing grass species that resembles a woody tree and is widely used in Asian landscaping, construction, and culture.",
     characteristics: "Tall, hollow, jointed stems that can grow several centimeters per day. Evergreen foliage and grows in tight clumping or running forms depending on species.",
@@ -813,7 +813,7 @@ const plantData = [
     funFact: "The Foxtail Palm was once endangered and unknown to science until discovered by an Indigenous Australian farmer in the 1970s."
   },
   {
-    id: "heliconia",
+    id: "heliconia (lobster claw)",
     name: "Heliconia",
     description: "A vibrant tropical flowering plant known for its bold, colorful bracts resembling lobster claws or bird beaks.",
     characteristics: "Grows in clumps with large banana-like leaves and produces bright red, orange, or yellow bracts that attract pollinators like hummingbirds.",
@@ -829,7 +829,7 @@ const plantData = [
     funFact: "Kapok fibers are naturally water-resistant and buoyant, historically used in life jackets before synthetic materials were invented."
   },
   {
-    id: "monstera",
+    id: "monstera (swiss cheese plant)",
     name: "Monstera",
     description: "A popular tropical climbing plant recognized for its large, glossy leaves with natural holes or splits, often used as indoor décor.",
     characteristics: "Epiphytic plant that grows by climbing trees with aerial roots. Leaves develop fenestrations as the plant matures.",
@@ -869,7 +869,7 @@ const plantData = [
     funFact: "Saga wood is traditionally used for small carvings and local crafts."
   },
   {
-    id: "syzygium grande",
+    id: "syzygium grande(sea apple)",
     name: "Syzygium Grande",
     description: "A tropical tree commonly planted along streets and parks, known for its large size and dense shade.",
     characteristics: "Evergreen, can grow up to 30 meters. Produces white flowers followed by edible fruits.",
@@ -901,7 +901,7 @@ const plantData = [
     funFact: "Also called 'Peltophorum pterocarpum', it is commonly planted as an ornamental street tree in tropical cities."
   },
   {
-    id: "caladium",
+    id: "caladium (angel wings)",
     name: "Caladium",
     description: "A tropical ornamental plant known for its heart-shaped colorful leaves rather than flowers.",
     characteristics: "Low-growing, produces red, pink, green, and white variegated foliage. Grows from tubers.",
