@@ -887,8 +887,8 @@ const architectureData = [
     funFact: "Botany centres often host workshops, plant identification courses, and citizen science programs."
   },
   {
-    id: "centre of ethnobotany",
-    name: "Centre of Ethnobotany",
+    id: "centre for ethnobotany",
+    name: "Centre for Ethnobotany",
     description: "A specialized research and exhibition centre dedicated to the study of how humans use and interact with plants.",
     characteristics: "Displays traditional medicines, cultural artifacts, and plants of ethnobotanical significance. Combines education with scientific research.",
     funFact: "Ethnobotany combines anthropology and botany, exploring the cultural and medicinal significance of plants."
