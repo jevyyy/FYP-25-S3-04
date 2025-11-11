@@ -1,17 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-  ActivityIndicator,
-  Share,
-  Linking,
-  Platform,
-} from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Share, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
@@ -19,6 +7,7 @@ import { captureRef } from 'react-native-view-shot';
 import * as Sharing from 'expo-sharing';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
+
 
 export default function User_ViewSummaryPage({ route }) {
   const { photoUri, predictionData, category = 'flower' } = route.params || {};
@@ -214,19 +203,11 @@ const styles = StyleSheet.create({
   placeholderText: { fontSize: 16, color: '#555', marginBottom: 8, textAlign: 'left' },
   characteristicsTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4, alignSelf: 'flex-start', marginTop: 8 },
   characteristics: { fontSize: 16, color: '#555', marginBottom: 5, width: '100%' },
-
-  floatingButtons: {
-    position: 'absolute',
-    bottom: 60,
-    right: 20,
-    alignItems: 'center',
-    zIndex: 999,
-    elevation: 10,
-  },
+  floatingButtons: { position: 'absolute', bottom: 60, right: 20, alignItems: 'center', zIndex: 999, elevation: 10 },
   seeMoreButton: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, backgroundColor: '#1E90FF', marginBottom: 12 },
   seeMoreText: { fontSize: 16, color: '#fff', fontWeight: '600' },
   shareButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
   shareButtonDisabled: { opacity: 0.6 },
-
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });
+

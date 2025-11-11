@@ -1,24 +1,12 @@
 // Admin_AccountsPage.jsx
 import React, { useState, useEffect } from "react";
-import {
-  View,
-  Text,
-  StyleSheet,
-  FlatList,
-  TouchableOpacity,
-  TextInput,
-  Alert,
-  ActivityIndicator,
-  Image,
-} from "react-native";
+import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { getFirestore, collection, onSnapshot, doc, getDoc } from "firebase/firestore";
 import { getAuth, signOut } from "firebase/auth";
 import { app } from "../../firebaseConfig";
-
 import GreenLensLogo from "../../assets/Green_Lens_logo.png";
-
 import { LogBox } from "react-native";
 LogBox.ignoreAllLogs(false);
 
@@ -245,13 +233,7 @@ const styles = StyleSheet.create({
   logoContainer: { alignItems: "flex-start", marginBottom: 16 },
   logoImage: { width: 150, height: 50, resizeMode: "contain" },
   topBar: { flexDirection: "row", justifyContent: "space-between", marginBottom: 12 },
-  searchBar: {
-    flex: 1,
-    backgroundColor: "#f2f2f2",
-    paddingHorizontal: 1,
-    borderRadius: 8,
-    marginRight: 10,
-  },
+  searchBar: { flex: 1, backgroundColor: "#f2f2f2", paddingHorizontal: 1, borderRadius: 8, marginRight: 10 },
   newUserButton: { backgroundColor: "black", padding: 10, borderRadius: 8 },
   newUserText: { color: "white", fontWeight: "600" },
   listHeader: { flexDirection: "row", paddingVertical: 8, marginBottom: 4, alignItems: "center" },

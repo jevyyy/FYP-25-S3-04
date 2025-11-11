@@ -1,15 +1,9 @@
 // ./screens/Developer/Developer_SettingsPage.jsx
 import React, { useState, useRef } from 'react';
-import { 
-  View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Linking, Image, Modal, FlatList, ActivityIndicator 
-} from 'react-native';
+import { View, Text, TouchableOpacity, StyleSheet, Alert, ScrollView, Linking, Image, Modal, FlatList, ActivityIndicator } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
-
-// Firebase
 import { app } from '../../firebaseConfig';
 import { getFirestore, collection, doc, onSnapshot, query, orderBy } from 'firebase/firestore';
-
-// Logo
 import GreenLensLogo from '../../assets/Green_Lens_logo.png';
 
 const db = getFirestore(app);
@@ -356,13 +350,10 @@ const styles = StyleSheet.create({
   imageCard: { width: '48%', marginBottom: 10, borderRadius: 8, overflow: 'hidden', backgroundColor: '#f0f0f0' },
   imageThumb: { width: '100%', height: 120 },
   imageName: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginVertical: 4 },
-
-  // --- new grid styles ---
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 15 },
   categoryButton: { flexBasis: '48%', backgroundColor: '#2E7D32', paddingVertical: 15, borderRadius: 8, marginBottom: 10, alignItems: 'center' },
   categoryButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
-
-  // --- buffer overlay styles ---
   bufferOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
   bufferBox: { padding: 20, backgroundColor: '#fff', borderRadius: 10, alignItems: 'center' },
 });
+

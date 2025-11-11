@@ -1,43 +1,13 @@
 // ./screens/Developer/Developer_FlowerPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Image,
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, FlatList, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-// Firebase
 import { app } from '../../firebaseConfig';
-import {
-  getFirestore,
-  collection,
-  doc,
-  addDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-} from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, getDoc, updateDoc, where, getDocs } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
-
-// Import your logo
 import LogoImage from '../../assets/Green_Lens_logo.png';
 
 const db = getFirestore(app);
@@ -49,11 +19,9 @@ export default function Developer_FlowerPage() {
   const [searchQuery, setSearchQuery] = useState('');
   const [flowerImages, setFlowerImages] = useState([]);
   const [loading, setLoading] = useState(true);
-
   const [previewUri, setPreviewUri] = useState(null);
   const [previewModalVisible, setPreviewModalVisible] = useState(false);
   const [uploading, setUploading] = useState(false);
-
   const [selectedFlower, setSelectedFlower] = useState(null);
   const [flowerName, setFlowerName] = useState('');
 
@@ -77,7 +45,11 @@ export default function Developer_FlowerPage() {
             name: data.name || data.uploadedBy || 'User Upload',
             uploadedBy: data.uploadedBy || '',
             storagePath: data.storagePath || null,
-            createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : data.createdAt) : null,
+            createdAt: data.createdAt
+              ? data.createdAt.toDate
+                ? data.createdAt.toDate()
+                : data.createdAt
+              : null,
           };
         });
         setFlowerImages(items);
@@ -101,7 +73,6 @@ export default function Developer_FlowerPage() {
     (img.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // --- Add new flower ---
   const handleAddNewFlower = async () => {
     setSelectedFlower(null);
     setFlowerName('');
@@ -145,14 +116,10 @@ export default function Developer_FlowerPage() {
     if (!selectedFlower) {
       performUploadOrUpdate();
     } else {
-      Alert.alert(
-        'Confirm Update',
-        'Are you sure you want to apply the changes?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Yes', onPress: () => performUploadOrUpdate() },
-        ]
-      );
+      Alert.alert('Confirm Update', 'Are you sure you want to apply the changes?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Yes', onPress: () => performUploadOrUpdate() },
+      ]);
     }
   };
 
@@ -166,8 +133,38 @@ export default function Developer_FlowerPage() {
 
     try {
       const cleanName = flowerName.trim().toLowerCase();
+      const newStoragePath = `modelPhotos/flowers/${cleanName}.jpg`;
+      const newImageRef = ref(storage, newStoragePath);
+
+      // 🔹 DUPLICATE CHECKS
+      const q = query(flowersImagesCollectionRef(), where('name', '==', cleanName));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty && (!selectedFlower || selectedFlower.name !== cleanName)) {
+        Alert.alert('Duplicate Name', 'A flower dataset image with this name already exists.');
+        setUploading(false);
+        return;
+      }
+
+      try {
+        await getMetadata(newImageRef);
+        if (!selectedFlower || selectedFlower.storagePath !== newStoragePath) {
+          Alert.alert(
+            'Duplicate File',
+            'An image file with this name already exists in storage. Rename or delete the existing one first.'
+          );
+          setUploading(false);
+          return;
+        }
+      } catch (err) {
+        if (err.code !== 'storage/object-not-found') {
+          console.error('Error checking file existence:', err);
+          Alert.alert('Error', 'Could not verify file existence.');
+          setUploading(false);
+          return;
+        }
+      }
+
       let newImageUrl = null;
-      let newStoragePath = `modelPhotos/flowers/${cleanName}.jpg`;
 
       if (!selectedFlower) {
         if (!previewUri) {
@@ -178,9 +175,8 @@ export default function Developer_FlowerPage() {
 
         const response = await fetch(previewUri);
         const blob = await response.blob();
-        const storageRef = ref(storage, newStoragePath);
-        await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-        newImageUrl = await getDownloadURL(storageRef);
+        await uploadBytes(newImageRef, blob, { contentType: 'image/jpeg' });
+        newImageUrl = await getDownloadURL(newImageRef);
 
         let uploadedBy = 'Developer';
         const user = auth.currentUser;
@@ -190,33 +186,30 @@ export default function Developer_FlowerPage() {
           const userSnap = await getDoc(userDocRef);
           if (userSnap.exists() && userSnap.data().username) uploadedBy = userSnap.data().username;
           else if (user?.email) uploadedBy = user.email.split('@')[0];
-        } catch (e) {}
+        } catch {}
 
         await addDoc(flowersImagesCollectionRef(), {
           imageUrl: newImageUrl,
           uploadedBy,
-          name: flowerName.trim().toLowerCase(),
+          name: cleanName,
           createdAt: serverTimestamp(),
           storagePath: newStoragePath,
         });
 
-        Alert.alert('Success', 'Image added!');
+        Alert.alert('Success', 'Flower image added!');
       } else {
         if (previewUri && previewUri.startsWith('file://')) {
           const response = await fetch(previewUri);
           const blob = await response.blob();
-          const storageRef = ref(storage, newStoragePath);
-          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-          newImageUrl = await getDownloadURL(storageRef);
+          await uploadBytes(newImageRef, blob, { contentType: 'image/jpeg' });
+          newImageUrl = await getDownloadURL(newImageRef);
         } else if (selectedFlower.storagePath !== newStoragePath) {
           const oldRef = ref(storage, selectedFlower.storagePath);
           const oldUrl = await getDownloadURL(oldRef);
           const res = await fetch(oldUrl);
           const blob = await res.blob();
-
-          const storageRef = ref(storage, newStoragePath);
-          await uploadBytes(storageRef, blob, { contentType: 'image/jpeg' });
-          newImageUrl = await getDownloadURL(storageRef);
+          await uploadBytes(newImageRef, blob, { contentType: 'image/jpeg' });
+          newImageUrl = await getDownloadURL(newImageRef);
         }
 
         if (selectedFlower.storagePath && selectedFlower.storagePath !== newStoragePath) {
@@ -230,12 +223,12 @@ export default function Developer_FlowerPage() {
 
         const flowerDocRef = doc(flowersImagesCollectionRef(), selectedFlower.id);
         await updateDoc(flowerDocRef, {
-          name: flowerName.trim().toLowerCase(),
+          name: cleanName,
           imageUrl: newImageUrl || selectedFlower.uri,
           storagePath: newStoragePath,
         });
 
-        Alert.alert('Success', 'Image updated!');
+        Alert.alert('Success', 'Flower image updated!');
       }
 
       setPreviewModalVisible(false);
@@ -253,53 +246,52 @@ export default function Developer_FlowerPage() {
   const handleDeleteFlower = () => {
     if (!selectedFlower) return;
 
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this image?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setUploading(true);
-            try {
-              const flowerDocRef = doc(flowersImagesCollectionRef(), selectedFlower.id);
-              await deleteDoc(flowerDocRef);
+    Alert.alert('Confirm Delete', 'Are you sure you want to delete this image?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setUploading(true);
+          try {
+            const flowerDocRef = doc(flowersImagesCollectionRef(), selectedFlower.id);
+            await deleteDoc(flowerDocRef);
 
-              if (selectedFlower.storagePath) {
-                const oldRef = ref(storage, selectedFlower.storagePath);
-                await deleteObject(oldRef);
-              }
-
-              Alert.alert('Success', 'Image deleted!');
-              setPreviewModalVisible(false);
-              setPreviewUri(null);
-              setFlowerName('');
-              setSelectedFlower(null);
-            } catch (err) {
-              console.error('Delete error:', err);
-              Alert.alert('Error', 'Failed to delete flower image.');
-            } finally {
-              if (isMounted.current) setUploading(false);
+            if (selectedFlower.storagePath) {
+              const oldRef = ref(storage, selectedFlower.storagePath);
+              await deleteObject(oldRef);
             }
-          },
+
+            Alert.alert('Success', 'Image deleted!');
+            setPreviewModalVisible(false);
+            setPreviewUri(null);
+            setFlowerName('');
+            setSelectedFlower(null);
+          } catch (err) {
+            console.error('Delete error:', err);
+            Alert.alert('Error', 'Failed to delete flower image.');
+          } finally {
+            if (isMounted.current) setUploading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
   const renderImageItem = ({ item }) => (
     <TouchableOpacity style={styles.imageCard} onPress={() => handleImagePress(item)}>
       <Image source={{ uri: item.uri }} style={styles.imageThumb} resizeMode="cover" />
       <View style={{ padding: 10 }}>
-        <Text style={styles.imageName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.imageName} numberOfLines={1}>
+          {item.name}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
+      {/* Header */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image source={LogoImage} style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }} />
@@ -325,6 +317,7 @@ export default function Developer_FlowerPage() {
         </View>
       </View>
 
+      {/* Content */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
@@ -350,6 +343,7 @@ export default function Developer_FlowerPage() {
         />
       )}
 
+      {/* Modal */}
       <Modal
         visible={previewModalVisible}
         transparent
@@ -402,22 +396,14 @@ export default function Developer_FlowerPage() {
                     onPress={handleConfirmUpload}
                     disabled={uploading}
                   >
-                    {uploading ? (
-                      <ActivityIndicator color="#fff" />
-                    ) : (
-                      <Text style={{ color: '#fff', fontWeight: '600' }}>
-                        {selectedFlower ? 'Update' : 'Upload'}
-                      </Text>
-                    )}
+                    {uploading ? <ActivityIndicator color="#fff" /> : <Text style={{ color: '#fff', fontWeight: '600' }}>{selectedFlower ? 'Update' : 'Upload'}</Text>}
                   </TouchableOpacity>
                 </View>
 
                 {previewUri && (
                   <TouchableOpacity style={{ marginTop: 8 }} onPress={handleSelectImage} disabled={uploading}>
                     <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
-                      {selectedFlower
-                        ? 'Update image from Device Storage'
-                        : 'Retake image from Device Storage'}
+                      {selectedFlower ? 'Update image from Device Storage' : 'Retake image from Device Storage'}
                     </Text>
                   </TouchableOpacity>
                 )}

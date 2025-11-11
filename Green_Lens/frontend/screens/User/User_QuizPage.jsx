@@ -1,9 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Modal, Alert, Image, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { 
-  getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, doc, setDoc, updateDoc, increment, getDoc 
-} from 'firebase/firestore';
+import { getFirestore, collection, getDocs, query, where, addDoc, serverTimestamp, doc, setDoc, updateDoc, increment, getDoc } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { app } from '../../firebaseConfig';
@@ -132,15 +130,16 @@ export default function User_QuizPage({ navigation }) {
       </View>
 
       {/* Category Cards */}
-      <View style={styles.categoryContainer}>
+     <View style={styles.categoryContainer}>
         {[
-          { cat: 'Flower', icon: 'flower-outline' },
-          { cat: 'Plant', icon: 'leaf-outline' },
-          { cat: 'Architecture', icon: 'business-outline' },
-        ].map(({ cat, icon }) => (
-          <TouchableOpacity key={cat} style={styles.categoryCard} onPress={() => handlePressCategory(cat)}>
-            <Ionicons name={icon} size={32} color="#000" style={{ marginBottom: 8 }} />
-            <Text style={styles.categoryText}>{cat}</Text>
+          { cat: 'Flower', label: 'Flowers', img: require('../../assets/quiz_flowers.jpg') },
+          { cat: 'Plant', label: 'Plants', img: require('../../assets/quiz_plants.jpg') },
+          { cat: 'Architecture', label: 'Architecture', img: require('../../assets/quiz_architecture.jpg') },
+        ].map(({ cat, label, img }) => (
+          <TouchableOpacity key={cat} style={styles.imageCard} onPress={() => handlePressCategory(cat)}>
+            <Image source={img} style={styles.imageBackground} />
+            <View style={styles.overlay} />
+            <Text style={styles.imageText}>{label}</Text>
           </TouchableOpacity>
         ))}
       </View>
@@ -185,44 +184,16 @@ export default function User_QuizPage({ navigation }) {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
-
-  // Ranking
   topRow: { flexDirection: 'row', justifyContent: 'flex-end', marginBottom: 20 },
-  rankingButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#FFD43B',
-    borderRadius: 10,
-    paddingVertical: 6,
-    paddingHorizontal: 12,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-  rankingText: {
-    fontWeight: '600',
-    color: '#000',
-    fontSize: 14,
-    marginLeft: 4,
-  },
-
-  // Category
-  categoryContainer: { flexDirection: 'row', justifyContent: 'space-between', marginTop: 10 },
-  categoryCard: {
-    backgroundColor: '#EAF7EA',
-    borderRadius: 15,
-    width: '30%',
-    paddingVertical: 18,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 2,
-  },
+  rankingButton: { flexDirection: 'row', alignItems: 'center', backgroundColor: '#FFD43B', borderRadius: 10, paddingVertical: 6, paddingHorizontal: 12, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
+  rankingText: { fontWeight: '600', color: '#000', fontSize: 14, marginLeft: 4 },
+  categoryContainer: { flexDirection: 'column', justifyContent: 'center', alignItems: 'center', marginTop: 10 },
+  imageCard: { width: '95%', height: 100, borderRadius: 25, marginBottom: 20, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' },
+  imageBackground: { width: '100%', height: '100%', resizeMode: 'cover' },
+  overlay: { ...StyleSheet.absoluteFillObject, backgroundColor: 'rgba(0,0,0,0.15)' },
+  imageText: { position: 'absolute', color: '#fff', fontSize: 24, fontWeight: '700' },
+  categoryCard: { backgroundColor: '#EAF7EA', borderRadius: 15, width: '30%', paddingVertical: 18, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 4, elevation: 2 },
   categoryText: { fontSize: 14, fontWeight: '600', color: '#333', textAlign: 'center' },
-
-  // Modal
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center' },
   questionText: { fontSize: 16, fontWeight: '600', marginBottom: 15, textAlign: 'center' },
@@ -233,3 +204,4 @@ const styles = StyleSheet.create({
   returnButton: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#000', borderRadius: 8 },
   returnButtonText: { color: '#fff', fontWeight: '600' },
 });
+
