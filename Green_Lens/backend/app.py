@@ -432,9 +432,13 @@ def retrain_model():
         print(f"Error in retrain_model endpoint: {str(e)}")
         import traceback
         traceback.print_exc()
+        
+        # Don't expose internal error details to clients for security
+        error_message = "An error occurred during model retraining. Please check server logs for details."
+        
         return jsonify({
             'success': False,
-            'error': str(e)
+            'error': error_message
         }), 500
 
 if __name__ == '__main__':
