@@ -125,8 +125,10 @@ export default function Developer_SettingsPage() {
     setTrainingBuffer(true);
 
     try {
-      // Call backend API to retrain model
-      const API_URL = 'http://localhost:5000/api/retrain'; // Update with your actual backend URL
+      // TODO: Update this URL with your actual backend server URL
+      // For local testing: 'http://localhost:5000/api/retrain'
+      // For mobile device: 'http://<YOUR_COMPUTER_IP>:5000/api/retrain'
+      const API_URL = 'http://localhost:5000/api/retrain';
       
       const response = await fetch(API_URL, {
         method: 'POST',
