@@ -382,7 +382,7 @@ class ModelRetrainer:
         """
         Delete training images from Firebase Storage and Firestore
         """
-        print("\n" + "="*80")
+        print("\n" + "="*80)
         print(f"Deleting {self.category} training images from Firebase...")
         print("="*80 + "\n")
         
