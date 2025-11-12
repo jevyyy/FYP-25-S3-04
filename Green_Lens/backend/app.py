@@ -354,6 +354,89 @@ def get_categories():
         'loaded_categories': list(models.keys())
     })
 
+@app.route('/api/retrain', methods=['POST'])
+def retrain_model():
+    """
+    Trigger model retraining for a specific category
+    Expects JSON body: { "category": "flowers|plants|architecture", "deleteImagesAfter": true|false }
+    """
+    try:
+        data = request.get_json()
+        category = data.get('category')
+        delete_images_after = data.get('deleteImagesAfter', True)
+        
+        if not category:
+            return jsonify({
+                'success': False,
+                'error': 'Category is required'
+            }), 400
+        
+        # Map frontend category names to backend category names
+        category_map = {
+            'flowers': 'flowers',
+            'plants': 'plants',
+            'architecture': 'architecture'
+        }
+        
+        if category not in category_map:
+            return jsonify({
+                'success': False,
+                'error': f'Invalid category. Must be one of: {list(category_map.keys())}'
+            }), 400
+        
+        backend_category = category_map[category]
+        
+        # Import the retrainer
+        import sys
+        sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'utils'))
+        from retrain_model_with_firebase import ModelRetrainer
+        
+        # Initialize retrainer
+        retrainer = ModelRetrainer(
+            category=backend_category,
+            service_account_path=SERVICE_ACCOUNT_PATH,
+            bucket_name=BUCKET_NAME
+        )
+        
+        # Run retraining
+        print(f"\n{'='*80}")
+        print(f"Starting retraining for category: {backend_category}")
+        print(f"Delete images after training: {delete_images_after}")
+        print(f"{'='*80}\n")
+        
+        success = retrainer.retrain(delete_images_after=delete_images_after)
+        
+        if success:
+            # Reload the model for this category
+            try:
+                # Map back to the category key used in CATEGORIES
+                category_key = 'flower' if category == 'flowers' else category.rstrip('s')
+                load_model_and_classes_for_category(category_key)
+                print(f"Reloaded {category} model successfully")
+            except Exception as e:
+                print(f"Warning: Failed to reload model: {str(e)}")
+            
+            return jsonify({
+                'success': True,
+                'message': f'Model retraining completed successfully for {category}',
+                'category': category,
+                'images_deleted': delete_images_after
+            })
+        else:
+            return jsonify({
+                'success': False,
+                'error': 'Model retraining failed. Check server logs for details.'
+            }), 500
+            
+    except Exception as e:
+        print(f"Error in retrain_model endpoint: {str(e)}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({
+            'success': False,
+            'error': str(e)
+        }), 500
+
 if __name__ == '__main__':
     # Load all models on startup
     load_all_models()

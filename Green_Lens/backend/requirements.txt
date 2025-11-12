@@ -14,3 +14,6 @@ pillow==11.3.0
 
 # Numerical computing
 numpy==1.26.4
+
+# HTTP requests for downloading images
+requests==2.31.0
