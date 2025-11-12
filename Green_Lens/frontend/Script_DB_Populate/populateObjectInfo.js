@@ -906,6 +906,13 @@ const architectureData = [
     description: "A large outdoor performance venue designed for symphonies, concerts, and cultural events.",
     characteristics: "Open-air amphitheatre with tiered seating, elevated stage, and acoustic design to project sound to large audiences.",
     funFact: "Named after philanthropist Shaw Foundation, it is a hub for cultural performances and community gatherings in botanical gardens."
+  },
+  {
+  id: "forest discovery centre",
+  name: "Forest Discovery Centre",
+  description: "An immersive educational hub within the Singapore Botanic Gardens dedicated to rainforest conservation and biodiversity awareness.",
+  characteristics: "Features interactive exhibits, informative displays, and elevated walkways surrounded by lush canopy trees showcasing native forest ecosystems.",
+  funFact: "The centre highlights Singapore’s reforestation efforts and offers a bird’s-eye view of the surrounding treetops from the OCBC Arboretum."
   }
 ];
 
