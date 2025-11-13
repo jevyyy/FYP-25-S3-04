@@ -24,13 +24,13 @@ from PIL import Image
 import io
 
 class ModelRetrainer:
-    def __init__(self, category, service_account_path, bucket_name):
+    def __init__(self, category, firebase_credentials, bucket_name):
         """
         Initialize the Model Retrainer
         
         Args:
             category: 'flowers', 'plants', or 'architecture'
-            service_account_path: Path to Firebase service account JSON
+            firebase_credentials: Firebase Admin SDK credentials object
             bucket_name: Firebase storage bucket name
         """
         self.category = category
@@ -40,8 +40,7 @@ class ModelRetrainer:
         try:
             firebase_admin.get_app()
         except ValueError:
-            cred = credentials.Certificate(service_account_path)
-            firebase_admin.initialize_app(cred, {
+            firebase_admin.initialize_app(firebase_credentials, {
                 'storageBucket': bucket_name
             })
         

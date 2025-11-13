@@ -10,14 +10,48 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import firebase_admin
 from firebase_admin import credentials, storage
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
 # Firebase configuration
 BUCKET_NAME = 'green-lens-47e9b.firebasestorage.app'
-# Use dynamic path resolution that works from any location
-SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), 'service-account.json')
+
+# Use environment variables for Firebase credentials
+# Falls back to service-account.json if env vars not set
+def get_firebase_credentials():
+    """Get Firebase credentials from environment variables or JSON file"""
+    # First, try to load from environment variables
+    if os.getenv('FIREBASE_PROJECT_ID') and os.getenv('FIREBASE_PRIVATE_KEY'):
+        print("Loading Firebase credentials from environment variables...")
+        return credentials.Certificate({
+            "type": "service_account",
+            "project_id": os.getenv('FIREBASE_PROJECT_ID'),
+            "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
+            "private_key": os.getenv('FIREBASE_PRIVATE_KEY').replace('\\n', '\n'),
+            "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
+            "client_id": os.getenv('FIREBASE_CLIENT_ID'),
+            "auth_uri": os.getenv('FIREBASE_AUTH_URI', 'https://accounts.google.com/o/oauth2/auth'),
+            "token_uri": os.getenv('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
+            "auth_provider_x509_cert_url": os.getenv('FIREBASE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
+            "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_CERT_URL')
+        })
+    else:
+        # Fallback to service-account.json file
+        print("Loading Firebase credentials from service-account.json file...")
+        SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), 'service-account.json')
+        if not os.path.exists(SERVICE_ACCOUNT_PATH):
+            raise FileNotFoundError(
+                "Firebase credentials not found. Please either:\n"
+                "1. Set Firebase environment variables in .env file, OR\n"
+                "2. Place service-account.json in Green_Lens/backend/\n"
+                "See .env.example for required environment variables."
+            )
+        return credentials.Certificate(SERVICE_ACCOUNT_PATH)
 
 # Local paths for downloaded files
 LOCAL_MODEL_DIR = os.path.join(os.path.dirname(__file__), 'downloaded_model')
@@ -68,7 +102,7 @@ def initialize_firebase():
     
     try:
         print("Initializing Firebase Admin SDK...")
-        cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
+        cred = get_firebase_credentials()
         firebase_admin.initialize_app(cred, {
             'storageBucket': BUCKET_NAME
         })
@@ -391,10 +425,13 @@ def retrain_model():
         sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'utils'))
         from retrain_model_with_firebase import ModelRetrainer
         
+        # Get Firebase credentials (from env or file)
+        firebase_cred = get_firebase_credentials()
+        
         # Initialize retrainer
         retrainer = ModelRetrainer(
             category=backend_category,
-            service_account_path=SERVICE_ACCOUNT_PATH,
+            firebase_credentials=firebase_cred,
             bucket_name=BUCKET_NAME
         )
         

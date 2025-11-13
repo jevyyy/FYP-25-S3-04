@@ -9,6 +9,52 @@ Run this before retraining to diagnose Firebase authentication issues.
 
 import os
 import sys
+from dotenv import load_dotenv
+
+# Load environment variables
+load_dotenv()
+
+def get_firebase_credentials():
+    """Get Firebase credentials from environment variables or JSON file"""
+    # First, try to load from environment variables
+    if os.getenv('FIREBASE_PROJECT_ID') and os.getenv('FIREBASE_PRIVATE_KEY'):
+        print("✓ Loading Firebase credentials from environment variables (.env)\n")
+        return {
+            "type": "service_account",
+            "project_id": os.getenv('FIREBASE_PROJECT_ID'),
+            "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
+            "private_key": os.getenv('FIREBASE_PRIVATE_KEY').replace('\\n', '\n'),
+            "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
+            "client_id": os.getenv('FIREBASE_CLIENT_ID'),
+            "auth_uri": os.getenv('FIREBASE_AUTH_URI', 'https://accounts.google.com/o/oauth2/auth'),
+            "token_uri": os.getenv('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
+            "auth_provider_x509_cert_url": os.getenv('FIREBASE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
+            "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_CERT_URL')
+        }, "environment"
+    else:
+        # Fallback to service-account.json file
+        service_account_path = 'service-account.json'
+        if not os.path.exists(service_account_path):
+            print("❌ FAILED: Firebase credentials not found")
+            print("\nNeither environment variables nor service-account.json file found.")
+            print("\nTO FIX - Option 1 (Recommended - keeps credentials out of git):")
+            print("1. Copy .env.example to .env")
+            print("2. Get your service account JSON from Firebase Console:")
+            print("   - Go to: https://console.firebase.google.com/")
+            print("   - Select your project → Project Settings → Service accounts")
+            print("   - Click 'Generate new private key' and download the JSON")
+            print("3. Copy values from the JSON into your .env file")
+            print("4. Restart the backend server")
+            print("\nTO FIX - Option 2 (File-based):")
+            print("1. Go to Firebase Console: https://console.firebase.google.com/")
+            print("2. Select your project")
+            print("3. Go to Project Settings → Service accounts")
+            print("4. Click 'Generate new private key'")
+            print("5. Save as 'service-account.json' in Green_Lens/backend/")
+            return None, None
+        
+        print(f"✓ Found service-account.json\n")
+        return service_account_path, "file"
 
 def test_firebase_connection():
     """Test Firebase connection with service account"""
@@ -16,33 +62,28 @@ def test_firebase_connection():
     print("Firebase Connection Test")
     print("="*80 + "\n")
     
-    # Check if service account file exists
-    service_account_path = 'service-account.json'
-    
-    if not os.path.exists(service_account_path):
-        print("❌ FAILED: service-account.json not found in current directory")
-        print("\nExpected location: Green_Lens/backend/service-account.json")
-        print("\nTO FIX:")
-        print("1. Go to Firebase Console: https://console.firebase.google.com/")
-        print("2. Select your project")
-        print("3. Go to Project Settings → Service accounts")
-        print("4. Click 'Generate new private key'")
-        print("5. Save as 'service-account.json' in Green_Lens/backend/")
+    # Get credentials
+    creds, cred_type = get_firebase_credentials()
+    if creds is None:
         return False
     
-    print(f"✓ Found service-account.json\n")
-    
-    # Validate JSON structure
+    # Validate structure
     try:
         import json
-        with open(service_account_path, 'r') as f:
-            creds = json.load(f)
         
-        print("✓ Valid JSON format\n")
+        if cred_type == "file":
+            # Load from JSON file
+            with open(creds, 'r') as f:
+                creds_dict = json.load(f)
+            print("✓ Valid JSON format\n")
+        else:
+            # Already a dictionary from environment
+            creds_dict = creds
+            print("✓ Valid environment variable format\n")
         
         # Check required fields
         required_fields = ['type', 'project_id', 'private_key', 'client_email']
-        missing_fields = [field for field in required_fields if field not in creds]
+        missing_fields = [field for field in required_fields if field not in creds_dict]
         
         if missing_fields:
             print(f"❌ FAILED: Missing required fields: {', '.join(missing_fields)}")
@@ -52,15 +93,15 @@ def test_firebase_connection():
         
         # Display key info
         print("Service Account Info:")
-        print(f"  Project ID: {creds.get('project_id')}")
-        print(f"  Client Email: {creds.get('client_email')}")
-        print(f"  Private Key ID: {creds.get('private_key_id', 'N/A')[:20]}...")
+        print(f"  Project ID: {creds_dict.get('project_id')}")
+        print(f"  Client Email: {creds_dict.get('client_email')}")
+        print(f"  Private Key ID: {creds_dict.get('private_key_id', 'N/A')[:20]}...")
         print()
         
         # Check project ID
         expected_project = 'green-lens-47e9b'
-        if creds.get('project_id') != expected_project:
-            print(f"⚠️  WARNING: Project ID is '{creds.get('project_id')}', expected '{expected_project}'")
+        if creds_dict.get('project_id') != expected_project:
+            print(f"⚠️  WARNING: Project ID is '{creds_dict.get('project_id')}', expected '{expected_project}'")
             print("   This service account may be from a different Firebase project.")
             print()
         
@@ -72,17 +113,21 @@ def test_firebase_connection():
         print("2. Download a fresh copy from Firebase Console")
         return False
     except Exception as e:
-        print(f"❌ FAILED: Error reading file: {str(e)}")
+        print(f"❌ FAILED: Error reading credentials: {str(e)}")
         return False
     
     # Test Firebase initialization
     try:
         print("Testing Firebase Admin SDK initialization...")
         import firebase_admin
-        from firebase_admin import credentials, firestore, storage
+        from firebase_admin import credentials as firebase_credentials, firestore, storage
         
         # Initialize Firebase
-        cred = credentials.Certificate(service_account_path)
+        if cred_type == "file":
+            cred = firebase_credentials.Certificate(creds)
+        else:
+            cred = firebase_credentials.Certificate(creds_dict)
+            
         app = firebase_admin.initialize_app(cred, {
             'storageBucket': 'green-lens-47e9b.firebasestorage.app'
         })
