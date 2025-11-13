@@ -1,10 +1,9 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Button, Image, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator, Animated, ScrollView } from 'react-native';
+import { Button, Image, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
 import { useIsFocused } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
 import { predictPlant } from '../../services/plantRecognitionApi';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
@@ -56,10 +55,7 @@ export default function Guest_HomePage() {
   const [selectedImageUri, setSelectedImageUri] = useState(null);
   const [isProcessing, setIsProcessing] = useState(false);
   const [selectedCategory, setSelectedCategory] = useState('flower');
-  const [showTips, setShowTips] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(0));
 
-  // new states for detection display
   const [detectedObject, setDetectedObject] = useState(null);
   const [confidence, setConfidence] = useState(null);
   const [summaryData, setSummaryData] = useState(null);
@@ -70,38 +66,17 @@ export default function Guest_HomePage() {
     { id: 'architecture', label: 'Architecture', icon: '🏛️' },
   ];
 
-  const tips = [
-    '------------------------------Helpful Tips------------------------------',
-    '🌿 Make sure your plant is centered and in focus for better results.',
-    '☀️ Use natural lighting when possible to improve image recognition.',
-    '📷 Avoid blurry or shaky photos — hold your phone steady.',
-    '🍃 Try to capture only one plant in the frame for more accurate detection.',
-    '🌸 Make sure the background is clear and not too cluttered.',
-  ];
-
-  const toggleTips = () => {
-    if (showTips) {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => setShowTips(false));
-    } else {
-      setShowTips(true);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-      setTimeout(() => {
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => setShowTips(false));
-      }, 5000);
+  // 5-second auto-hide for detected result
+  useEffect(() => {
+    if (detectedObject) {
+      const timer = setTimeout(() => {
+        setDetectedObject(null);
+        setConfidence(null);
+        setSummaryData(null);
+      }, 5000); // hide after 5 seconds
+      return () => clearTimeout(timer);
     }
-  };
+  }, [detectedObject]);
 
   if (!permission) return <View />;
   if (!permission.granted) {
@@ -188,18 +163,18 @@ export default function Guest_HomePage() {
           )}
           {summaryData ? (
             <ScrollView style={styles.summaryBox}>
-                {summaryData.description && (
-                    <Text style={styles.summaryText}>Description: {summaryData.description}</Text>
-                )}
-                {summaryData.characteristics && (
-                    <Text style={styles.summaryText}>Characteristics: {summaryData.characteristics}</Text>
-                )}
-                {summaryData.healthTip && (
-                    <Text style={styles.summaryText}>Health Tip: {summaryData.healthTip}</Text>
-                )}
-                {summaryData.funFact && (
-                    <Text style={styles.summaryText}>Fun Fact: {summaryData.funFact}</Text>
-                )}
+              {summaryData.description && (
+                <Text style={styles.summaryText}>Description: {summaryData.description}</Text>
+              )}
+              {summaryData.characteristics && (
+                <Text style={styles.summaryText}>Characteristics: {summaryData.characteristics}</Text>
+              )}
+              {summaryData.healthTip && (
+                <Text style={styles.summaryText}>Health Tip: {summaryData.healthTip}</Text>
+              )}
+              {summaryData.funFact && (
+                <Text style={styles.summaryText}>Fun Fact: {summaryData.funFact}</Text>
+              )}
             </ScrollView>
           ) : (
             <Text style={styles.summaryText}>Loading summary...</Text>
@@ -238,22 +213,6 @@ export default function Guest_HomePage() {
         ))}
       </View>
 
-      <TouchableOpacity style={styles.helpIcon} onPress={toggleTips}>
-        <Ionicons name="help-circle-outline" size={32} color="white" />
-      </TouchableOpacity>
-
-      {showTips && (
-        <Animated.View style={[styles.tipBox, { opacity: fadeAnim }]}>
-          <ScrollView>
-            {tips.map((tip, index) => (
-              <Text key={index} style={styles.tipText}>
-                {tip}
-              </Text>
-            ))}
-          </ScrollView>
-        </Animated.View>
-      )}
-
       <View style={styles.overlay}>
         <ImagePreview onSelectImage={handleImageSelected} />
         <TouchableOpacity
@@ -287,9 +246,6 @@ const styles = StyleSheet.create({
   thumbnail: { width: '100%', height: '100%' },
   loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
   loadingText: { color: '#ffffff', fontSize: 16, marginTop: 10 },
-  helpIcon: { position: 'absolute', top: 20, right: 10, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 26, padding: 6 },
-  tipBox: { position: 'absolute', top: 70, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.75)', padding: 16, borderRadius: 10, maxHeight: 400 },
-  tipText: { color: '#fff', fontSize: 15, lineHeight: 22, marginBottom: 6 },
   categorySelector: { position: 'absolute', top: 20, left: 20, flexDirection: 'row', gap: 10 },
   categoryButton: { backgroundColor: 'rgba(0,0,0,0.5)', paddingVertical: 8, paddingHorizontal: 12, borderRadius: 20, flexDirection: 'row', alignItems: 'center', borderWidth: 2, borderColor: 'transparent' },
   categoryButtonActive: { backgroundColor: 'rgba(76,175,80,0.8)', borderColor: '#fff' },
@@ -297,4 +253,3 @@ const styles = StyleSheet.create({
   categoryLabel: { color: '#fff', fontSize: 12, fontWeight: '600' },
   categoryLabelActive: { fontWeight: 'bold' },
 });
-
