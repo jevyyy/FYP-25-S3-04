@@ -70,19 +70,38 @@ class ModelRetrainer:
         """
         Download images from Firebase Storage organized by class labels
         Returns the number of images downloaded
+        
+        Tries two methods:
+        1. From Firestore metadata (preferred - uploaded via app)
+        2. Direct from Storage (fallback - manually uploaded files)
         """
         print(f"\n{'='*80}")
         print(f"Downloading {self.category} images from Firebase Storage...")
         print(f"{'='*80}\n")
         
-        # Query Firestore for images
-        images_ref = self.db.collection('modelPhotos').document(self.category).collection('images')
-        images = images_ref.stream()
+        # Try Method 1: Query Firestore for images with metadata
+        try:
+            images_ref = self.db.collection('modelPhotos').document(self.category).collection('images')
+            images_list = list(images_ref.stream())
+            
+            if images_list:
+                print(f"Found {len(images_list)} images in Firestore metadata. Using Firestore method.")
+                return self._download_from_firestore(images_list)
+            else:
+                print("No images found in Firestore metadata. Trying direct Storage listing...")
+        except Exception as e:
+            print(f"Firestore query failed: {str(e)}")
+            print("Trying direct Storage listing...")
         
+        # Method 2: List files directly from Storage
+        return self._download_from_storage_direct()
+    
+    def _download_from_firestore(self, images_list):
+        """Download images using Firestore metadata (preferred method)"""
         image_count = 0
         class_counts = {}
         
-        for img_doc in images:
+        for img_doc in images_list:
             img_data = img_doc.to_dict()
             image_url = img_data.get('imageUrl')
             class_name = img_data.get('name', 'unknown')
@@ -111,6 +130,77 @@ class ModelRetrainer:
             except Exception as e:
                 print(f"Error downloading {image_url}: {str(e)}")
         
+        self._print_download_summary(image_count, class_counts)
+        return image_count
+    
+    def _download_from_storage_direct(self):
+        """Download images by listing Storage directly (fallback method)"""
+        print(f"Listing files from Storage: modelPhotos/{self.category}/")
+        
+        image_count = 0
+        class_counts = {}
+        
+        try:
+            # List all blobs in the category folder
+            blobs = self.bucket.list_blobs(prefix=f'modelPhotos/{self.category}/')
+            
+            for blob in blobs:
+                # Skip if it's a folder or not an image
+                if blob.name.endswith('/') or not blob.name.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    continue
+                
+                # Extract filename: modelPhotos/plants/areca palm 1.jpg -> areca palm 1.jpg
+                filename = blob.name.split('/')[-1]
+                
+                # Extract class name by removing number and extension
+                # "areca palm 1.jpg" -> "areca palm"
+                # Remove file extension
+                name_without_ext = filename.rsplit('.', 1)[0]
+                
+                # Remove trailing number pattern (space + digit(s))
+                import re
+                class_name = re.sub(r'\s+\d+$', '', name_without_ext).strip()
+                
+                if not class_name:
+                    class_name = 'unknown'
+                
+                # Create class directory
+                class_dir = self.temp_dataset_dir / class_name
+                class_dir.mkdir(parents=True, exist_ok=True)
+                
+                # Download image
+                try:
+                    # Generate signed URL for download
+                    blob_url = blob.generate_signed_url(expiration=3600)  # 1 hour expiration
+                    
+                    response = requests.get(blob_url, timeout=10)
+                    if response.status_code == 200:
+                        # Save image with sanitized filename
+                        safe_filename = filename.replace(' ', '_')
+                        img_path = class_dir / safe_filename
+                        with open(img_path, 'wb') as f:
+                            f.write(response.content)
+                        
+                        image_count += 1
+                        class_counts[class_name] = class_counts.get(class_name, 0) + 1
+                        print(f"Downloaded: {class_name}/{safe_filename}")
+                    else:
+                        print(f"Failed to download {blob.name}: Status {response.status_code}")
+                except Exception as e:
+                    print(f"Error downloading {blob.name}: {str(e)}")
+        
+        except Exception as e:
+            print(f"Error listing Storage files: {str(e)}")
+            print("\nTroubleshooting:")
+            print("1. Ensure images are uploaded in: modelPhotos/plants/, modelPhotos/flowers/, or modelPhotos/architecture/")
+            print("2. Or upload through the app: Developer_PlantsPage, Developer_FlowersPage, Developer_ArchitecturesPage")
+            return 0
+        
+        self._print_download_summary(image_count, class_counts)
+        return image_count
+    
+    def _print_download_summary(self, image_count, class_counts):
+        """Print download summary"""
         print(f"\n{'='*80}")
         print(f"Download Summary:")
         print(f"Total images downloaded: {image_count}")
@@ -118,8 +208,6 @@ class ModelRetrainer:
         for class_name, count in class_counts.items():
             print(f"  - {class_name}: {count} images")
         print(f"{'='*80}\n")
-        
-        return image_count
     
     def prepare_data_generators(self):
         """
@@ -381,18 +469,37 @@ class ModelRetrainer:
     def delete_firebase_training_images(self):
         """
         Delete training images from Firebase Storage and Firestore
+        Tries two methods:
+        1. Delete via Firestore metadata (preferred)
+        2. Delete directly from Storage (fallback)
         """
         print("\n" + "="*80)
         print(f"Deleting {self.category} training images from Firebase...")
         print("="*80 + "\n")
         
-        # Query Firestore for images
-        images_ref = self.db.collection('modelPhotos').document(self.category).collection('images')
-        images = images_ref.stream()
+        # Try Method 1: Delete via Firestore metadata
+        try:
+            images_ref = self.db.collection('modelPhotos').document(self.category).collection('images')
+            images_list = list(images_ref.stream())
+            
+            if images_list:
+                print(f"Found {len(images_list)} images in Firestore. Deleting via Firestore method.")
+                self._delete_via_firestore(images_list)
+                return
+            else:
+                print("No images found in Firestore. Trying direct Storage deletion...")
+        except Exception as e:
+            print(f"Firestore query failed: {str(e)}")
+            print("Trying direct Storage deletion...")
         
+        # Method 2: Delete directly from Storage
+        self._delete_from_storage_direct()
+    
+    def _delete_via_firestore(self, images_list):
+        """Delete images using Firestore metadata (preferred method)"""
         deleted_count = 0
         
-        for img_doc in images:
+        for img_doc in images_list:
             try:
                 img_data = img_doc.to_dict()
                 storage_path = img_data.get('storagePath')
@@ -414,6 +521,33 @@ class ModelRetrainer:
                 print(f"Error deleting document {img_doc.id}: {str(e)}")
         
         print(f"\nDeleted {deleted_count} images from Firebase")
+    
+    def _delete_from_storage_direct(self):
+        """Delete images by listing Storage directly (fallback method)"""
+        print(f"Deleting files directly from Storage: modelPhotos/{self.category}/")
+        
+        deleted_count = 0
+        
+        try:
+            # List all blobs in the category folder
+            blobs = self.bucket.list_blobs(prefix=f'modelPhotos/{self.category}/')
+            
+            for blob in blobs:
+                # Skip if it's a folder or not an image
+                if blob.name.endswith('/') or not blob.name.lower().endswith(('.jpg', '.jpeg', '.png')):
+                    continue
+                
+                try:
+                    blob.delete()
+                    deleted_count += 1
+                    print(f"Deleted from storage: {blob.name}")
+                except Exception as e:
+                    print(f"Error deleting {blob.name}: {str(e)}")
+            
+            print(f"\nDeleted {deleted_count} images from Firebase Storage")
+            
+        except Exception as e:
+            print(f"Error listing Storage files for deletion: {str(e)}")
     
     def retrain(self, delete_images_after=True):
         """
