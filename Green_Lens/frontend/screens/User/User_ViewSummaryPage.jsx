@@ -8,7 +8,6 @@ import * as Sharing from 'expo-sharing';
 import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
 
-
 export default function User_ViewSummaryPage({ route }) {
   const { photoUri, predictionData, category = 'flower' } = route.params || {};
   const topPrediction = predictionData?.top_prediction || null;
