@@ -462,7 +462,39 @@ class ModelRetrainer:
             return True
             
         except Exception as e:
-            print(f"\nERROR during retraining: {str(e)}")
+            error_msg = str(e)
+            print(f"\nERROR during retraining: {error_msg}")
+            
+            # Check for Firebase authentication errors
+            if "invalid_grant" in error_msg.lower() or "invalid jwt signature" in error_msg.lower():
+                print("\n" + "="*80)
+                print("FIREBASE AUTHENTICATION ERROR DETECTED")
+                print("="*80)
+                print("\nThe service account credentials are invalid or expired.")
+                print("\nTO FIX THIS:")
+                print("1. Go to Firebase Console: https://console.firebase.google.com/")
+                print("2. Select your project: green-lens-47e9b")
+                print("3. Go to Project Settings → Service accounts")
+                print("4. Click 'Generate new private key'")
+                print("5. Save as 'service-account.json' in Green_Lens/backend/")
+                print("6. Restart the backend server: python app.py")
+                print("\nFor detailed instructions, see: FIREBASE_AUTH_TROUBLESHOOTING.md")
+                print("="*80 + "\n")
+            elif "503" in error_msg or "ServiceUnavailable" in error_msg:
+                print("\n" + "="*80)
+                print("FIREBASE SERVICE ERROR")
+                print("="*80)
+                print("\nUnable to connect to Firebase services.")
+                print("\nPossible causes:")
+                print("1. Invalid service account credentials")
+                print("2. Firebase services temporarily unavailable")
+                print("3. Network connectivity issues")
+                print("\nTO FIX THIS:")
+                print("1. Check Firebase status: https://status.firebase.google.com/")
+                print("2. Regenerate service account key (see FIREBASE_AUTH_TROUBLESHOOTING.md)")
+                print("3. Verify network connectivity")
+                print("="*80 + "\n")
+            
             import traceback
             traceback.print_exc()
             

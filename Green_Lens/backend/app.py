@@ -429,12 +429,19 @@ def retrain_model():
             }), 500
             
     except Exception as e:
-        print(f"Error in retrain_model endpoint: {str(e)}")
+        error_str = str(e)
+        print(f"Error in retrain_model endpoint: {error_str}")
         import traceback
         traceback.print_exc()
         
-        # Don't expose internal error details to clients for security
-        error_message = "An error occurred during model retraining. Please check server logs for details."
+        # Provide more helpful error messages for common issues
+        if "invalid_grant" in error_str.lower() or "invalid jwt signature" in error_str.lower():
+            error_message = "Firebase authentication failed. The service account credentials are invalid or expired. Please regenerate the service-account.json file from Firebase Console. See FIREBASE_AUTH_TROUBLESHOOTING.md for detailed instructions."
+        elif "503" in error_str or "ServiceUnavailable" in error_str:
+            error_message = "Unable to connect to Firebase services. This may be due to invalid credentials or temporary service issues. Check server logs and see FIREBASE_AUTH_TROUBLESHOOTING.md."
+        else:
+            # Don't expose internal error details to clients for security
+            error_message = "An error occurred during model retraining. Please check server logs for details."
         
         return jsonify({
             'success': False,
