@@ -188,15 +188,18 @@ export default function Guest_HomePage() {
           )}
           {summaryData ? (
             <ScrollView style={styles.summaryBox}>
-              {summaryData.description && (
-                <Text style={styles.summaryText}>📘 {summaryData.description}</Text>
-              )}
-              {summaryData.characteristics && (
-                <Text style={styles.summaryText}>🌿 {summaryData.characteristics}</Text>
-              )}
-              {summaryData.funFact && (
-                <Text style={styles.summaryText}>💡 {summaryData.funFact}</Text>
-              )}
+                {summaryData.description && (
+                    <Text style={styles.summaryText}>Description: {summaryData.description}</Text>
+                )}
+                {summaryData.characteristics && (
+                    <Text style={styles.summaryText}>Characteristics: {summaryData.characteristics}</Text>
+                )}
+                {summaryData.healthTip && (
+                    <Text style={styles.summaryText}>Health Tip: {summaryData.healthTip}</Text>
+                )}
+                {summaryData.funFact && (
+                    <Text style={styles.summaryText}>Fun Fact: {summaryData.funFact}</Text>
+                )}
             </ScrollView>
           ) : (
             <Text style={styles.summaryText}>Loading summary...</Text>
@@ -275,7 +278,7 @@ const styles = StyleSheet.create({
   resultTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
   confidenceText: { color: '#90ee90', fontSize: 16, marginTop: 4 },
   summaryBox: { marginTop: 8, maxHeight: 120 },
-  summaryText: { color: '#fff', fontSize: 14, lineHeight: 20 },
+  summaryText: { color: '#fff', fontSize: 14, lineHeight: 20, marginBottom: 8 },
   overlay: { position: 'absolute', bottom: 30, width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
   button: { backgroundColor: '#00000080', padding: 12, borderRadius: 40 },
   buttonDisabled: { opacity: 0.5 },

@@ -4,7 +4,7 @@ import fs from "fs";
 
 // Load service account JSON
 const serviceAccount = JSON.parse(
-  fs.readFileSync("./green-lens-47e9b-firebase-adminsdk-fbsvc-9af6311d8b.json", "utf8")
+  fs.readFileSync("./green-lens-47e9b-firebase-adminsdk-fbsvc-0ffeb0f206.json", "utf8")
 );
 
 // Initialize Firebase Admin SDK
