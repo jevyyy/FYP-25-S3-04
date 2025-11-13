@@ -229,15 +229,28 @@ return jsonify({'error': error_message}), 500  # Generic message
 
 ### Frontend
 
-**File:** `Developer_Settings.jsx` (line ~125)
-```javascript
-const API_URL = 'http://localhost:5000/api/retrain';
+**Environment Configuration:** `.env` file (copy from `.env.example`)
+```bash
+# For local testing (emulator/simulator):
+EXPO_PUBLIC_API_URL=http://localhost:5000
+
+# For physical device testing:
+EXPO_PUBLIC_API_URL=http://192.168.1.100:5000
+
+# For production:
+EXPO_PUBLIC_API_URL=https://your-backend.com
 ```
 
-**Update for:**
-- Local testing: `http://localhost:5000/api/retrain`
-- Mobile device: `http://<YOUR_IP>:5000/api/retrain`
-- Production: `https://your-backend.com/api/retrain`
+**Code Usage:** `Developer_Settings.jsx`
+```javascript
+const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+const API_URL = `${API_BASE_URL}/api/retrain`;
+```
+
+**Important:**
+- Copy `.env.example` to `.env` before running
+- Restart Expo after changing `.env`
+- The `.env` file is git-ignored (safe, won't be committed)
 
 ### Firebase
 

@@ -31,19 +31,26 @@ Loading models...
 
 ### 2. Frontend Configuration
 
-**Step 1: Update API URL**
+**Step 1: Configure Environment Variables**
 
-Edit `Green_Lens/frontend/screens/Developer/Developer_Settings.jsx`:
-
-```javascript
-// Line ~125
-const API_URL = 'http://<YOUR_BACKEND_URL>:5000/api/retrain';
+1. Copy the example environment file:
+```bash
+cd Green_Lens/frontend
+cp .env.example .env
 ```
 
-Replace `<YOUR_BACKEND_URL>` with:
-- **Local testing (web/simulator):** `localhost`
-- **Physical device:** Your computer's IP address (e.g., `192.168.1.100`)
-- **Production:** Your deployed backend URL
+2. Edit `.env` and update the API URL:
+```bash
+# For local testing on emulator/simulator:
+EXPO_PUBLIC_API_URL=http://localhost:5000
+
+# For physical device (iPhone/Android with Expo Go):
+# Replace with your computer's IP address
+EXPO_PUBLIC_API_URL=http://192.168.1.100:5000
+
+# For production:
+# EXPO_PUBLIC_API_URL=https://your-api-domain.com
+```
 
 **How to find your IP address:**
 
@@ -58,6 +65,11 @@ ipconfig
 ifconfig | grep "inet "
 # Look for your local network IP (usually 192.168.x.x or 10.x.x.x)
 ```
+
+**Important:** 
+- The `.env` file is git-ignored and won't be committed
+- Restart Expo after changing the `.env` file
+- Make sure your phone and computer are on the SAME WiFi network when testing on physical devices
 
 **Step 2: Install Frontend Dependencies**
 ```bash

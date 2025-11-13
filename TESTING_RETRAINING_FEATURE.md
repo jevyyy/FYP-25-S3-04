@@ -34,19 +34,29 @@ This guide provides step-by-step instructions for testing the newly implemented 
    npm install
    ```
 
-2. **Update API URL**
-   - Open `screens/Developer/Developer_Settings.jsx`
-   - Update `API_URL` on line ~144 to point to your backend:
-     ```javascript
-     const API_URL = 'http://<YOUR_BACKEND_IP>:5000/api/retrain';
+2. **Configure Environment Variables**
+   - Copy the example environment file:
+     ```bash
+     cp .env.example .env
      ```
-   - For local testing: `http://localhost:5000/api/retrain`
-   - For device testing: `http://<YOUR_COMPUTER_IP>:5000/api/retrain`
+   - Edit `.env` and set your backend URL:
+     ```bash
+     # For local testing (emulator/simulator):
+     EXPO_PUBLIC_API_URL=http://localhost:5000
+     
+     # For physical device testing:
+     EXPO_PUBLIC_API_URL=http://<YOUR_COMPUTER_IP>:5000
+     ```
+   - Find your IP address:
+     - Windows: `ipconfig` (look for IPv4 Address)
+     - Mac/Linux: `ifconfig | grep "inet"`
 
 3. **Start Expo**
    ```bash
    npm start
    ```
+   
+   **Note:** Restart Expo if you change the `.env` file after starting it.
 
 ## Test Cases
 

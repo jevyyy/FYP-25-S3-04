@@ -242,7 +242,9 @@ To integrate retraining in custom applications:
 // Example: Trigger retraining from JavaScript
 async function retrainModel(category, deleteImages = true) {
   try {
-    const response = await fetch('http://localhost:5000/api/retrain', {
+    // In the actual app, this reads from process.env.EXPO_PUBLIC_API_URL
+    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+    const response = await fetch(`${API_BASE_URL}/api/retrain`, {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',

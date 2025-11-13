@@ -125,10 +125,10 @@ export default function Developer_SettingsPage() {
     setTrainingBuffer(true);
 
     try {
-      // TODO: Update this URL with your actual backend server URL
-      // For local testing: 'http://localhost:5000/api/retrain'
-      // For mobile device: 'http://<YOUR_COMPUTER_IP>:5000/api/retrain'
-      const API_URL = 'http://localhost:5000/api/retrain';
+      // Read API URL from environment variable
+      // Configure in .env file (copy from .env.example if needed)
+      const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+      const API_URL = `${API_BASE_URL}/api/retrain`;
       
       const response = await fetch(API_URL, {
         method: 'POST',
