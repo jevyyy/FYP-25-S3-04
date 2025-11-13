@@ -4,7 +4,7 @@ import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, A
 import { Ionicons } from "@expo/vector-icons";
 import { useNavigation } from "@react-navigation/native";
 import { getFirestore, collection, onSnapshot, doc, getDoc } from "firebase/firestore";
-import { getAuth, signOut } from "firebase/auth";
+import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
 import { app } from "../../firebaseConfig";
 import GreenLensLogo from "../../assets/Green_Lens_logo.png";
 import { LogBox } from "react-native";
@@ -26,30 +26,31 @@ export default function Admin_AccountsPage() {
 
   // --- Auth state listener (one time only) ---
   useEffect(() => {
-    const user = auth.currentUser;
-    if (!user) {
-      navigation.navigate("Login");
-      return;
-    }
-
-    setCurrentUser(user);
-    (async () => {
-      try {
-        const userDocRef = doc(db, "users", user.uid);
-        const userDocSnap = await getDoc(userDocRef);
-
-        if (userDocSnap.exists() && userDocSnap.data().status === "inactive") {
-          Alert.alert("Account Locked", "Your account has been suspended.");
-          await signOut(auth);
+      const unsubscribe = onAuthStateChanged(auth, async (user) => {
+        if (user) {
+          setCurrentUser(user);
+          try {
+            const userDocRef = doc(db, "users", user.uid);
+            const userDocSnap = await getDoc(userDocRef);
+  
+            if (userDocSnap.exists() && userDocSnap.data().status === "inactive") {
+              Alert.alert("Account Locked", "Your account has been suspended.");
+              await signOut(auth);
+              navigation.navigate("Login");
+            }
+          } catch (error) {
+            console.error("Error checking current user document:", error);
+          } finally {
+            setLoadingUser(false);
+          }
+        } else {
+          setLoadingUser(false);
           navigation.navigate("Login");
         }
-      } catch (error) {
-        console.error("Error checking current user document:", error);
-      } finally {
-        setLoadingUser(false);
-      }
-    })();
-  }, []);
+      });
+  
+      return () => unsubscribe();
+    }, []);
 
   // --- Fetch users from Firestore ---
   useEffect(() => {
