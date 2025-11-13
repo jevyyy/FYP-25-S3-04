@@ -130,6 +130,12 @@ export default function Developer_SettingsPage() {
       const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
       const API_URL = `${API_BASE_URL}/api/retrain`;
       
+      console.log(`Attempting to connect to: ${API_URL}`);
+      
+      // Create an AbortController for timeout handling
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for initial connection
+      
       const response = await fetch(API_URL, {
         method: 'POST',
         headers: {
@@ -139,7 +145,17 @@ export default function Developer_SettingsPage() {
           category: selectedCategory,
           deleteImagesAfter: deleteImagesAfter,
         }),
+        signal: controller.signal,
       });
+
+      clearTimeout(timeoutId);
+
+      if (!response.ok) {
+        // Handle HTTP errors
+        const errorText = await response.text();
+        console.error(`HTTP Error ${response.status}:`, errorText);
+        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
+      }
 
       const result = await response.json();
 
@@ -160,7 +176,75 @@ export default function Developer_SettingsPage() {
     } catch (error) {
       setTrainingBuffer(false);
       console.error('Retraining error:', error);
-      Alert.alert('Error', `Failed to retrain model: ${error.message}`);
+      
+      // Provide more helpful error messages
+      let errorMessage = 'Failed to retrain model: ';
+      
+      if (error.name === 'AbortError') {
+        errorMessage += 'Request timeout. The server took too long to respond.';
+      } else if (error.message.includes('Network request failed')) {
+        const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+        errorMessage += `Cannot connect to backend server.\n\n`;
+        errorMessage += `Current URL: ${API_BASE_URL}\n\n`;
+        errorMessage += `Troubleshooting:\n`;
+        errorMessage += `1. Check backend is running (python app.py)\n`;
+        errorMessage += `2. Verify EXPO_PUBLIC_API_URL in .env file\n`;
+        errorMessage += `3. For physical devices, use your computer's IP address\n`;
+        errorMessage += `4. Ensure phone and computer are on the same WiFi\n`;
+        errorMessage += `5. Check firewall allows port 5000`;
+      } else {
+        errorMessage += error.message;
+      }
+      
+      Alert.alert('Error', errorMessage);
+    }
+  };
+
+  const testConnection = async () => {
+    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
+    
+    try {
+      Alert.alert('Testing Connection', `Attempting to connect to:\n${API_BASE_URL}/categories`);
+      
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for test
+      
+      const response = await fetch(`${API_BASE_URL}/categories`, {
+        method: 'GET',
+        signal: controller.signal,
+      });
+      
+      clearTimeout(timeoutId);
+      
+      if (response.ok) {
+        const result = await response.json();
+        Alert.alert(
+          'Connection Success ✓', 
+          `Successfully connected to backend!\n\nURL: ${API_BASE_URL}\n\nAvailable categories: ${result.categories?.join(', ') || 'N/A'}`
+        );
+      } else {
+        Alert.alert(
+          'Connection Failed',
+          `Server responded with error ${response.status}\n\nURL: ${API_BASE_URL}\n\nThe backend is reachable but returned an error.`
+        );
+      }
+    } catch (error) {
+      let message = `Cannot connect to backend.\n\nURL: ${API_BASE_URL}\n\n`;
+      
+      if (error.name === 'AbortError') {
+        message += 'Connection timeout. Server did not respond within 10 seconds.';
+      } else if (error.message.includes('Network request failed')) {
+        message += 'Network request failed. Please check:\n\n';
+        message += '1. Backend is running (python app.py)\n';
+        message += '2. .env file has correct EXPO_PUBLIC_API_URL\n';
+        message += '3. For physical devices, use computer IP (not localhost)\n';
+        message += '4. Phone and computer on same WiFi\n';
+        message += '5. Firewall allows port 5000';
+      } else {
+        message += `Error: ${error.message}`;
+      }
+      
+      Alert.alert('Connection Failed', message);
     }
   };
 
@@ -187,6 +271,17 @@ export default function Developer_SettingsPage() {
             <Text style={{ marginBottom: 10, fontSize: 14, color: '#666' }}>
               Retrain the model with newly uploaded images. You can fine-tune existing class labels or add new ones.
             </Text>
+            <View style={{ marginBottom: 10 }}>
+              <TouchableOpacity 
+                style={[styles.greenButton, { backgroundColor: '#4CAF50' }]} 
+                onPress={testConnection}
+              >
+                <Text style={styles.buttonText}>Test Backend Connection</Text>
+              </TouchableOpacity>
+              <Text style={{ marginTop: 5, fontSize: 12, color: '#888', fontStyle: 'italic' }}>
+                Use this to verify your backend is accessible before retraining
+              </Text>
+            </View>
             <TouchableOpacity style={styles.greenButton} onPress={handleTrainPress}>
               <Text style={styles.buttonText}>Retrain Model</Text>
             </TouchableOpacity>
