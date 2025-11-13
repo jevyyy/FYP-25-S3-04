@@ -119,17 +119,12 @@ export default function Admin_CreateAccountPage() {
       {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
       <TextInput
-        style={styles.input}
-        placeholder="Enter your email"
-        value={email}
-        onChangeText={(text) => {
-          if (text.length === 1) {
-            setEmail(text.toLowerCase());
-          } else {
-            setEmail(text);
-          }
-        }}
-      />
+  style={styles.input}
+  placeholder="Enter your email"
+  value={email}
+  autoCapitalize="none"       // same as username
+  onChangeText={(text) => setEmail(text.toLowerCase())}
+/>
       {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
       {errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
 
