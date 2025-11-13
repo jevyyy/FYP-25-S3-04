@@ -126,7 +126,10 @@ export default function Admin_AccountsPage() {
           style={styles.searchBar}
           placeholder="Search"
           value={search}
-          onChangeText={setSearch}
+          onChangeText={(text) => {
+            setSearch(text);
+            setCurrentPage(1); // Reset to first page on search
+          }}
         />
         <TouchableOpacity
           style={styles.newUserButton}

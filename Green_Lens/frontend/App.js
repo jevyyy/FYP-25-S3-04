@@ -26,6 +26,7 @@ import Developer_PlantsPage from './screens/Developer/Developer_PlantsPage';
 import Developer_FlowersPage from './screens/Developer/Developer_FlowersPage';
 import Developer_ArchitecturePage from './screens/Developer/Developer_ArchitecturesPage';
 import Developer_SettingsPage from './screens/Developer/Developer_Settings';
+import Developer_TestModelPage from './screens/Developer/Developer_TestModelPage';
 import User_HomePage from './screens/User/User_HomePage';
 import User_Explore from './screens/User/User_Explore';
 import User_RankingPage from './screens/User/User_RankingPage';
@@ -365,6 +366,11 @@ function DeveloperFlow() {
         name="FeedbackPage"
         component={FeedbackPage}
         options={{ headerShown: true, title: 'Rate Us' }}
+      />
+      <Stack.Screen
+        name="Developer_TestModelPage"
+        component={Developer_TestModelPage}
+        options={{ headerShown: true, title: 'Test Model' }}
       />
     </Stack.Navigator>
   );

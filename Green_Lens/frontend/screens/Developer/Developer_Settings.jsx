@@ -13,6 +13,7 @@ export default function Developer_SettingsPage() {
   const [showPretrain, setShowPretrain] = useState(false);
   const [showTrain, setShowTrain] = useState(false);
   const [showDeployment, setShowDeployment] = useState(false);
+  const [showTesting, setShowTesting] = useState(false);
   const [showAppInfo, setShowAppInfo] = useState(false);
 
   // --- Train Model modal state ---
@@ -191,6 +192,18 @@ export default function Developer_SettingsPage() {
           </TouchableOpacity>
         )}
 
+        {/* Testing */}
+        {renderOption(
+          'Testing',
+          showTesting,
+          () => setShowTesting(!showTesting),
+          <TouchableOpacity
+            style={styles.greenButton}
+            onPress={() => navigation.navigate('Developer_TestModelPage')}
+          >
+            <Text style={styles.buttonText}>Test Model</Text>
+          </TouchableOpacity>
+        )}
         {/* Rate Us */}
         <TouchableOpacity style={styles.option} onPress={() => navigation.navigate('FeedbackPage')}>
           <Text style={styles.optionText}>Rate Us</Text>
