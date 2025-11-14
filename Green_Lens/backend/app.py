@@ -337,6 +337,7 @@ def predict():
             'error': str(e)
         }), 500
 
+ # KX Remark: Added console log to find problem
 @app.route('/classes', methods=['GET'])
 def get_classes():
     """Get all available classes for a specific category"""

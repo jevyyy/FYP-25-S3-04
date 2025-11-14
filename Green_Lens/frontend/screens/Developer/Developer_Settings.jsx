@@ -127,7 +127,9 @@ export default function Developer_SettingsPage() {
     try {
       // Read API URL from environment variable
       // Configure in .env file (copy from .env.example if needed)
-      const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.3:5000';
+
+      
+      const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://192.168.1.3:5000'; // # KX Remark: This one
       const API_URL = `${API_BASE_URL}/api/retrain`;
       
       console.log(`Attempting to connect to: ${API_URL}`);

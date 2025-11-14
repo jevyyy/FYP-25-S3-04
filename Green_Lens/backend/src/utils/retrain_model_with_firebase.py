@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import shutil
+ # KX Remark: This one
 import scipy
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
@@ -369,7 +370,7 @@ class ModelRetrainer:
         # Fine-tuning
         print("\n--- Preparing for Fine-Tuning ---")
         
-        # Find the base model in the current model
+        # KX Remark: This one
         base_model = None
         for layer in model.layers:
             if "mobilenetv2" in layer.name.lower():  # <-- works reliably
@@ -402,6 +403,7 @@ class ModelRetrainer:
         # Evaluate
         print("\n--- Final Model Evaluation ---")
 
+         # KX Remark: This one
         if validation_generator.samples == 0:
             print("No validation data available. Skipping evaluation.")
             return model
