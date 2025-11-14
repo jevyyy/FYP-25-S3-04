@@ -78,13 +78,16 @@ export default function Guest_HomePage() {
       return () => clearTimeout(timer);
     }
   }, [detectedObject]);
-
+  
+  // Handle camera permission
   if (!permission) return <View />;
   if (!permission.granted) {
     return (
-      <View style={styles.container}>
-        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
-        <Button onPress={requestPermission} title="Grant permission" />
+      <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
+        <Text style={{ textAlign: 'center', marginBottom: 20 }}>
+          To take photos and recognize plants, we need access to your camera.
+        </Text>
+        <Button onPress={requestPermission} title="Allow Camera Access" />
       </View>
     );
   }
