@@ -1,22 +1,20 @@
-// seedQuestions.js
 import admin from 'firebase-admin';
 import fs from 'fs';
 
-// Load service account JSON
+// Load the Firebase service account key from JSON file
 const serviceAccount = JSON.parse(
   fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-0ffeb0f206.json', 'utf8')
 );
 
-// Initialize Admin SDK
+// Initialize Firebase Admin SDK with credentials
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 }); 
 
 const db = admin.firestore();
 
-// Sample questions
+// Array of quiz questions, each with category, question text, multiple options, correct answer, and an image
 const questions = [
-  // Flower
   {
     category: 'Flower',
     question: 'Which flower is Singapore national flower?',
@@ -122,8 +120,6 @@ const questions = [
     correctAnswer: 'Hummingbirds',
     imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/heliconia.jpg',
   },
-
-  // Plant
   {
     category: 'Plant',
     question: 'Which tree is known for its bright red seeds often used in traditional games?',
@@ -180,8 +176,6 @@ const questions = [
     correctAnswer: 'Sea Apple',
     imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/plant/sea-apple.JPG',
   },
-
-  // Architecture
   {
     category: 'Architecture',
     question: 'Where can visitors find nature-inspired artwork and exhibitions?',
@@ -212,22 +206,24 @@ const questions = [
   },
 ];
 
+// Function to add all questions to Firestore
 async function seedQuestions() {
   try {
-    const batch = db.batch();
-    const collectionRef = db.collection('quizQuestions');
+    const batch = db.batch(); // Use batch to add all documents efficiently
+    const collectionRef = db.collection('quizQuestions'); // Reference to the collection where questions will be stored
 
     for (const q of questions) {
-      const docRef = collectionRef.doc(); // auto ID
-      batch.set(docRef, q);
-      console.log('Queued:', q.question);
+      const docRef = collectionRef.doc(); // Generate a new document ID automatically
+      batch.set(docRef, q); // Queue the question to be written to Firestore
+      console.log('Queued:', q.question); // Log which question was queued
     }
 
-    await batch.commit();
+    await batch.commit(); // Execute all queued writes at once
     console.log('✅ All questions added successfully!');
   } catch (err) {
-    console.error('❌ Error adding questions:', err);
+    console.error('❌ Error adding questions:', err); // Handle errors
   }
 }
 
+// Run the function to populate Firestore
 seedQuestions();

@@ -1,20 +1,19 @@
-// populateObjectInfo.js
 import admin from 'firebase-admin';
 import fs from 'fs';
 
-// Load service account JSON
+// Load Firebase service account credentials from JSON file
 const serviceAccount = JSON.parse(
   fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-9af6311d8b.json', 'utf8')
 );
 
-// Initialize Admin SDK
+// Initialize Firebase Admin SDK with the loaded credentials
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
 const db = admin.firestore();
 
-// 🌸 Flowers
+// List of flowers with details
 const flowerData = [
   {
     id: "blackberry lily",
@@ -786,7 +785,7 @@ const flowerData = [
   }
 ];
 
-// 🌿 Plants
+// List of plants with details
 const plantData = [
   {
     id: "bamboo (giant bamboo)",
@@ -870,7 +869,7 @@ const plantData = [
   }
 ];
 
-// 🏛️ Architecture
+// List of architecture objects with details
 const architectureData = [
   {
     id: "bandstand",
@@ -916,19 +915,25 @@ const architectureData = [
   }
 ];
 
+// Function to populate Firestore with the object data
 async function populateObjectInfo() {
   try {
     console.log("🌿 Starting Firestore population...");
 
+    // Combine all objects (flowers, plants, architecture) into a single array
     const allObjects = [...flowerData, ...plantData, ...architectureData];
 
+    // Loop through each object and add it to Firestore if it doesn't exist
     for (const obj of allObjects) {
       const docRef = db.doc(`objectInfo/${obj.id}`);
       const docSnap = await docRef.get();
+
       if (!docSnap.exists) {
+        // Add the object with a createdAt timestamp
         await docRef.set({ ...obj, createdAt: new Date() });
         console.log(`✅ Added object: ${obj.name}`);
       } else {
+        // Skip objects that already exist
         console.log(`⚠️ Skipped existing object: ${obj.name}`);
       }
     }
@@ -939,4 +944,5 @@ async function populateObjectInfo() {
   }
 }
 
+// Run the function to populate Firestore
 populateObjectInfo();

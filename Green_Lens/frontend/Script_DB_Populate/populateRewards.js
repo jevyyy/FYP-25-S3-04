@@ -1,9 +1,19 @@
-// populateRewards.js
-import { getFirestore, doc, setDoc, collection, addDoc } from 'firebase/firestore';
-import { app } from '../firebaseConfig';
+import admin from 'firebase-admin';
+import fs from 'fs';
 
-const db = getFirestore(app);
+// Load Firebase service account credentials from JSON file
+const serviceAccount = JSON.parse(
+  fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-9af6311d8b.json', 'utf8')
+);
 
+// Initialize Firebase Admin SDK
+admin.initializeApp({
+  credential: admin.credential.cert(serviceAccount),
+});
+
+const db = admin.firestore();
+
+// List of rewards to populate
 const rewardsData = [
   { 
     reward_id: '1', 
@@ -39,7 +49,7 @@ const rewardsData = [
   },
 ];
 
-// 🔑 Helper: Generate random voucher code
+// Generate a random voucher code
 function generateVoucherCode(length = 8) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let code = '';
@@ -49,23 +59,24 @@ function generateVoucherCode(length = 8) {
   return code;
 }
 
+// Main function to populate rewards and vouchers
 async function populateRewards() {
   try {
     for (const reward of rewardsData) {
-      // Save reward itself
-      const rewardRef = doc(db, 'rewards', reward.reward_id);
-      await setDoc(rewardRef, reward);
+      // Save or update reward in Firestore
+      const rewardRef = db.collection('rewards').doc(reward.reward_id);
+      await rewardRef.set(reward);
       console.log(`✅ Reward ${reward.title} added/updated.`);
 
-      // Create vouchers under subcollection: rewards/{rewardId}/vouchers
+      // Create vouchers in a subcollection for each reward
       for (let i = 0; i < reward.quantity; i++) {
         const code = generateVoucherCode();
-        await addDoc(collection(rewardRef, 'vouchers'), {
+        await rewardRef.collection('vouchers').add({
           code,
           rewardId: reward.reward_id,
           rewardTitle: reward.title,
           redeemed: false,
-          createdAt: new Date()
+          createdAt: admin.firestore.FieldValue.serverTimestamp()
         });
         console.log(`   🎟️ Voucher ${code} created for ${reward.title}`);
       }
@@ -76,4 +87,5 @@ async function populateRewards() {
   }
 }
 
+// Run the function to populate Firestore
 populateRewards();

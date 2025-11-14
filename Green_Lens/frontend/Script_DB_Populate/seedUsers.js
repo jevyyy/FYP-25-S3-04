@@ -1,13 +1,12 @@
-// seedUsers.js
 import admin from "firebase-admin";
 import fs from "fs";
 
-// Load service account JSON
+// Load the Firebase service account JSON
 const serviceAccount = JSON.parse(
   fs.readFileSync("./green-lens-47e9b-firebase-adminsdk-fbsvc-0ffeb0f206.json", "utf8")
 );
 
-// Initialize Firebase Admin SDK
+// Initialize Firebase Admin SDK only if not already initialized
 if (!admin.apps.length) {
   admin.initializeApp({
     credential: admin.credential.cert(serviceAccount),
@@ -16,10 +15,10 @@ if (!admin.apps.length) {
 
 const db = admin.firestore();
 
-//Default password for all users
+// Default password used for all seeded users
 const DEFAULT_PASSWORD = "#Redjoker1412";
 
-// Generate 10 Named Admin Accounts
+// Generate named Admin accounts with email, username, and role
 function generateAdmins() {
   const adminNames = [
     "Rachel Tan",
@@ -78,7 +77,7 @@ function generateAdmins() {
   });
 }
 
-// Generate 10 Named Developer Accounts
+// Generate named Developer accounts with email, username, and role
 function generateDevelopers() {
   const devNames = [
     "Lucas Wong",
@@ -137,7 +136,7 @@ function generateDevelopers() {
   });
 }
 
-// Generate 10 Named User Accounts (with totalPoints)
+// Generate regular User accounts with email, username, role, and points
 function generateUsers() {
   const userNames = [
     "Emma Tan",
@@ -196,14 +195,14 @@ function generateUsers() {
   });
 }
 
-// Combine all 30 accounts
+// Combine Admins, Developers, and Users into a single array
 const users = [...generateAdmins(), ...generateDevelopers(), ...generateUsers()];
 
-// Seed Users into Firebase Auth + Firestore
+// Seed all users into Firebase Auth and Firestore
 async function seedUsers() {
   for (const user of users) {
     try {
-      // Generate totalPoints (only for user role)
+      // Assign random totalPoints for regular users only
       const totalPoints = user.includePoints ? Math.floor(Math.random() * 5001) : null;
 
       // Check if user already exists in Firebase Auth
@@ -212,14 +211,14 @@ async function seedUsers() {
         userRecord = await admin.auth().getUserByEmail(user.email);
         console.log(`ℹ️ User already exists: ${user.email}`);
 
-        // Reset password and update name
+        // Update password and display name if already exists
         await admin.auth().updateUser(userRecord.uid, {
           password: DEFAULT_PASSWORD,
           displayName: user.name,
         });
         console.log(`🔐 Updated existing Auth user: ${user.email}`);
       } catch {
-        // Create new Auth user
+        // Create a new Auth user if not found
         userRecord = await admin.auth().createUser({
           email: user.email,
           password: DEFAULT_PASSWORD,
@@ -228,7 +227,7 @@ async function seedUsers() {
         console.log(`✅ Created new Auth user: ${user.email}`);
       }
 
-      // Firestore doc reference
+      // Reference the user's Firestore document
       const userRef = db.collection("users").doc(userRecord.uid);
       const userDoc = await userRef.get();
 
@@ -241,6 +240,7 @@ async function seedUsers() {
       };
 
       if (userDoc.exists) {
+        // Update Firestore doc if it already exists
         await userRef.update({
           ...baseData,
           ...(user.includePoints && { totalPoints }),
@@ -252,6 +252,7 @@ async function seedUsers() {
           }`
         );
       } else {
+        // Create new Firestore doc if it doesn't exist
         await userRef.set({
           ...baseData,
           ...(user.includePoints && { totalPoints }),
@@ -268,10 +269,12 @@ async function seedUsers() {
     }
   }
 
+  // Log summary
   console.log("\n🎉 Seeding complete!");
   console.log("👩‍💼 10 Admins, 👨‍💻 10 Developers, 👤 10 Users created.");
   console.log("🔑 Default password for all: #Redjoker1412\n");
   process.exit(0);
 }
 
+// Run the function to populate Firestore
 seedUsers();
