@@ -225,10 +225,17 @@ if __name__ == '__main__':
     print("Run this before model retraining to catch configuration issues early.")
     print()
     
-    # Check we're in the right directory
-    if not os.path.exists('service-account.json'):
-        print("⚠️  WARNING: Run this script from Green_Lens/backend/ directory")
+    # Check if we have credentials from either source
+    has_env_creds = os.getenv('FIREBASE_PROJECT_ID') and os.getenv('FIREBASE_PRIVATE_KEY')
+    has_json_file = os.path.exists('service-account.json')
+    
+    if not has_env_creds and not has_json_file:
+        print("⚠️  WARNING: No Firebase credentials found")
+        print("\nNeither .env file with credentials nor service-account.json found.")
         print("\nCurrent directory:", os.getcwd())
+        print("\nMake sure you're in Green_Lens/backend/ and have either:")
+        print("  1. A .env file with FIREBASE_* variables (recommended)")
+        print("  2. A service-account.json file (fallback)")
         print("\nUsage:")
         print("  cd Green_Lens/backend")
         print("  python test_firebase.py")
