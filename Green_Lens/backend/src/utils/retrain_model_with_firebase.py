@@ -103,10 +103,19 @@ class ModelRetrainer:
         for img_doc in images_list:
             img_data = img_doc.to_dict()
             image_url = img_data.get('imageUrl')
-            class_name = img_data.get('name', 'unknown')
+            raw_name = img_data.get('name', 'unknown')
             
-            if not image_url or not class_name:
+            if not image_url or not raw_name:
                 continue
+            
+            # Extract class name by removing trailing numbers
+            # "copperleaf 10" -> "copperleaf"
+            # "areca palm 123" -> "areca palm"
+            import re
+            class_name = re.sub(r'\s+\d+$', '', raw_name).strip()
+            
+            if not class_name:
+                class_name = 'unknown'
             
             # Create class directory
             class_dir = self.temp_dataset_dir / class_name
