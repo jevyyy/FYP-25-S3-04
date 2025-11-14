@@ -8,9 +8,11 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { predictPlant } from '../../services/plantRecognitionApi';
 
+// Component to show the most recent photo from device library and allow selecting images
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
 
+  // Fetch last photo from media library on mount
   useEffect(() => {
     (async () => {
       const { status } = await MediaLibrary.requestPermissionsAsync();
@@ -27,6 +29,7 @@ function ImagePreview({ onSelectImage }) {
     })();
   }, []);
 
+  // Open device gallery to pick a photo
   const openGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -35,8 +38,8 @@ function ImagePreview({ onSelectImage }) {
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-      setLastPhotoUri(uri);
-      onSelectImage(uri);
+      setLastPhotoUri(uri);       // Update thumbnail
+      onSelectImage(uri);         // Send selected image to parent
     }
   };
 
@@ -47,19 +50,20 @@ function ImagePreview({ onSelectImage }) {
   );
 }
 
+// Main user homepage with camera, tips, and category selector
 export default function User_HomePage() {
   const navigation = useNavigation();
   const isFocused = useIsFocused();
-  const [facing, setFacing] = useState('back');
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef(null);
-  const [selectedImageUri, setSelectedImageUri] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('flower');
+  const [facing, setFacing] = useState('back'); // Front or back camera
+  const [permission, requestPermission] = useCameraPermissions(); // Camera permissions
+  const cameraRef = useRef(null); // Camera reference
+  const [selectedImageUri, setSelectedImageUri] = useState(null); // Captured/selected image
+  const [isProcessing, setIsProcessing] = useState(false); // Image processing state
+  const [selectedCategory, setSelectedCategory] = useState('flower'); // Selected category for recognition
   const drawerStatus = useDrawerStatus();
   const isDrawerOpen = drawerStatus === 'open';
 
-  // 🌿 Tip system (show all tips)
+  // Tip system with fade animation
   const [showTips, setShowTips] = useState(false);
   const [fadeAnim] = useState(new Animated.Value(0));
 
@@ -70,6 +74,7 @@ export default function User_HomePage() {
     { id: 'architecture', label: 'Architecture', icon: '🏛️' },
   ];
 
+  // Helpful tips to guide user for better recognition
   const tips = [
     '------------------------------Helpful Tips------------------------------',
     '🌿 Make sure your plant is centered and in focus for better results.',
@@ -79,7 +84,7 @@ export default function User_HomePage() {
     '🌸 Make sure the background is clear and not too cluttered.',
   ];
 
-  // Show tips and auto-close after 5 seconds
+  // Show tips and auto-hide after 5 seconds
   const toggleTips = () => {
     if (showTips) {
       Animated.timing(fadeAnim, {
@@ -95,7 +100,6 @@ export default function User_HomePage() {
         useNativeDriver: true,
       }).start();
 
-      // Auto-close after 5 seconds
       setTimeout(() => {
         Animated.timing(fadeAnim, {
           toValue: 0,
@@ -106,28 +110,31 @@ export default function User_HomePage() {
     }
   };
 
+  // If camera permission is not yet requested
   if (!permission) return <View />;
+
+  // Show permission request UI if not granted
   if (!permission.granted) {
     return (
       <View style={styles.container}>
-        <Text style={{ textAlign: 'center' }}>
-          We need your permission to show the camera
-        </Text>
+        <Text style={{ textAlign: 'center' }}>We need your permission to show the camera</Text>
         <Button onPress={requestPermission} title="Grant permission" />
       </View>
     );
   }
 
+  // Toggle camera between front and back
   const toggleCameraFacing = () =>
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
 
+  // Send image to plant recognition API
   const processImage = async (photoUri) => {
     setIsProcessing(true);
     try {
       const result = await predictPlant(photoUri, selectedCategory);
       if (result.success) {
         navigation.navigate('User_ViewSummary', {
-          photoUri: photoUri,
+          photoUri,
           predictionData: result.data,
           category: selectedCategory,
         });
@@ -144,19 +151,21 @@ export default function User_HomePage() {
     }
   };
 
+  // Capture photo using camera
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync({ skipProcessing: true });
-        await MediaLibrary.saveToLibraryAsync(photo.uri);
+        await MediaLibrary.saveToLibraryAsync(photo.uri); // Save to gallery
         setSelectedImageUri(photo.uri);
-        await processImage(photo.uri);
+        await processImage(photo.uri); // Send for recognition
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
       }
     }
   };
 
+  // Handle image selected from gallery
   const handleImageSelected = async (uri) => {
     setSelectedImageUri(uri);
     await processImage(uri);
@@ -164,11 +173,12 @@ export default function User_HomePage() {
 
   return (
     <View style={styles.container}>
+      {/* Show camera view only if screen is focused and drawer is closed */}
       {isFocused && !isDrawerOpen && (
         <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
       )}
 
-      {/* Loading overlay */}
+      {/* Loading overlay during recognition */}
       {isProcessing && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#ffffff" />
@@ -176,7 +186,7 @@ export default function User_HomePage() {
         </View>
       )}
 
-      {/* Category selector */}
+      {/* Category selection buttons */}
       <View style={styles.categorySelector}>
         {categories.map((category) => (
           <TouchableOpacity
@@ -201,12 +211,12 @@ export default function User_HomePage() {
         ))}
       </View>
 
-      {/* Help icon */}
+      {/* Help icon to show tips */}
       <TouchableOpacity style={styles.helpIcon} onPress={toggleTips}>
         <Ionicons name="help-circle-outline" size={32} color="white" />
       </TouchableOpacity>
 
-      {/* Tip box showing all tips */}
+      {/* Tip box */}
       {showTips && (
         <Animated.View style={[styles.tipBox, { opacity: fadeAnim }]}>
           <ScrollView>
@@ -219,7 +229,7 @@ export default function User_HomePage() {
         </Animated.View>
       )}
 
-      {/* Camera controls */}
+      {/* Camera controls: gallery thumbnail, take photo, switch camera */}
       <View style={styles.overlay}>
         <ImagePreview onSelectImage={handleImageSelected} />
         <TouchableOpacity
@@ -258,4 +268,3 @@ const styles = StyleSheet.create({
   categoryLabel: { color: '#fff', fontSize: 12, fontWeight: '600' },
   categoryLabelActive: { fontWeight: 'bold' },
 });
-

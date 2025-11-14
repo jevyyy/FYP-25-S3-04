@@ -1,4 +1,3 @@
-// ./screens/Developer/Developer_ArchitecturePage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, FlatList, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,28 +9,27 @@ import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 import LogoImage from '../../assets/Green_Lens_logo.png';
 
-const db = getFirestore(app);
-const storage = getStorage(app);
-const auth = getAuth(app);
+const db = getFirestore(app); // Firestore database instance
+const storage = getStorage(app); // Firebase Storage instance
+const auth = getAuth(app); // Firebase Auth instance
 
 export default function Developer_ArchitecturePage() {
-  const navigation = useNavigation();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [architectureImages, setArchitectureImages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation(); // Navigation hook
+  const [searchQuery, setSearchQuery] = useState(''); // State for search input
+  const [architectureImages, setArchitectureImages] = useState([]); // Stores all images from Firestore
+  const [loading, setLoading] = useState(true); // Loading state
+  const [previewUri, setPreviewUri] = useState(null); // Local URI of image for preview
+  const [previewModalVisible, setPreviewModalVisible] = useState(false); // Controls modal visibility
+  const [uploading, setUploading] = useState(false); // Upload progress state
+  const [selectedArchitecture, setSelectedArchitecture] = useState(null); // Image selected for update/delete
+  const [architectureName, setArchitectureName] = useState(''); // Name input for architecture
+  const isMounted = useRef(true); // To avoid setting state on unmounted component
 
-  const [previewUri, setPreviewUri] = useState(null);
-  const [previewModalVisible, setPreviewModalVisible] = useState(false);
-  const [uploading, setUploading] = useState(false);
-
-  const [selectedArchitecture, setSelectedArchitecture] = useState(null);
-  const [architectureName, setArchitectureName] = useState('');
-
-  const isMounted = useRef(true);
-
+  // Firestore reference to 'architecture/images' collection
   const architectureImagesCollectionRef = () =>
     collection(doc(collection(db, 'modelPhotos'), 'architecture'), 'images');
 
+  // Load architecture images from Firestore in real-time
   useEffect(() => {
     isMounted.current = true;
     const q = query(architectureImagesCollectionRef(), orderBy('createdAt', 'desc'));
@@ -50,7 +48,7 @@ export default function Developer_ArchitecturePage() {
             createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : data.createdAt) : null,
           };
         });
-        setArchitectureImages(items);
+        setArchitectureImages(items); // Set images to state
         setLoading(false);
       },
       (err) => {
@@ -63,21 +61,24 @@ export default function Developer_ArchitecturePage() {
 
     return () => {
       isMounted.current = false;
-      unsubscribe();
+      unsubscribe(); // Cleanup Firestore listener
     };
   }, []);
 
+  // Filter images based on search query
   const filteredImages = architectureImages.filter((img) =>
     (img.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Triggered when "New Architecture" is clicked
   const handleAddNewArchitecture = async () => {
     setSelectedArchitecture(null);
     setArchitectureName('');
     setPreviewUri(null);
-    await handleSelectImage();
+    await handleSelectImage(); // Open image picker
   };
 
+  // Opens modal and selects an image for update
   const handleImagePress = (image) => {
     setSelectedArchitecture(image);
     setArchitectureName(image.name);
@@ -85,6 +86,7 @@ export default function Developer_ArchitecturePage() {
     setPreviewModalVisible(true);
   };
 
+  // Opens device media library to pick an image
   const handleSelectImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -101,7 +103,7 @@ export default function Developer_ArchitecturePage() {
 
       if (!result.canceled && result.assets?.length > 0) {
         const uri = result.assets[0].uri;
-        setPreviewUri(uri);
+        setPreviewUri(uri); // Set preview URI for modal
         setPreviewModalVisible(true);
       }
     } catch (err) {
@@ -110,10 +112,12 @@ export default function Developer_ArchitecturePage() {
     }
   };
 
+  // Confirm button in modal triggers upload or update
   const handleConfirmUpload = () => {
     if (!selectedArchitecture) {
-      performUploadOrUpdate();
+      performUploadOrUpdate(); // Upload new image
     } else {
+      // Confirm update for existing image
       Alert.alert(
         'Confirm Update',
         'Are you sure you want to apply the changes?',
@@ -125,6 +129,7 @@ export default function Developer_ArchitecturePage() {
     }
   };
 
+  // Handles both upload of new image and updating existing image
   const performUploadOrUpdate = async () => {
     if (!architectureName.trim()) {
       Alert.alert('Validation', 'Please enter Architecture Name.');
@@ -138,7 +143,7 @@ export default function Developer_ArchitecturePage() {
       const newStoragePath = `modelPhotos/architecture/${cleanName}.jpg`;
       const newImageRef = ref(storage, newStoragePath);
 
-      // 🔹 Duplicate Checks
+      // Check for duplicate names in Firestore
       const nameQuery = query(architectureImagesCollectionRef(), where('name', '==', cleanName));
       const querySnapshot = await getDocs(nameQuery);
       if (!querySnapshot.empty && (!selectedArchitecture || selectedArchitecture.name !== cleanName)) {
@@ -147,6 +152,7 @@ export default function Developer_ArchitecturePage() {
         return;
       }
 
+      // Check for existing file in storage
       try {
         await getMetadata(newImageRef);
         if (!selectedArchitecture || selectedArchitecture.storagePath !== newStoragePath) {
@@ -169,6 +175,7 @@ export default function Developer_ArchitecturePage() {
       let newImageUrl = null;
 
       if (!selectedArchitecture) {
+        // Upload new image
         if (!previewUri) {
           Alert.alert('Error', 'No image selected.');
           setUploading(false);
@@ -200,6 +207,7 @@ export default function Developer_ArchitecturePage() {
 
         Alert.alert('Success', 'Image added!');
       } else {
+        // Update existing image
         if (previewUri && previewUri.startsWith('file://')) {
           const response = await fetch(previewUri);
           const blob = await response.blob();
@@ -214,6 +222,7 @@ export default function Developer_ArchitecturePage() {
           newImageUrl = await getDownloadURL(newImageRef);
         }
 
+        // Delete old storage object if renamed
         if (selectedArchitecture.storagePath && selectedArchitecture.storagePath !== newStoragePath) {
           try {
             const oldRef = ref(storage, selectedArchitecture.storagePath);
@@ -233,6 +242,7 @@ export default function Developer_ArchitecturePage() {
         Alert.alert('Success', 'Image updated!');
       }
 
+      // Reset modal and state
       setPreviewModalVisible(false);
       setPreviewUri(null);
       setArchitectureName('');
@@ -245,6 +255,7 @@ export default function Developer_ArchitecturePage() {
     }
   };
 
+  // Deletes selected architecture image
   const handleDeleteArchitecture = () => {
     if (!selectedArchitecture) return;
 
@@ -284,6 +295,7 @@ export default function Developer_ArchitecturePage() {
     );
   };
 
+  // Render each image in the FlatList
   const renderImageItem = ({ item }) => (
     <TouchableOpacity style={styles.imageCard} onPress={() => handleImagePress(item)}>
       <Image source={{ uri: item.uri }} style={styles.imageThumb} resizeMode="cover" />
@@ -295,7 +307,7 @@ export default function Developer_ArchitecturePage() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header section with logo, title, search, and add button */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image source={LogoImage} style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }} />
@@ -322,6 +334,7 @@ export default function Developer_ArchitecturePage() {
         </View>
       </View>
 
+      {/* Main content: loading, empty state, or image list */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
@@ -347,7 +360,7 @@ export default function Developer_ArchitecturePage() {
         />
       )}
 
-      {/* Preview/Update Modal */}
+      {/* Modal for previewing, uploading, updating, or deleting images */}
       <Modal
         visible={previewModalVisible}
         transparent

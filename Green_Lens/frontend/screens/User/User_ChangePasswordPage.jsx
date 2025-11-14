@@ -1,4 +1,3 @@
-// ./screens/User/User_ChangePasswordPage.jsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Modal } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -8,13 +7,18 @@ export default function User_ChangePasswordPage() {
   const navigation = useNavigation();
   const auth = getAuth();
 
+  // State for user input fields
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+
+  // Modal visibility state for success message
   const [modalVisible, setModalVisible] = useState(false);
+
+  // Store any validation or Firebase errors
   const [errors, setErrors] = useState({});
 
-  // Password strength check
+  // Check if the new password meets strength requirements
   const validatePassword = (password) => {
     const strongPassword =
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
@@ -25,24 +29,22 @@ export default function User_ChangePasswordPage() {
     return null;
   };
 
+  // Handle password change submission
   const handleSubmit = async () => {
     let newErrors = {};
 
-    // Check if current password is empty
-    if (!currentPassword.trim()) {
-      newErrors.currentPassword = '*Password cannot be empty';
-    }
+    // Validate current password input
+    if (!currentPassword.trim()) newErrors.currentPassword = '*Password cannot be empty';
 
-    // Validate new password
+    // Validate new password strength
     const passwordError = validatePassword(newPassword);
     if (passwordError) newErrors.newPassword = passwordError;
 
-    if (newPassword !== confirmPassword) {
-      newErrors.confirmPassword = '*Passwords do not match';
-    }
+    // Check if new password matches confirmation
+    if (newPassword !== confirmPassword) newErrors.confirmPassword = '*Passwords do not match';
 
     setErrors(newErrors);
-    if (Object.keys(newErrors).length > 0) return;
+    if (Object.keys(newErrors).length > 0) return; // Stop if there are validation errors
 
     if (!auth.currentUser || !auth.currentUser.email) {
       alert('No logged-in user found.');
@@ -50,17 +52,17 @@ export default function User_ChangePasswordPage() {
     }
 
     try {
-      // Re-authenticate user
+      // Re-authenticate user with current password
       const credential = EmailAuthProvider.credential(
         auth.currentUser.email,
         currentPassword
       );
       await reauthenticateWithCredential(auth.currentUser, credential);
 
-      // Update password
+      // Update user password in Firebase
       await updatePassword(auth.currentUser, newPassword);
 
-      // Clear input fields
+      // Clear input fields after successful update
       setCurrentPassword('');
       setNewPassword('');
       setConfirmPassword('');
@@ -68,17 +70,18 @@ export default function User_ChangePasswordPage() {
       // Show success modal
       setModalVisible(true);
     } catch (err) {
-      // Handle wrong password or invalid credential
+      // Handle incorrect current password
       if (err.code === 'auth/wrong-password' || err.code === 'auth/invalid-credential') {
         setErrors({ currentPassword: '*Incorrect current password' });
-        return; // <--- stops Firebase error popup
+        return;
       }
 
-      // Only show alert for other unexpected errors
+      // Alert for other unexpected errors
       alert('Error changing password: ' + err.message);
     }
   };
 
+  // Close modal and navigate back to settings page
   const handleCancelOrReturn = () => {
     setModalVisible(false);
     navigation.navigate('UserFlow', { screen: 'SettingPage' });
@@ -86,6 +89,7 @@ export default function User_ChangePasswordPage() {
 
   return (
     <View style={styles.container}>
+      {/* App logo */}
       <Image
         source={require('../../assets/Green_Lens_logo.png')}
         style={styles.logo}
@@ -94,6 +98,7 @@ export default function User_ChangePasswordPage() {
 
       <Text style={styles.header}>Change Password</Text>
 
+      {/* Current password input */}
       <Text style={styles.label}>Current Password</Text>
       <TextInput
         style={styles.input}
@@ -104,6 +109,7 @@ export default function User_ChangePasswordPage() {
       />
       {errors.currentPassword && <Text style={styles.errorText}>{errors.currentPassword}</Text>}
 
+      {/* New password input */}
       <Text style={styles.label}>New Password</Text>
       <TextInput
         style={styles.input}
@@ -114,6 +120,7 @@ export default function User_ChangePasswordPage() {
       />
       {errors.newPassword && <Text style={styles.errorText}>{errors.newPassword}</Text>}
 
+      {/* Confirm password input */}
       <Text style={styles.label}>Confirm Password</Text>
       <TextInput
         style={styles.input}
@@ -124,6 +131,7 @@ export default function User_ChangePasswordPage() {
       />
       {errors.confirmPassword && <Text style={styles.errorText}>{errors.confirmPassword}</Text>}
 
+      {/* Buttons to cancel or submit */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={styles.button} onPress={handleCancelOrReturn}>
           <Text style={styles.buttonText}>Cancel</Text>
@@ -134,6 +142,7 @@ export default function User_ChangePasswordPage() {
         </TouchableOpacity>
       </View>
 
+      {/* Success modal */}
       <Modal
         visible={modalVisible}
         transparent

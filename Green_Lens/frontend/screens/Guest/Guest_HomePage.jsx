@@ -8,9 +8,11 @@ import { useNavigation, useIsFocused } from '@react-navigation/native';
 import { Ionicons } from '@expo/vector-icons';
 import { predictPlant } from '../../services/plantRecognitionApi';
 
+// Component to show a small thumbnail of the last photo in the gallery
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
 
+  // Get the latest photo from the gallery when component loads
   useEffect(() => {
     (async () => {
       const { status } = await MediaLibrary.requestPermissionsAsync();
@@ -27,6 +29,7 @@ function ImagePreview({ onSelectImage }) {
     })();
   }, []);
 
+  // Open gallery to pick an image
   const openGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -35,8 +38,8 @@ function ImagePreview({ onSelectImage }) {
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-      setLastPhotoUri(uri);
-      onSelectImage(uri);
+      setLastPhotoUri(uri); // show picked image in thumbnail
+      onSelectImage(uri); // send the picked image back to parent
     }
   };
 
@@ -47,30 +50,32 @@ function ImagePreview({ onSelectImage }) {
   );
 }
 
+// Main screen for guest users
 export default function Guest_HomePage() {
-  const navigation = useNavigation();
-  const isFocused = useIsFocused();
-  const [facing, setFacing] = useState('back');
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef(null);
-  const [selectedImageUri, setSelectedImageUri] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('flower');
+  const navigation = useNavigation(); // navigation for moving to summary screen
+  const isFocused = useIsFocused(); // check if screen is currently visible
+  const [facing, setFacing] = useState('back'); // front or back camera
+  const [permission, requestPermission] = useCameraPermissions(); // camera permission
+  const cameraRef = useRef(null); // reference to camera for taking pictures
+  const [selectedImageUri, setSelectedImageUri] = useState(null); // stores selected image
+  const [isProcessing, setIsProcessing] = useState(false); // shows loader while processing
+  const [selectedCategory, setSelectedCategory] = useState('flower'); // flower/plant/architecture
 
   const drawerStatus = useDrawerStatus();
-  const isDrawerOpen = drawerStatus === 'open';
+  const isDrawerOpen = drawerStatus === 'open'; // hide camera if drawer is open
 
-  // 🌿 Tip System (show all tips)
+  // Tip system to show helpful instructions
   const [showTips, setShowTips] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(0));
+  const [fadeAnim] = useState(new Animated.Value(0)); // animation for tip fade in/out
 
-  // Category configuration
+  // Define categories for recognition
   const categories = [
     { id: 'flower', label: 'Flower', icon: '🌸' },
     { id: 'plant', label: 'Plant', icon: '🌿' },
     { id: 'architecture', label: 'Architecture', icon: '🏛️' },
   ];
 
+  // List of tips to help the user take better photos
   const tips = [
     '------------------------------Helpful Tips------------------------------',
     '🌿 Make sure your plant is centered and in focus for better results.',
@@ -80,33 +85,20 @@ export default function Guest_HomePage() {
     '🌸 Make sure the background is clear and not too cluttered.',
   ];
 
-  // Show tips and auto-close after 5 seconds
+  // Function to show/hide tips with fade animation
   const toggleTips = () => {
     if (showTips) {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => setShowTips(false));
+      Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setShowTips(false));
     } else {
       setShowTips(true);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-
-      // Auto-close after 5 seconds
+      Animated.timing(fadeAnim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
       setTimeout(() => {
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => setShowTips(false));
-      }, 5000);
+        Animated.timing(fadeAnim, { toValue: 0, duration: 300, useNativeDriver: true }).start(() => setShowTips(false));
+      }, 5000); // auto-hide after 5 seconds
     }
   };
 
+  // Handle camera permission
   if (!permission) return <View />;
   if (!permission.granted) {
     return (
@@ -117,15 +109,17 @@ export default function Guest_HomePage() {
     );
   }
 
+  // Switch between front and back camera
   const toggleCameraFacing = () =>
     setFacing((current) => (current === 'back' ? 'front' : 'back'));
 
+  // Send image to API for recognition
   const processImage = async (photoUri) => {
     setIsProcessing(true);
     try {
       const result = await predictPlant(photoUri, selectedCategory);
       if (result.success) {
-        navigation.navigate('Guest_ViewSummary', {
+        navigation.navigate('Guest_ViewSummary', { // move to summary screen with results
           photoUri: photoUri,
           predictionData: result.data,
           category: selectedCategory,
@@ -140,19 +134,21 @@ export default function Guest_HomePage() {
     }
   };
 
+  // Capture a photo using the camera
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync({ skipProcessing: true });
-        await MediaLibrary.saveToLibraryAsync(photo.uri);
+        await MediaLibrary.saveToLibraryAsync(photo.uri); // save photo to gallery
         setSelectedImageUri(photo.uri);
-        await processImage(photo.uri);
+        await processImage(photo.uri); // recognize the photo
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
       }
     }
   };
 
+  // Handle image selected from gallery
   const handleImageSelected = async (uri) => {
     setSelectedImageUri(uri);
     await processImage(uri);
@@ -160,11 +156,12 @@ export default function Guest_HomePage() {
 
   return (
     <View style={styles.container}>
+      {/* Show camera only when screen is focused and drawer is closed */}
       {isFocused && !isDrawerOpen && (
         <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
       )}
 
-      {/* Loading overlay */}
+      {/* Loading overlay while recognition is in progress */}
       {isProcessing && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#ffffff" />
@@ -172,7 +169,7 @@ export default function Guest_HomePage() {
         </View>
       )}
 
-      {/* Category selector */}
+      {/* Category selector at the top */}
       <View style={styles.categorySelector}>
         {categories.map((category) => (
           <TouchableOpacity
@@ -197,12 +194,12 @@ export default function Guest_HomePage() {
         ))}
       </View>
 
-      {/* Help icon */}
+      {/* Help icon to show tips */}
       <TouchableOpacity style={styles.helpIcon} onPress={toggleTips}>
         <Ionicons name="help-circle-outline" size={32} color="white" />
       </TouchableOpacity>
 
-      {/* Tip box showing all tips */}
+      {/* Tip box with instructions */}
       {showTips && (
         <Animated.View style={[styles.tipBox, { opacity: fadeAnim }]}>
           <ScrollView>
@@ -215,6 +212,7 @@ export default function Guest_HomePage() {
         </Animated.View>
       )}
 
+      {/* Bottom overlay with thumbnail, camera button, and switch camera button */}
       <View style={styles.overlay}>
         <ImagePreview onSelectImage={handleImageSelected} />
         <TouchableOpacity

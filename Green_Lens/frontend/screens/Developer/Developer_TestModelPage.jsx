@@ -8,12 +8,13 @@ import { predictPlant } from '../../services/plantRecognitionApi';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
 
+// Component to show last photo and allow user to pick image from gallery
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
 
   useEffect(() => {
     (async () => {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(); // Request media library permission
       if (status === 'granted') {
         const assets = await MediaLibrary.getAssetsAsync({
           sortBy: ['creationTime'],
@@ -21,7 +22,7 @@ function ImagePreview({ onSelectImage }) {
           first: 1,
         });
         if (assets.assets.length > 0) {
-          setLastPhotoUri(assets.assets[0].uri);
+          setLastPhotoUri(assets.assets[0].uri); // Set last photo from gallery
         }
       }
     })();
@@ -35,8 +36,8 @@ function ImagePreview({ onSelectImage }) {
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-      setLastPhotoUri(uri);
-      onSelectImage(uri);
+      setLastPhotoUri(uri); // Update last photo
+      onSelectImage(uri); // Pass selected image to parent
     }
   };
 
@@ -48,17 +49,17 @@ function ImagePreview({ onSelectImage }) {
 }
 
 export default function Guest_HomePage() {
-  const isFocused = useIsFocused();
-  const [facing, setFacing] = useState('back');
-  const [permission, requestPermission] = useCameraPermissions();
-  const cameraRef = useRef(null);
-  const [selectedImageUri, setSelectedImageUri] = useState(null);
-  const [isProcessing, setIsProcessing] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('flower');
+  const isFocused = useIsFocused(); // Track if screen is focused
+  const [facing, setFacing] = useState('back'); // Camera facing state
+  const [permission, requestPermission] = useCameraPermissions(); // Camera permission
+  const cameraRef = useRef(null); // Camera reference
+  const [selectedImageUri, setSelectedImageUri] = useState(null); // Selected photo URI
+  const [isProcessing, setIsProcessing] = useState(false); // Recognition loading state
+  const [selectedCategory, setSelectedCategory] = useState('flower'); // Selected category (flower/plant/architecture)
 
-  const [detectedObject, setDetectedObject] = useState(null);
-  const [confidence, setConfidence] = useState(null);
-  const [summaryData, setSummaryData] = useState(null);
+  const [detectedObject, setDetectedObject] = useState(null); // Detected object name
+  const [confidence, setConfidence] = useState(null); // Detection confidence
+  const [summaryData, setSummaryData] = useState(null); // Fetched object info from Firestore
 
   const categories = [
     { id: 'flower', label: 'Flower', icon: '🌸' },
@@ -66,14 +67,14 @@ export default function Guest_HomePage() {
     { id: 'architecture', label: 'Architecture', icon: '🏛️' },
   ];
 
-  // 5-second auto-hide for detected result
+  // Auto-hide detected object info after 5 seconds
   useEffect(() => {
     if (detectedObject) {
       const timer = setTimeout(() => {
         setDetectedObject(null);
         setConfidence(null);
         setSummaryData(null);
-      }, 5000); // hide after 5 seconds
+      }, 5000);
       return () => clearTimeout(timer);
     }
   }, [detectedObject]);
@@ -89,8 +90,9 @@ export default function Guest_HomePage() {
   }
 
   const toggleCameraFacing = () =>
-    setFacing((current) => (current === 'back' ? 'front' : 'back'));
+    setFacing((current) => (current === 'back' ? 'front' : 'back')); // Switch camera
 
+  // Fetch object summary info from Firestore
   const fetchSummary = async (objectName) => {
     try {
       const docRef = doc(db, 'objectInfo', objectName.toLowerCase());
@@ -106,6 +108,7 @@ export default function Guest_HomePage() {
     }
   };
 
+  // Process image for plant recognition
   const processImage = async (photoUri) => {
     setIsProcessing(true);
     try {
@@ -118,9 +121,9 @@ export default function Guest_HomePage() {
           if (selectedCategory === 'plant') name = topPrediction.plant_name || name;
           if (selectedCategory === 'architecture') name = topPrediction.architecture_name || name;
 
-          setDetectedObject(name);
-          setConfidence(topPrediction.confidence_percentage);
-          await fetchSummary(name);
+          setDetectedObject(name); // Set detected name
+          setConfidence(topPrediction.confidence_percentage); // Set confidence
+          await fetchSummary(name); // Fetch additional info
         }
       } else {
         Alert.alert('Recognition Failed', result.error || 'Unable to recognize. Try again.');
@@ -132,19 +135,21 @@ export default function Guest_HomePage() {
     }
   };
 
+  // Capture photo using camera
   const takePhoto = async () => {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync({ skipProcessing: true });
-        await MediaLibrary.saveToLibraryAsync(photo.uri);
+        await MediaLibrary.saveToLibraryAsync(photo.uri); // Save to library
         setSelectedImageUri(photo.uri);
-        await processImage(photo.uri);
+        await processImage(photo.uri); // Process captured image
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
       }
     }
   };
 
+  // Handle image selected from gallery
   const handleImageSelected = async (uri) => {
     setSelectedImageUri(uri);
     await processImage(uri);
@@ -154,7 +159,6 @@ export default function Guest_HomePage() {
     <View style={styles.container}>
       {isFocused && <CameraView style={styles.camera} facing={facing} ref={cameraRef} />}
 
-      {/* TOP SECTION — detected info */}
       {detectedObject && (
         <View style={styles.resultContainer}>
           <Text style={styles.resultTitle}>Detected: {detectedObject}</Text>
@@ -189,6 +193,7 @@ export default function Guest_HomePage() {
         </View>
       )}
 
+      {/* Category selector buttons */}
       <View style={styles.categorySelector}>
         {categories.map((category) => (
           <TouchableOpacity
@@ -213,6 +218,7 @@ export default function Guest_HomePage() {
         ))}
       </View>
 
+      {/* Bottom overlay with camera controls */}
       <View style={styles.overlay}>
         <ImagePreview onSelectImage={handleImageSelected} />
         <TouchableOpacity

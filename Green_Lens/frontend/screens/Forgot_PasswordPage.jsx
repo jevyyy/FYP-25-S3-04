@@ -1,4 +1,3 @@
-// ./screens/User/Forgot_PasswordPage.jsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -7,11 +6,11 @@ import { sendPasswordResetEmail, confirmPasswordReset } from 'firebase/auth';
 
 export default function Forgot_PasswordPage({ route }) {
   const navigation = useNavigation();
-  const [email, setEmail] = useState('');
-  const [newPassword, setNewPassword] = useState('');
-  const { oobCode } = route.params || {};
+  const [email, setEmail] = useState(''); // Holds user input for email
+  const [newPassword, setNewPassword] = useState(''); // Holds new password input
+  const { oobCode } = route.params || {}; // Reset code from Firebase link (if coming from email)
 
-  // Step 1: Send reset email
+  // Sends a password reset link to the user's email
   const handleSendResetEmail = async () => {
     if (!email.trim()) {
       Alert.alert('Error', 'Please enter your email');
@@ -34,7 +33,7 @@ export default function Forgot_PasswordPage({ route }) {
     }
   };
 
-  // Step 2: Set new password (after clicking link)
+  // Sets a new password using the reset code from the email link
   const handleSetNewPassword = async () => {
     if (!newPassword.trim()) {
       Alert.alert('Error', 'Please enter a new password');

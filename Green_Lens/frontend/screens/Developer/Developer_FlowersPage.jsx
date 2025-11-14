@@ -1,4 +1,3 @@
-// ./screens/Developer/Developer_FlowerPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, FlatList, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
@@ -10,12 +9,15 @@ import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
 import LogoImage from '../../assets/Green_Lens_logo.png';
 
+// Initialize Firestore, Storage, and Auth
 const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
 export default function Developer_FlowerPage() {
   const navigation = useNavigation();
+
+  // State variables
   const [searchQuery, setSearchQuery] = useState('');
   const [flowerImages, setFlowerImages] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -27,9 +29,11 @@ export default function Developer_FlowerPage() {
 
   const isMounted = useRef(true);
 
+  // Reference to the 'images' collection under 'modelPhotos/flowers'
   const flowersImagesCollectionRef = () =>
     collection(doc(collection(db, 'modelPhotos'), 'flowers'), 'images');
 
+  // Fetch flower images from Firestore in real-time
   useEffect(() => {
     isMounted.current = true;
     const q = query(flowersImagesCollectionRef(), orderBy('createdAt', 'desc'));
@@ -69,10 +73,12 @@ export default function Developer_FlowerPage() {
     };
   }, []);
 
+  // Filter images based on search query
   const filteredImages = flowerImages.filter((img) =>
     (img.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  // Opens image picker to add a new flower
   const handleAddNewFlower = async () => {
     setSelectedFlower(null);
     setFlowerName('');
@@ -80,6 +86,7 @@ export default function Developer_FlowerPage() {
     await handleSelectImage();
   };
 
+  // Handles tapping on an existing image to preview/edit
   const handleImagePress = (image) => {
     setSelectedFlower(image);
     setFlowerName(image.name);
@@ -87,6 +94,7 @@ export default function Developer_FlowerPage() {
     setPreviewModalVisible(true);
   };
 
+  // Opens device image library to select an image
   const handleSelectImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -112,6 +120,7 @@ export default function Developer_FlowerPage() {
     }
   };
 
+  // Confirm upload or update action
   const handleConfirmUpload = () => {
     if (!selectedFlower) {
       performUploadOrUpdate();
@@ -123,6 +132,7 @@ export default function Developer_FlowerPage() {
     }
   };
 
+  // Uploads new image or updates existing image in Firestore/Storage
   const performUploadOrUpdate = async () => {
     if (!flowerName.trim()) {
       Alert.alert('Validation', 'Please enter Flower Name.');
@@ -136,7 +146,7 @@ export default function Developer_FlowerPage() {
       const newStoragePath = `modelPhotos/flowers/${cleanName}.jpg`;
       const newImageRef = ref(storage, newStoragePath);
 
-      // 🔹 DUPLICATE CHECKS
+      // Check for duplicate name in Firestore
       const q = query(flowersImagesCollectionRef(), where('name', '==', cleanName));
       const querySnapshot = await getDocs(q);
       if (!querySnapshot.empty && (!selectedFlower || selectedFlower.name !== cleanName)) {
@@ -145,6 +155,7 @@ export default function Developer_FlowerPage() {
         return;
       }
 
+      // Check if file already exists in storage
       try {
         await getMetadata(newImageRef);
         if (!selectedFlower || selectedFlower.storagePath !== newStoragePath) {
@@ -167,6 +178,7 @@ export default function Developer_FlowerPage() {
       let newImageUrl = null;
 
       if (!selectedFlower) {
+        // Upload new flower image
         if (!previewUri) {
           Alert.alert('Error', 'No image selected.');
           setUploading(false);
@@ -178,6 +190,7 @@ export default function Developer_FlowerPage() {
         await uploadBytes(newImageRef, blob, { contentType: 'image/jpeg' });
         newImageUrl = await getDownloadURL(newImageRef);
 
+        // Determine uploader info
         let uploadedBy = 'Developer';
         const user = auth.currentUser;
         const uid = user?.uid || 'anonymous';
@@ -198,6 +211,7 @@ export default function Developer_FlowerPage() {
 
         Alert.alert('Success', 'Flower image added!');
       } else {
+        // Update existing flower image
         if (previewUri && previewUri.startsWith('file://')) {
           const response = await fetch(previewUri);
           const blob = await response.blob();
@@ -212,6 +226,7 @@ export default function Developer_FlowerPage() {
           newImageUrl = await getDownloadURL(newImageRef);
         }
 
+        // Delete old storage file if path changed
         if (selectedFlower.storagePath && selectedFlower.storagePath !== newStoragePath) {
           try {
             const oldRef = ref(storage, selectedFlower.storagePath);
@@ -243,6 +258,7 @@ export default function Developer_FlowerPage() {
     }
   };
 
+  // Deletes selected flower image from Firestore and Storage
   const handleDeleteFlower = () => {
     if (!selectedFlower) return;
 
@@ -278,6 +294,7 @@ export default function Developer_FlowerPage() {
     ]);
   };
 
+  // Render each image in the grid
   const renderImageItem = ({ item }) => (
     <TouchableOpacity style={styles.imageCard} onPress={() => handleImagePress(item)}>
       <Image source={{ uri: item.uri }} style={styles.imageThumb} resizeMode="cover" />
@@ -291,7 +308,7 @@ export default function Developer_FlowerPage() {
 
   return (
     <View style={styles.container}>
-      {/* Header */}
+      {/* Header section with logo, title, search, and new upload button */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
           <Image source={LogoImage} style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }} />
@@ -317,7 +334,7 @@ export default function Developer_FlowerPage() {
         </View>
       </View>
 
-      {/* Content */}
+      {/* Content display */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
@@ -343,7 +360,7 @@ export default function Developer_FlowerPage() {
         />
       )}
 
-      {/* Modal */}
+      {/* Modal for image preview, edit, upload, or delete */}
       <Modal
         visible={previewModalVisible}
         transparent

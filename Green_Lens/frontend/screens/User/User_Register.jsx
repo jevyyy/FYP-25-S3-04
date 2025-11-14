@@ -1,4 +1,3 @@
-// ./screens/User/User_Register.jsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Image, Modal, KeyboardAvoidingView, ScrollView, Platform } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -6,17 +5,25 @@ import { auth, app } from '../../firebaseConfig';
 import { createUserWithEmailAndPassword, updateProfile } from 'firebase/auth';
 import { getFirestore, doc, setDoc } from 'firebase/firestore';
 
+// Initialize Firestore
 const db = getFirestore(app);
 
 export default function User_Register() {
   const navigation = useNavigation();
+
+  // Form fields
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+
+  // Stores validation errors for each field
   const [errors, setErrors] = useState({});
+
+  // Controls visibility of success modal
   const [modalVisible, setModalVisible] = useState(false);
 
+  // Function to check if password is strong enough
   const validatePassword = (password) => {
     const strongPassword =
       /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
@@ -26,24 +33,32 @@ export default function User_Register() {
     return null;
   };
 
+  // Handle form submission and registration
   const handleSubmit = async () => {
     let newErrors = {};
+
+    // Validate required fields
     if (!name.trim()) newErrors.name = '*Name cannot be empty';
     if (!username.trim()) newErrors.username = '*Username cannot be empty';
     if (!email.trim()) newErrors.email = '*Email cannot be empty';
 
+    // Validate password strength
     const passwordError = validatePassword(password);
     if (passwordError) newErrors.password = passwordError;
 
     setErrors(newErrors);
 
+    // If no errors, proceed to create user
     if (Object.keys(newErrors).length === 0) {
       try {
+        // Create account with Firebase Auth
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         const user = userCredential.user;
 
+        // Update display name in Firebase Auth profile
         await updateProfile(user, { displayName: name });
 
+        // Save user data in Firestore
         await setDoc(doc(db, 'users', user.uid), {
           name: name,
           username: username,
@@ -52,8 +67,10 @@ export default function User_Register() {
           status: 'active',
         });
 
+        // Show success modal
         setModalVisible(true);
       } catch (firebaseError) {
+        // Map Firebase errors to user-friendly messages
         let fbErrors = {};
         if (firebaseError.code === 'auth/email-already-in-use') {
           fbErrors.email = '*Email already in use';
@@ -69,6 +86,7 @@ export default function User_Register() {
     }
   };
 
+  // Cancel registration and clear form
   const handleCancel = () => {
     setName('');
     setUsername('');
@@ -78,6 +96,7 @@ export default function User_Register() {
     navigation.navigate('User_Login');
   };
 
+  // Close modal and return to login screen
   const handleReturnToLogin = () => {
     setModalVisible(false);
     navigation.navigate('User_Login');
@@ -101,6 +120,7 @@ export default function User_Register() {
 
           <Text style={styles.title}>Register for Green Lens</Text>
 
+          {/* Name Input */}
           <Text style={styles.label}>Name</Text>
           <TextInput
             style={styles.input}
@@ -110,6 +130,7 @@ export default function User_Register() {
           />
           {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
 
+          {/* Username Input */}
           <Text style={styles.label}>Username</Text>
           <TextInput
             style={styles.input}
@@ -120,6 +141,7 @@ export default function User_Register() {
           />
           {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
 
+          {/* Password Input */}
           <Text style={styles.label}>Password</Text>
           <TextInput
             style={styles.input}
@@ -130,6 +152,7 @@ export default function User_Register() {
           />
           {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
+          {/* Email Input */}
           <Text style={styles.label}>Email</Text>
           <TextInput
             style={styles.input}
@@ -142,6 +165,7 @@ export default function User_Register() {
           {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
           {errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
 
+          {/* Buttons */}
           <View style={styles.buttonContainer}>
             <TouchableOpacity style={[styles.button, styles.blackButton]} onPress={handleCancel}>
               <Text style={styles.buttonText}>Cancel</Text>
@@ -152,6 +176,7 @@ export default function User_Register() {
             </TouchableOpacity>
           </View>
 
+          {/* Success Modal */}
           <Modal
             visible={modalVisible}
             transparent
@@ -190,4 +215,3 @@ const styles = StyleSheet.create({
   modalText: { fontSize: 20, fontWeight: 'bold', marginBottom: 20, textAlign: 'center' },
   modalButton: { width: '70%', paddingVertical: 15, borderRadius: 8, alignItems: 'center', backgroundColor: '#000' },
 });
-

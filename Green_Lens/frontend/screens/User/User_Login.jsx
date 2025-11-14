@@ -1,4 +1,3 @@
-// ./screens/User/User_Login.jsx
 import React, { useState } from 'react';
 import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
@@ -10,20 +9,20 @@ const db = getFirestore(app);
 
 export default function User_Login() {
   const navigation = useNavigation();
-  const [username, setUsername] = useState('');
-  const [password, setPassword] = useState('');
+  const [username, setUsername] = useState(''); // Stores username input
+  const [password, setPassword] = useState(''); // Stores password input
 
+  // Function to check password strength (for security)
   const checkPasswordStrength = (password) => {
-    // Check if password meets strong requirements
     const hasMinLength = password.length >= 8;
     const hasUpperCase = /[A-Z]/.test(password);
     const hasLowerCase = /[a-z]/.test(password);
     const hasNumber = /\d/.test(password);
     const hasSymbol = /[!@#$%^&*(),.?":{}|<>]/.test(password);
-
     return hasMinLength && hasUpperCase && hasLowerCase && hasNumber && hasSymbol;
   };
 
+  // Function to handle user login
   const handleLogin = async () => {
     if (!username || !password) {
       Alert.alert('Error', 'Please enter username and password');
@@ -31,7 +30,7 @@ export default function User_Login() {
     }
 
     try {
-      // Find the email by username in Firestore
+      // Look up the user's email in Firestore using their username
       const q = query(collection(db, 'users'), where('username', '==', username));
       const querySnapshot = await getDocs(q);
 
@@ -42,7 +41,7 @@ export default function User_Login() {
 
       const userData = querySnapshot.docs[0].data();
 
-      // Check role
+      // Ensure the user has the "User" role
       if (!userData.role || userData.role !== 'User') {
         Alert.alert('Access Denied', 'Your account does not have user access');
         return;
@@ -50,16 +49,15 @@ export default function User_Login() {
 
       const email = userData.email;
 
-      // Sign in with Firebase Auth
+      // Sign in using Firebase Authentication
       await signInWithEmailAndPassword(auth, email, password);
 
-      // Check password strength AFTER successful login
+      // Check password strength after login
       const isStrongPassword = checkPasswordStrength(password);
-
       if (!isStrongPassword) {
-        // Password is weak - SIGN OUT and force them to change it
+        // If weak, sign out and prompt user to reset password
         await signOut(auth);
-        
+
         Alert.alert(
           'Weak Password Detected',
           'Your current password does not meet the password requirements \n\n' +
@@ -68,25 +66,22 @@ export default function User_Login() {
           '• One uppercase letter (A-Z)\n' +
           '• One lowercase letter (a-z)\n' +
           '• One number (0-9)\n' +
-          '• One special character (!@#$%^&*)'+
+          '• One special character (!@#$%^&*)' +
           '\n\nPlease reset your password again by pressing "RESET PASSWORD"',
           [
             {
               text: 'Reset Password',
               onPress: () => {
-                navigation.navigate('Forgot_PasswordPage');
+                navigation.navigate('Forgot_PasswordPage'); // Navigate to reset password
               },
             },
-            {
-              text: 'Cancel',
-              style: 'cancel',
-            },
+            { text: 'Cancel', style: 'cancel' },
           ]
         );
         return;
       }
 
-      // Navigate to home page
+      // If login is successful and password is strong, navigate to home page
       navigation.replace('UserFlow', {
         screen: 'User_HomePage',
         params: { username: userData.username },
@@ -100,16 +95,19 @@ export default function User_Login() {
     }
   };
 
+  // Navigate to registration page
   const goToRegister = () => {
     navigation.navigate('User_Register');
   };
 
+  // Navigate to forgot password page
   const goToForgotPassword = () => {
     navigation.navigate('Forgot_PasswordPage');
   };
 
   return (
     <View style={styles.container}>
+      {/* App logo */}
       <Image
         source={require('../../assets/Green_Lens_logo.png')}
         style={styles.logo}
@@ -118,6 +116,7 @@ export default function User_Login() {
 
       <Text style={styles.title}>Sign in For Green Lens</Text>
 
+      {/* Username input */}
       <Text style={styles.label}>Username</Text>
       <TextInput
         style={styles.input}
@@ -127,6 +126,7 @@ export default function User_Login() {
         autoCapitalize="none"
       />
 
+      {/* Password input */}
       <Text style={styles.label}>Password</Text>
       <TextInput
         style={styles.input}
@@ -136,14 +136,17 @@ export default function User_Login() {
         secureTextEntry
       />
 
+      {/* Forgot password link */}
       <TouchableOpacity onPress={goToForgotPassword} style={styles.forgotPasswordContainer}>
         <Text style={styles.forgotPasswordText}>Forgot Password?</Text>
       </TouchableOpacity>
 
+      {/* Login button */}
       <TouchableOpacity style={styles.button} onPress={handleLogin}>
         <Text style={styles.buttonText}>Login</Text>
       </TouchableOpacity>
 
+      {/* Register link */}
       <View style={styles.registerContainer}>
         <Text style={styles.registerText}>Don't have an account? </Text>
         <TouchableOpacity onPress={goToRegister}>

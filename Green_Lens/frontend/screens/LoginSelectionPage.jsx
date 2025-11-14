@@ -3,14 +3,16 @@ import { View, Text, StyleSheet, TouchableOpacity, Image } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 
 export default function LoginSelectionPage() {
-  const navigation = useNavigation();
+  const navigation = useNavigation(); // Hook to navigate between screens
 
+  // Navigate to user login screen
   const handleUserLogin = () => navigation.navigate('User_Login');
+
+  // Navigate to admin/developer login screen
   const handleAdminLogin = () => navigation.navigate('Admin_Developer_Login');
 
   return (
     <View style={styles.outerContainer}>
-      {/* Logo above the text */}
       <Image
         source={require('../assets/Green_Lens_logo.png')}
         style={styles.logo}

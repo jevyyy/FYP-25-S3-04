@@ -1,4 +1,3 @@
-// Admin_AccountsPage.jsx
 import React, { useState, useEffect } from "react";
 import { View, Text, StyleSheet, FlatList, TouchableOpacity, TextInput, Alert, ActivityIndicator, Image } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
@@ -8,56 +7,60 @@ import { getAuth, signOut, onAuthStateChanged } from "firebase/auth";
 import { app } from "../../firebaseConfig";
 import GreenLensLogo from "../../assets/Green_Lens_logo.png";
 import { LogBox } from "react-native";
+
+// Suppress React Native warnings for cleaner output
 LogBox.ignoreAllLogs(false);
 
 export default function Admin_AccountsPage() {
-  const navigation = useNavigation();
-  const itemsPerPage = 9;
+  const navigation = useNavigation(); // Navigation object for moving between screens
+  const itemsPerPage = 9; // Number of users displayed per page in the list
 
-  const [users, setUsers] = useState([]);
-  const [search, setSearch] = useState("");
-  const [currentPage, setCurrentPage] = useState(1);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [loadingUser, setLoadingUser] = useState(true);
+  // State variables
+  const [users, setUsers] = useState([]); // Stores all users fetched from Firestore
+  const [search, setSearch] = useState(""); // Search term for filtering users
+  const [currentPage, setCurrentPage] = useState(1); // Current pagination page
+  const [currentUser, setCurrentUser] = useState(null); // Logged-in admin user
+  const [loadingUser, setLoadingUser] = useState(true); // Shows loading while checking auth
 
-  const db = getFirestore(app);
-  const auth = getAuth(app);
-  auth._canInitEmulator = false; // prevents firebase from re-initializing auth unnecessarily
+  const db = getFirestore(app); // Firestore database reference
+  const auth = getAuth(app); // Firebase Auth reference
+  auth._canInitEmulator = false; // Prevents Firebase Auth from re-initializing unnecessarily
 
-  // --- Auth state listener (one time only) ---
+  // Effect to check logged-in user's status (active or suspended)
   useEffect(() => {
-      const unsubscribe = onAuthStateChanged(auth, async (user) => {
-        if (user) {
-          setCurrentUser(user);
-          try {
-            const userDocRef = doc(db, "users", user.uid);
-            const userDocSnap = await getDoc(userDocRef);
-  
-            if (userDocSnap.exists() && userDocSnap.data().status === "inactive") {
-              Alert.alert("Account Locked", "Your account has been suspended.");
-              await signOut(auth);
-              navigation.navigate("Login");
-            }
-          } catch (error) {
-            console.error("Error checking current user document:", error);
-          } finally {
-            setLoadingUser(false);
-          }
-        } else {
-          setLoadingUser(false);
-          navigation.navigate("Login");
-        }
-      });
-  
-      return () => unsubscribe();
-    }, []);
+    const unsubscribe = onAuthStateChanged(auth, async (user) => {
+      if (user) {
+        setCurrentUser(user); // Save current admin
+        try {
+          const userDocRef = doc(db, "users", user.uid);
+          const userDocSnap = await getDoc(userDocRef);
 
-  // --- Fetch users from Firestore ---
+          // If the account is inactive, log out and navigate to login page
+          if (userDocSnap.exists() && userDocSnap.data().status === "inactive") {
+            Alert.alert("Account Locked", "Your account has been suspended.");
+            await signOut(auth);
+            navigation.navigate("Login");
+          }
+        } catch (error) {
+          console.error("Error checking current user document:", error);
+        } finally {
+          setLoadingUser(false); // Stop loading
+        }
+      } else {
+        setLoadingUser(false);
+        navigation.navigate("Login"); // If not logged in, go to login screen
+      }
+    });
+    return () => unsubscribe(); // Clean up listener on unmount
+  }, []);
+
+  // Effect to fetch all users from Firestore and listen for real-time updates
   useEffect(() => {
     const usersCol = collection(db, "users");
     const unsubscribe = onSnapshot(
       usersCol,
       (snapshot) => {
+        // Map Firestore documents to user objects
         const userList = snapshot.docs.map((doc) => ({
           id: doc.id,
           name: doc.data().name || "",
@@ -74,22 +77,22 @@ export default function Admin_AccountsPage() {
         Alert.alert("Error", "Failed to fetch users from Firestore.");
       }
     );
-
-    return () => unsubscribe();
+    return () => unsubscribe(); // Clean up listener on unmount
   }, []);
 
-  // --- Filter + paginate ---
+  // Filter users by search term
   const filteredUsers = users.filter((u) =>
     (u.username || "").toLowerCase().includes(search.toLowerCase())
   );
-  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage);
 
+  const totalPages = Math.ceil(filteredUsers.length / itemsPerPage); // Calculate total pages
+  const startIndex = (currentPage - 1) * itemsPerPage; // Start index of current page
+  const currentUsers = filteredUsers.slice(startIndex, startIndex + itemsPerPage); // Users displayed on current page
+
+  // Function to determine which pagination pages to display
   const getVisiblePages = () => {
     const visiblePages = [];
     const maxVisible = 5;
-
     if (totalPages <= maxVisible) {
       for (let i = 1; i <= totalPages; i++) visiblePages.push(i);
     } else {
@@ -98,12 +101,11 @@ export default function Admin_AccountsPage() {
       if (end - start < maxVisible - 1) start = Math.max(end - maxVisible + 1, 1);
       for (let i = start; i <= end; i++) visiblePages.push(i);
     }
-
     return visiblePages;
   };
-
   const visiblePages = getVisiblePages();
 
+  // Show loading indicator while checking current user's status
   if (loadingUser) {
     return (
       <View style={styles.loadingContainer}>
@@ -115,12 +117,12 @@ export default function Admin_AccountsPage() {
 
   return (
     <View style={styles.container}>
-      {/* Logo */}
+      {/* Logo at the top */}
       <View style={styles.logoContainer}>
         <Image source={GreenLensLogo} style={styles.logoImage} />
       </View>
 
-      {/* Top bar with search + new user */}
+      {/* Top bar with search input and new user button */}
       <View style={styles.topBar}>
         <TextInput
           style={styles.searchBar}
@@ -139,7 +141,7 @@ export default function Admin_AccountsPage() {
         </TouchableOpacity>
       </View>
 
-      {/* Header labels */}
+      {/* Header for the users table */}
       <View style={styles.listHeader}>
         <Text style={[styles.headerText, { flex: 1 }]}>Username</Text>
         <Text style={[styles.headerText, { flex: 1, textAlign: "center" }]}>Role</Text>
@@ -147,7 +149,7 @@ export default function Admin_AccountsPage() {
         <View style={{ width: 30 }} />
       </View>
 
-      {/* User list */}
+      {/* List of users with pagination */}
       <FlatList
         data={currentUsers}
         keyExtractor={(item) => `user-${item.id}`}
@@ -166,6 +168,7 @@ export default function Admin_AccountsPage() {
                 status === "inactive" && { backgroundColor: "#FFF7D4" },
               ]}
             >
+              {/* Navigate to update account page on username press */}
               <TouchableOpacity
                 style={{ flex: 1 }}
                 onPress={() =>
@@ -175,8 +178,8 @@ export default function Admin_AccountsPage() {
                 <Text style={styles.username}>{username}</Text>
               </TouchableOpacity>
 
+              {/* Role and status display */}
               <Text style={styles.role}>{role}</Text>
-
               <Text
                 style={[
                   styles.status,
@@ -186,11 +189,12 @@ export default function Admin_AccountsPage() {
                 {capitalizedStatus}
               </Text>
 
+              {/* Button to suspend user account */}
               <TouchableOpacity
                 onPress={() =>
                   navigation.navigate("Admin_SuspendAccountPage", { user: item })
                 }
-                disabled={!currentUser || item.id === currentUser.uid}
+                disabled={!currentUser || item.id === currentUser.uid} // Prevent self-suspension
                 style={{ opacity: !currentUser || item.id === currentUser.uid ? 0.5 : 1 }}
               >
                 <Ionicons name="ban" size={20} color="red" />
@@ -200,16 +204,14 @@ export default function Admin_AccountsPage() {
         }}
       />
 
-      {/* Pagination */}
+      {/* Pagination controls */}
       <View style={styles.pagination}>
         <TouchableOpacity disabled={currentPage === 1} onPress={() => setCurrentPage(1)}>
           <Text style={[styles.pageArrow, currentPage === 1 && styles.disabled]}>
             {"<<"}
           </Text>
         </TouchableOpacity>
-
         {visiblePages[0] > 1 && <Text style={styles.ellipsis}>...</Text>}
-
         {visiblePages.map((page) => (
           <TouchableOpacity key={`page-${page}`} onPress={() => setCurrentPage(page)}>
             <Text style={[styles.pageNumber, currentPage === page && styles.activePage]}>
@@ -217,11 +219,9 @@ export default function Admin_AccountsPage() {
             </Text>
           </TouchableOpacity>
         ))}
-
         {visiblePages[visiblePages.length - 1] < totalPages && (
           <Text style={styles.ellipsis}>...</Text>
         )}
-
         <TouchableOpacity disabled={currentPage === totalPages} onPress={() => setCurrentPage(totalPages)}>
           <Text style={[styles.pageArrow, currentPage === totalPages && styles.disabled]}>
             {">>"}

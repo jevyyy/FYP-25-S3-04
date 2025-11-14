@@ -1,19 +1,21 @@
-// ./screens/User/User_RankingPage.jsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
 import { app } from '../../firebaseConfig';
 
+// Initialize Firestore
 const db = getFirestore(app);
 
 export default function User_RankingPage() {
-  const [topUsers, setTopUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [topUsers, setTopUsers] = useState([]); // Stores top users for leaderboard
+  const [loading, setLoading] = useState(true); // Loading state while fetching data
 
+  // Subscribe to Firestore users collection
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, 'users'),
       (snapshot) => {
+        // Map users to relevant data
         const users = snapshot.docs
           .map((doc) => ({
             userId: doc.id,
@@ -21,16 +23,17 @@ export default function User_RankingPage() {
             pt: doc.data().totalPoints || 0,
             role: doc.data().role || 'User',
           }))
-          .filter((user) => user.role === 'User') // only include users with role "User"
-          // Sort by points descending
-          users.sort((a, b) => b.pt - a.pt);
+          .filter((user) => user.role === 'User'); // Include only users with role "User"
 
-        // Assign rank
+        // Sort users by points descending
+        users.sort((a, b) => b.pt - a.pt);
+
+        // Assign ranking numbers
         users.forEach((user, index) => {
           user.rank = index + 1;
         });
 
-        // Only top 10 users
+        // Keep only top 10 users
         setTopUsers(users.slice(0, 10));
         setLoading(false);
       },
@@ -43,6 +46,7 @@ export default function User_RankingPage() {
     return () => unsubscribe();
   }, []);
 
+  // Show loading indicator while fetching data
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -51,11 +55,13 @@ export default function User_RankingPage() {
     );
   }
 
+  // Split top 3 and remaining users
   const topThree = topUsers.slice(0, 3);
   const remainingUsers = topUsers.slice(3);
 
+  // Render each user in the remaining users list
   const renderItem = ({ item }) => {
-    const isUser = item.name.toLowerCase() === 'you'; //highlight own user 
+    const isUser = item.name.toLowerCase() === 'you'; // Highlight current user if name is 'you'
 
     return (
       <View style={[styles.listItem, isUser && styles.currentUser]}>
@@ -70,7 +76,7 @@ export default function User_RankingPage() {
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.title}>Leaderboard</Text>
 
-      {/* Top 3 Podium */}
+      {/* Display podium for top 3 users */}
       <View style={styles.podiumContainer}>
         {/* 2nd Place */}
         {topThree[1] && (
@@ -90,9 +96,7 @@ export default function User_RankingPage() {
               <Text style={styles.rankCircle}>🥇</Text>
             </View>
             <Text style={[styles.podiumName, styles.winnerName]}>{topThree[0].name}</Text>
-            <Text style={[styles.podiumPoints, styles.winnerPoints]}>
-              {topThree[0].pt} PT
-            </Text>
+            <Text style={[styles.podiumPoints, styles.winnerPoints]}>{topThree[0].pt} PT</Text>
           </View>
         )}
 
@@ -108,7 +112,7 @@ export default function User_RankingPage() {
         )}
       </View>
 
-      {/* Remaining Users */}
+      {/* List remaining users */}
       <View style={styles.listContainer}>
         <FlatList
           data={remainingUsers}
@@ -140,4 +144,3 @@ const styles = StyleSheet.create({
   nameText: { flex: 1, fontSize: 16, fontWeight: '600', color: '#000', marginLeft: 8 },
   pointsText: { fontSize: 15, fontWeight: 'bold', color: '#333' },
 });
-

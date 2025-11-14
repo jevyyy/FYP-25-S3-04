@@ -7,18 +7,21 @@ import { app } from "../../firebaseConfig";
 import { Picker } from "@react-native-picker/picker";
 import { initializeApp, deleteApp } from "firebase/app";
 
+// Component for creating a new user account (Admin only)
 export default function Admin_CreateAccountPage() {
-  const navigation = useNavigation();
-  const auth = getAuth(app);
-  const db = getFirestore(app);
+  const navigation = useNavigation(); // Navigation object to move between screens
+  const auth = getAuth(app); // Firebase Auth reference
+  const db = getFirestore(app); // Firestore database reference
 
-  const [name, setName] = useState("");
-  const [username, setUsername] = useState("");
-  const [password, setPassword] = useState("");
-  const [email, setEmail] = useState("");
-  const [role, setRole] = useState("Admin");
-  const [errors, setErrors] = useState({});
+  // State variables for input fields
+  const [name, setName] = useState(""); // Full name of user
+  const [username, setUsername] = useState(""); // Username
+  const [password, setPassword] = useState(""); // Password
+  const [email, setEmail] = useState(""); // Email
+  const [role, setRole] = useState("Admin"); // User role: Admin or Developer
+  const [errors, setErrors] = useState({}); // Stores validation or Firebase errors
 
+  // Function to validate password strength
   const validatePassword = (pwd) => {
     const strongPassword = /^(?=.*[A-Z])(?=.*[a-z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,}$/;
     if (!strongPassword.test(pwd)) {
@@ -27,6 +30,7 @@ export default function Admin_CreateAccountPage() {
     return null;
   };
 
+  // Function to handle form submission and user creation
   const handleCreate = async () => {
     let newErrors = {};
     if (!name) newErrors.name = '*Name cannot be empty';
@@ -38,30 +42,35 @@ export default function Admin_CreateAccountPage() {
 
     setErrors(newErrors);
 
-    if (Object.keys(newErrors).length > 0) return;
+    if (Object.keys(newErrors).length > 0) return; // Stop if validation fails
 
     try {
+      // Use a secondary Firebase app to create a user without affecting current login
       const secondaryApp = initializeApp(app.options, "SecondaryApp");
       const secondaryAuth = getAuth(secondaryApp);
 
+      // Create user in Firebase Auth
       const userCredential = await createUserWithEmailAndPassword(
         secondaryAuth,
         email,
         password
       );
-      const uid = userCredential.user.uid;
+      const uid = userCredential.user.uid; // Get new user's UID
 
+      // Add user details to Firestore users collection
       await setDoc(doc(db, "users", uid), {
         name,
         username,
         email,
         role,
-        status: "active",
+        status: "active", // Default status is active
       });
 
+      // Sign out secondary app and delete it
       await secondaryAuth.signOut();
       await deleteApp(secondaryApp);
 
+      // Show success alert and navigate back to accounts page
       Alert.alert("Success", "Account created successfully!", [
         {
           text: "OK",
@@ -69,6 +78,7 @@ export default function Admin_CreateAccountPage() {
         },
       ]);
 
+      // Reset form fields
       setName("");
       setUsername("");
       setPassword("");
@@ -76,22 +86,25 @@ export default function Admin_CreateAccountPage() {
       setRole("Admin");
       setErrors({});
     } catch (firebaseError) {
+      // Handle Firebase errors
       let fbErrors = {};
       if (firebaseError.code === 'auth/email-already-in-use') {
         fbErrors.email = '*Email already in use';
       } else if (firebaseError.code === 'auth/invalid-email') {
         fbErrors.email = '*Invalid email address';
       } else {
-        fbErrors.general = firebaseError.message;
+        fbErrors.general = firebaseError.message; // Catch all other errors
       }
-      setErrors(fbErrors);
+      setErrors(fbErrors); // Display errors to user
     }
   };
 
+  // Render form UI
   return (
     <View style={styles.container}>
       <Text style={styles.title}>Account Creation</Text>
 
+      {/* Name Input */}
       <TextInput
         style={styles.input}
         placeholder="Enter your name"
@@ -100,6 +113,7 @@ export default function Admin_CreateAccountPage() {
       />
       {errors.name && <Text style={styles.errorText}>{errors.name}</Text>}
 
+      {/* Username Input */}
       <TextInput
         style={styles.input}
         placeholder="Enter your username"
@@ -109,6 +123,7 @@ export default function Admin_CreateAccountPage() {
       />
       {errors.username && <Text style={styles.errorText}>{errors.username}</Text>}
 
+      {/* Password Input */}
       <TextInput
         style={styles.input}
         placeholder="Enter your password"
@@ -118,6 +133,7 @@ export default function Admin_CreateAccountPage() {
       />
       {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
 
+      {/* Email Input */}
       <TextInput
         style={styles.input}
         placeholder="Enter your email"
@@ -128,6 +144,7 @@ export default function Admin_CreateAccountPage() {
       {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
       {errors.general && <Text style={styles.errorText}>{errors.general}</Text>}
 
+      {/* Role Selection */}
       <View style={styles.pickerContainer}>
         <Picker
           selectedValue={role}
@@ -140,6 +157,7 @@ export default function Admin_CreateAccountPage() {
         </Picker>
       </View>
 
+      {/* Buttons for Cancel and Create */}
       <View style={styles.buttonRow}>
         <TouchableOpacity style={[styles.button, styles.cancel]} onPress={() => navigation.goBack()}>
           <Text style={styles.buttonText}>Cancel</Text>
@@ -152,6 +170,7 @@ export default function Admin_CreateAccountPage() {
   );
 }
 
+// Styles for the page
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#fff", padding: 20, paddingTop: 60 },
   title: { fontSize: 22, fontWeight: "700", marginBottom: 20 },

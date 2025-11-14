@@ -6,25 +6,28 @@ import { getAuth } from 'firebase/auth';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { app } from '../../firebaseConfig';
 
+// Initialize Firebase services
 const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
 export default function User_QuizPage({ navigation }) {
-  const [quizVisible, setQuizVisible] = useState(false);
-  const [selectedCategory, setSelectedCategory] = useState('');
-  const [question, setQuestion] = useState(null);
-  const [quizResult, setQuizResult] = useState(null);
-  const [currentUser, setCurrentUser] = useState(null);
+  const [quizVisible, setQuizVisible] = useState(false); // Controls modal visibility
+  const [selectedCategory, setSelectedCategory] = useState(''); // Stores chosen quiz category
+  const [question, setQuestion] = useState(null); // Stores the current quiz question
+  const [quizResult, setQuizResult] = useState(null); // Stores result after answering
+  const [currentUser, setCurrentUser] = useState(null); // Stores currently logged-in user
 
+  // Listen for auth state changes and store current user
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => setCurrentUser(user));
     return unsubscribe;
   }, []);
 
+  // Converts Firebase Storage paths to download URLs for images
   const resolveImageUrl = async (imagePath) => {
     if (!imagePath) return null;
-    if (imagePath.startsWith('http')) return imagePath;
+    if (imagePath.startsWith('http')) return imagePath; // Already a URL
 
     try {
       const cleanPath = imagePath.replace(/^gs:\/\/green-lens-47e9b\.appspot\.com\//, '');
@@ -36,6 +39,7 @@ export default function User_QuizPage({ navigation }) {
     }
   };
 
+  // Fetch a random question for a given category from Firestore
   const fetchQuestion = async (category) => {
     try {
       const q = query(collection(db, 'quizQuestions'), where('category', '==', category));
@@ -43,39 +47,43 @@ export default function User_QuizPage({ navigation }) {
       if (!snapshot.empty) {
         const questions = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
         const randomQuestion = questions[Math.floor(Math.random() * questions.length)];
-        const fixedUrl = await resolveImageUrl(randomQuestion.imageUrl);
+        const fixedUrl = await resolveImageUrl(randomQuestion.imageUrl); // Resolve image URL
         setQuestion({ ...randomQuestion, imageUrl: fixedUrl });
       } else {
-        setQuestion(null);
+        setQuestion(null); // No question found
       }
     } catch {
       Alert.alert('Error', 'Could not fetch quiz question.');
     }
   };
 
+  // Handle user selecting a quiz category
   const handlePressCategory = async (category) => {
     setSelectedCategory(category);
-    setQuizResult(null);
+    setQuizResult(null); // Reset previous result
     await fetchQuestion(category);
-    setQuizVisible(true);
+    setQuizVisible(true); // Show quiz modal
   };
 
+  // Handle user answering a question
   const handleAnswer = async (answer) => {
     if (!currentUser || !question) return;
 
     const result = answer === question.correctAnswer ? 'correct' : 'wrong';
     setQuizResult(result);
-    const points = result === 'correct' ? 3 : 0;
+    const points = result === 'correct' ? 3 : 0; // Assign points for correct answers
 
     try {
       const userRef = doc(db, 'users', currentUser.uid);
 
+      // Retrieve username for logging
       const userSnap = await getDoc(userRef);
       const savedUsername =
         userSnap.exists() && userSnap.data().username
           ? userSnap.data().username
           : currentUser.displayName || currentUser.email || 'Anonymous';
 
+      // Save the quiz attempt to Firestore
       await addDoc(collection(db, 'quizResults'), {
         userId: currentUser.uid,
         email: currentUser.email || 'anonymous@example.com',
@@ -90,6 +98,7 @@ export default function User_QuizPage({ navigation }) {
         createdAt: serverTimestamp(),
       });
 
+      // Update user data in Firestore
       await setDoc(
         userRef,
         {
@@ -100,6 +109,7 @@ export default function User_QuizPage({ navigation }) {
         { merge: true }
       );
 
+      // Increment total points if correct
       if (points > 0) {
         await updateDoc(userRef, { totalPoints: increment(points) });
       }
@@ -109,19 +119,21 @@ export default function User_QuizPage({ navigation }) {
     }
   };
 
+  // Close quiz modal and reset state
   const handleReturn = () => {
     setQuizVisible(false);
     setQuestion(null);
     setQuizResult(null);
   };
 
+  // Navigate to ranking page
   const goToRanking = () => {
     navigation.navigate('User_RankingPage');
   };
 
   return (
     <View style={styles.container}>
-      {/* Ranking Button */}
+      {/* Top row with ranking button */}
       <View style={styles.topRow}>
         <TouchableOpacity style={styles.rankingButton} onPress={goToRanking}>
           <Ionicons name="trophy-outline" size={18} color="#000" />
@@ -129,8 +141,8 @@ export default function User_QuizPage({ navigation }) {
         </TouchableOpacity>
       </View>
 
-      {/* Category Cards */}
-     <View style={styles.categoryContainer}>
+      {/* Category selection cards */}
+      <View style={styles.categoryContainer}>
         {[
           { cat: 'Flower', label: 'Flowers', img: require('../../assets/quiz_flowers.jpg') },
           { cat: 'Plant', label: 'Plants', img: require('../../assets/quiz_plants.jpg') },
@@ -204,4 +216,3 @@ const styles = StyleSheet.create({
   returnButton: { paddingVertical: 10, paddingHorizontal: 20, backgroundColor: '#000', borderRadius: 8 },
   returnButtonText: { color: '#fff', fontWeight: '600' },
 });
-
