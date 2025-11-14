@@ -306,7 +306,8 @@ class ModelRetrainer:
             weights='imagenet',
             include_top=False,
             input_shape=(224, 224, 3),
-            pooling='avg'
+            pooling='avg',
+            name='mobilenetv2_base'  # Assign a name for easy lookup
         )
         
         base_model.trainable = False
@@ -377,15 +378,12 @@ class ModelRetrainer:
         # Fine-tuning
         print("\n--- Preparing for Fine-Tuning ---")
         
-        # Find the base model in the current model
-        base_model = None
-        for layer in model.layers:
-            if isinstance(layer, MobileNetV2):
-                base_model = layer
-                break
+        # Find the base model by its name
+        base_model = model.get_layer('mobilenetv2_base')
         
         if base_model:
             base_model.trainable = True
+            # Fine-tune the top 50 layers
             for layer in base_model.layers[:-50]:
                 layer.trainable = False
             
