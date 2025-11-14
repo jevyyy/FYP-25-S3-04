@@ -398,61 +398,66 @@ def retrain_model():
         data = request.get_json()
         category = data.get('category')
         delete_images_after = data.get('deleteImagesAfter', True)
-        
+
         if not category:
+            print("[RETRAIN] No category provided in request")
             return jsonify({
                 'success': False,
                 'error': 'Category is required'
             }), 400
-        
+
         # Map frontend category names to backend category names
         category_map = {
             'flowers': 'flowers',
             'plants': 'plants',
             'architecture': 'architecture'
         }
-        
+
         if category not in category_map:
+            print(f"[RETRAIN] Invalid category: {category}")
             return jsonify({
                 'success': False,
                 'error': f'Invalid category. Must be one of: {list(category_map.keys())}'
             }), 400
-        
+
         backend_category = category_map[category]
         
         # Import the retrainer
         import sys
         sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'utils'))
         from retrain_model_with_firebase import ModelRetrainer
-        
+
         # Get Firebase credentials (from env or file)
         firebase_cred = get_firebase_credentials()
-        
+
         # Initialize retrainer
         retrainer = ModelRetrainer(
             category=backend_category,
             firebase_credentials=firebase_cred,
             bucket_name=BUCKET_NAME
         )
-        
-        # Run retraining
+
+        # --- DETAILED LOGGING START ---
         print(f"\n{'='*80}")
-        print(f"Starting retraining for category: {backend_category}")
-        print(f"Delete images after training: {delete_images_after}")
+        print(f"[RETRAIN] Starting retraining for category: {backend_category}")
+        print(f"[RETRAIN] Delete images after training: {delete_images_after}")
+        print(f"[RETRAIN] Firebase bucket: {BUCKET_NAME}")
+        print(f"[RETRAIN] Retrainer initialized: {retrainer}")
         print(f"{'='*80}\n")
-        
+        # --- DETAILED LOGGING END ---
+
+        # Run retraining
         success = retrainer.retrain(delete_images_after=delete_images_after)
-        
+
         if success:
             # Reload the model for this category
             try:
-                # Map back to the category key used in CATEGORIES
                 category_key = 'flower' if category == 'flowers' else category.rstrip('s')
                 load_model_and_classes_for_category(category_key)
-                print(f"Reloaded {category} model successfully")
+                print(f"[RETRAIN] Reloaded {category} model successfully")
             except Exception as e:
-                print(f"Warning: Failed to reload model: {str(e)}")
-            
+                print(f"[RETRAIN WARNING] Failed to reload model: {str(e)}")
+
             return jsonify({
                 'success': True,
                 'message': f'Model retraining completed successfully for {category}',
@@ -460,26 +465,25 @@ def retrain_model():
                 'images_deleted': delete_images_after
             })
         else:
+            print(f"[RETRAIN ERROR] Model retraining returned failure for {backend_category}")
             return jsonify({
                 'success': False,
                 'error': 'Model retraining failed. Check server logs for details.'
             }), 500
-            
+
     except Exception as e:
         error_str = str(e)
-        print(f"Error in retrain_model endpoint: {error_str}")
+        print(f"[RETRAIN EXCEPTION] Error in retrain_model endpoint: {error_str}")
         import traceback
         traceback.print_exc()
-        
-        # Provide more helpful error messages for common issues
+
         if "invalid_grant" in error_str.lower() or "invalid jwt signature" in error_str.lower():
-            error_message = "Firebase authentication failed. The service account credentials are invalid or expired. Please regenerate the service-account.json file from Firebase Console. See FIREBASE_AUTH_TROUBLESHOOTING.md for detailed instructions."
+            error_message = "Firebase authentication failed. The service account credentials are invalid or expired. Please regenerate the service-account.json file."
         elif "503" in error_str or "ServiceUnavailable" in error_str:
-            error_message = "Unable to connect to Firebase services. This may be due to invalid credentials or temporary service issues. Check server logs and see FIREBASE_AUTH_TROUBLESHOOTING.md."
+            error_message = "Unable to connect to Firebase services. Check credentials or service status."
         else:
-            # Don't expose internal error details to clients for security
-            error_message = "An error occurred during model retraining. Please check server logs for details."
-        
+            error_message = "An error occurred during model retraining. Check server logs for full details."
+
         return jsonify({
             'success': False,
             'error': error_message

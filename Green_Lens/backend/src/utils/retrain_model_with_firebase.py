@@ -8,6 +8,7 @@ import os
 import sys
 import json
 import shutil
+import scipy
 import tensorflow as tf
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 from tensorflow.keras.preprocessing.image import ImageDataGenerator
@@ -371,7 +372,7 @@ class ModelRetrainer:
         # Find the base model in the current model
         base_model = None
         for layer in model.layers:
-            if isinstance(layer, MobileNetV2):
+            if "mobilenetv2" in layer.name.lower():  # <-- works reliably
                 base_model = layer
                 break
         
@@ -400,6 +401,10 @@ class ModelRetrainer:
         
         # Evaluate
         print("\n--- Final Model Evaluation ---")
+
+        if validation_generator.samples == 0:
+            print("No validation data available. Skipping evaluation.")
+            return model
         final_loss, final_accuracy = model.evaluate(validation_generator, verbose=0)
         print(f"Final Validation Loss: {final_loss:.4f}")
         print(f"Final Validation Accuracy: {final_accuracy:.4f}")
