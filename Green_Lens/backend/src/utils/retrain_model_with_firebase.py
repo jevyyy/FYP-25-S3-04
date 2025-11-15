@@ -386,25 +386,34 @@ class ModelRetrainer:
                 print("Building new model from scratch...")
         
         # Build new model from scratch
-        base_model = MobileNetV2(
+        # Create the base model without the name argument
+        base_model_instance = MobileNetV2(
             weights='imagenet',
             include_top=False,
             input_shape=(224, 224, 3),
-            pooling='avg',
-            name='mobilenetv2_base'  # Assign a name for easy lookup
+            pooling='avg'
         )
         
-        base_model.trainable = False
+        # Freeze the base model
+        base_model_instance.trainable = False
         
+        # Rebuild the model, giving the base model a name at this stage
         inputs = tf.keras.Input(shape=(224, 224, 3))
-        x = base_model(inputs, training=False)
-        x = layers.Dense(256, activation='relu')(x)
-        x = layers.Dropout(0.3)(x)
-        x = layers.Dense(128, activation='relu')(x)
-        x = layers.Dropout(0.2)(x)
-        outputs = layers.Dense(num_classes, activation='softmax')(x)
+        # Assign the name here when using it as a layer
+        x = base_model_instance(inputs, training=False)
         
-        model = Model(inputs, outputs)
+        # Create a new Model that includes the named base model
+        base_model_named = Model(inputs, x, name='mobilenetv2_base')
+
+        # Add the classification head
+        y = layers.Dense(256, activation='relu')(base_model_named.output)
+        y = layers.Dropout(0.3)(y)
+        y = layers.Dense(128, activation='relu')(y)
+        y = layers.Dropout(0.2)(y)
+        outputs = layers.Dense(num_classes, activation='softmax')(y)
+        
+        # Final model
+        model = Model(base_model_named.input, outputs)
         
         return model
     
