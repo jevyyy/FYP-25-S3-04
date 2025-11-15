@@ -1,36 +1,39 @@
-// ./screens/User/User_RankingPage.jsx
 import React, { useState, useEffect } from 'react';
 import { View, Text, FlatList, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
 import { getFirestore, collection, onSnapshot } from 'firebase/firestore';
 import { app } from '../../firebaseConfig';
 
+// Initialize Firestore
 const db = getFirestore(app);
 
 export default function User_RankingPage() {
-  const [topUsers, setTopUsers] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [topUsers, setTopUsers] = useState([]); // Stores top users for leaderboard
+  const [loading, setLoading] = useState(true); // Loading state while fetching data
 
+  // Subscribe to Firestore users collection
   useEffect(() => {
     const unsubscribe = onSnapshot(
       collection(db, 'users'),
       (snapshot) => {
+        // Map users to relevant data
         const users = snapshot.docs
           .map((doc) => ({
             userId: doc.id,
-            username: doc.data().username || 'Anonymous',
+            name: doc.data().name || doc.data().displayName || 'Anonymous',
             pt: doc.data().totalPoints || 0,
             role: doc.data().role || 'User',
           }))
-          .filter((user) => user.role === 'User')// <-- only include users with role "user"
-          // Sort by points descending
-          users.sort((a, b) => b.pt - a.pt);
+          .filter((user) => user.role === 'User'); // Include only users with role "User"
 
-          // Assign rank
-          users.forEach((user, index) => {
-            user.rank = index + 1;
-          });
+        // Sort users by points descending
+        users.sort((a, b) => b.pt - a.pt);
 
-        // Only top 10 users
+        // Assign ranking numbers
+        users.forEach((user, index) => {
+          user.rank = index + 1;
+        });
+
+        // Keep only top 10 users
         setTopUsers(users.slice(0, 10));
         setLoading(false);
       },
@@ -43,6 +46,7 @@ export default function User_RankingPage() {
     return () => unsubscribe();
   }, []);
 
+  // Show loading indicator while fetching data
   if (loading) {
     return (
       <View style={[styles.container, { justifyContent: 'center', alignItems: 'center' }]}>
@@ -51,16 +55,18 @@ export default function User_RankingPage() {
     );
   }
 
+  // Split top 3 and remaining users
   const topThree = topUsers.slice(0, 3);
   const remainingUsers = topUsers.slice(3);
 
+  // Render each user in the remaining users list
   const renderItem = ({ item }) => {
-    const isUser = item.username.toLowerCase() === 'you'; //highlight own user 
+    const isUser = item.name.toLowerCase() === 'you'; // Highlight current user if name is 'you'
 
     return (
       <View style={[styles.listItem, isUser && styles.currentUser]}>
         <Text style={styles.rankText}>{item.rank}</Text>
-        <Text style={styles.usernameText}>{item.username}</Text>
+        <Text style={styles.nameText}>{item.name}</Text>
         <Text style={styles.pointsText}>{item.pt} PT</Text>
       </View>
     );
@@ -70,7 +76,7 @@ export default function User_RankingPage() {
     <ScrollView style={styles.container} contentContainerStyle={{ paddingBottom: 40 }}>
       <Text style={styles.title}>Leaderboard</Text>
 
-      {/* Top 3 Podium */}
+      {/* Display podium for top 3 users */}
       <View style={styles.podiumContainer}>
         {/* 2nd Place */}
         {topThree[1] && (
@@ -78,7 +84,7 @@ export default function User_RankingPage() {
             <View style={[styles.circle, { backgroundColor: '#D1E7DD' }]}>
               <Text style={styles.rankCircle}>🥈</Text>
             </View>
-            <Text style={styles.podiumName}>{topThree[1].username}</Text>
+            <Text style={styles.podiumName}>{topThree[1].name}</Text>
             <Text style={styles.podiumPoints}>{topThree[1].pt} PT</Text>
           </View>
         )}
@@ -89,10 +95,8 @@ export default function User_RankingPage() {
             <View style={[styles.circle, styles.goldCircle]}>
               <Text style={styles.rankCircle}>🥇</Text>
             </View>
-            <Text style={[styles.podiumName, styles.winnerName]}>{topThree[0].username}</Text>
-            <Text style={[styles.podiumPoints, styles.winnerPoints]}>
-              {topThree[0].pt} PT
-            </Text>
+            <Text style={[styles.podiumName, styles.winnerName]}>{topThree[0].name}</Text>
+            <Text style={[styles.podiumPoints, styles.winnerPoints]}>{topThree[0].pt} PT</Text>
           </View>
         )}
 
@@ -102,13 +106,13 @@ export default function User_RankingPage() {
             <View style={[styles.circle, { backgroundColor: '#FADADD' }]}>
               <Text style={styles.rankCircle}>🥉</Text>
             </View>
-            <Text style={styles.podiumName}>{topThree[2].username}</Text>
+            <Text style={styles.podiumName}>{topThree[2].name}</Text>
             <Text style={styles.podiumPoints}>{topThree[2].pt} PT</Text>
           </View>
         )}
       </View>
 
-      {/* Remaining Users */}
+      {/* List remaining users */}
       <View style={styles.listContainer}>
         <FlatList
           data={remainingUsers}
@@ -123,92 +127,20 @@ export default function User_RankingPage() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F8FAF8', padding: 20 },
-  title: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    textAlign: 'center',
-    marginBottom: 20,
-    color: '#000',
-  },
-  podiumContainer: {
-    flexDirection: 'row',
-    justifyContent: 'space-evenly',
-    alignItems: 'flex-end',
-    marginBottom: 30,
-  },
-  podiumItem: {
-    alignItems: 'center',
-  },
-  circle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  goldCircle: {
-    backgroundColor: '#FFE066',
-    borderWidth: 3,
-    borderColor: '#FFD700',
-  },
-  rankCircle: {
-    fontSize: 35,
-    fontWeight: 'bold',
-    color: '#000',
-  },
-  podiumName: {
-    fontSize: 16,
-    fontWeight: '600',
-    marginTop: 6,
-  },
-  winnerName: {
-    fontWeight: 'bold',
-    fontSize: 25,
-  },
-  podiumPoints: {
-    fontSize: 14,
-    color: '#4CAF50',
-  },
-  winnerPoints: {
-    fontSize: 16,
-    color: '#2E7D32',
-    fontWeight: '700',
-  },
-  listContainer: {
-    backgroundColor: '#EAF4E4',
-    borderRadius: 16,
-    paddingVertical: 10,
-    paddingHorizontal: 10,
-  },
-  listItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    paddingVertical: 14,
-    paddingHorizontal: 16,
-    marginVertical: 5,
-  },
-  currentUser: {
-    backgroundColor: '#6AA84F',
-  },
-  rankText: {
-    fontSize: 16,
-    fontWeight: 'bold',
-    width: 25,
-    color: '#000',
-  },
-  usernameText: {
-    flex: 1,
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#000',
-    marginLeft: 8,
-  },
-  pointsText: {
-    fontSize: 15,
-    fontWeight: 'bold',
-    color: '#333',
-  },
+  title: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', marginBottom: 20, color: '#000' },
+  podiumContainer: { flexDirection: 'row', justifyContent: 'space-evenly', alignItems: 'flex-end', marginBottom: 30 },
+  podiumItem: { alignItems: 'center' },
+  circle: { width: 80, height: 80, borderRadius: 40, alignItems: 'center', justifyContent: 'center' },
+  goldCircle: { backgroundColor: '#FFE066', borderWidth: 3, borderColor: '#FFD700' },
+  rankCircle: { fontSize: 35, fontWeight: 'bold', color: '#000' },
+  podiumName: { fontSize: 16, fontWeight: '600', marginTop: 6 },
+  winnerName: { fontWeight: 'bold', fontSize: 25 },
+  podiumPoints: { fontSize: 14, color: '#4CAF50' },
+  winnerPoints: { fontSize: 16, color: '#2E7D32', fontWeight: '700' },
+  listContainer: { backgroundColor: '#EAF4E4', borderRadius: 16, paddingVertical: 10, paddingHorizontal: 10 },
+  listItem: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', backgroundColor: '#fff', borderRadius: 10, paddingVertical: 14, paddingHorizontal: 16, marginVertical: 5 },
+  currentUser: { backgroundColor: '#6AA84F' },
+  rankText: { fontSize: 16, fontWeight: 'bold', width: 25, color: '#000' },
+  nameText: { flex: 1, fontSize: 16, fontWeight: '600', color: '#000', marginLeft: 8 },
+  pointsText: { fontSize: 15, fontWeight: 'bold', color: '#333' },
 });

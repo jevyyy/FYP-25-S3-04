@@ -5,11 +5,13 @@ import { getAuth } from 'firebase/auth';
 import { getStorage, ref, getDownloadURL } from 'firebase/storage';
 import { app } from '../../firebaseConfig';
 
+// Initialize Firestore, Auth, and Storage
 const db = getFirestore(app);
 const auth = getAuth(app);
 const storage = getStorage(app);
 
 export default function User_RewardPage() {
+  // Track user's points, rewards, selected reward, and voucher code
   const [points, setPoints] = useState(0);
   const [rewardsState, setRewardsState] = useState([]);
   const [selectedReward, setSelectedReward] = useState(null);
@@ -17,17 +19,19 @@ export default function User_RewardPage() {
   const [voucherCode, setVoucherCode] = useState(null);
   const [currentUser, setCurrentUser] = useState(null);
 
+  // On component mount, get current user and fetch points and rewards
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
       if (user) {
         setCurrentUser(user);
-        fetchUserPoints(user.uid);
-        fetchRewards();
+        fetchUserPoints(user.uid); // Get user's total points
+        fetchRewards(); // Load available rewards
       }
     });
     return unsubscribe;
   }, []);
 
+  // Fetch user points from Firestore, initialize if not exists
   const fetchUserPoints = async (uid) => {
     try {
       const userRef = doc(db, 'users', uid);
@@ -43,19 +47,7 @@ export default function User_RewardPage() {
     }
   };
 
-  const addTestPoints = async () => {
-    if (!currentUser) return;
-    try {
-      const userRef = doc(db, 'users', currentUser.uid);
-      await updateDoc(userRef, { totalPoints: increment(100) });
-      setPoints(prev => prev + 100);
-      Alert.alert('Test Points Added', '+100 points');
-    } catch (err) {
-      console.error(err);
-      Alert.alert('Error', 'Failed to add test points.');
-    }
-  };
-
+  // Resolve image URL from Firebase Storage or use placeholder
   const resolveImageUrl = async (imagePath) => {
     if (!imagePath) return 'https://via.placeholder.com/150';
     if (imagePath.startsWith('http')) return imagePath;
@@ -69,6 +61,7 @@ export default function User_RewardPage() {
     }
   };
 
+  // Fetch all rewards from Firestore and resolve images
   const fetchRewards = async () => {
     try {
       const rewardsCollection = await getDocs(collection(db, 'rewards'));
@@ -93,12 +86,14 @@ export default function User_RewardPage() {
     }
   };
 
+  // When a reward is selected, open the modal
   const handlePressReward = (reward) => {
     setSelectedReward(reward);
-    setVoucherCode(null);
+    setVoucherCode(null); // Reset voucher display
     setModalVisible(true);
   };
 
+  // Redeem a reward if user has enough points and reward is in stock
   const handleRedeem = async () => {
     if (!currentUser || !selectedReward) return;
 
@@ -116,7 +111,7 @@ export default function User_RewardPage() {
       const rewardRef = doc(db, 'rewards', selectedReward.id);
       const userRef = doc(db, 'users', currentUser.uid);
 
-      // Fetch one unused voucher
+      // Get an unused voucher for the reward
       const vouchersRef = collection(rewardRef, 'vouchers');
       const q = query(vouchersRef, where('redeemed', '==', false), limit(1));
       const voucherSnap = await getDocs(q);
@@ -129,18 +124,18 @@ export default function User_RewardPage() {
       const voucherDoc = voucherSnap.docs[0];
       const voucherData = voucherDoc.data();
 
-      // Deduct points and update reward quantity
+      // Deduct points from user and decrease reward quantity
       await updateDoc(userRef, { totalPoints: increment(-selectedReward.cost) });
       await updateDoc(rewardRef, { quantity: increment(-1) });
 
       // Mark voucher as redeemed
       await updateDoc(voucherDoc.ref, { redeemed: true, redeemedBy: currentUser.uid, redeemedAt: new Date() });
 
-      // Show voucher code
+      // Show voucher code in modal
       setVoucherCode(voucherData.code);
       setPoints(prev => prev - selectedReward.cost);
 
-      // Save redemption
+      // Record redemption history
       await addDoc(collection(db, 'redemptions'), {
         userId: currentUser.uid,
         rewardId: selectedReward.id,
@@ -149,7 +144,7 @@ export default function User_RewardPage() {
         redeemedAt: new Date()
       });
 
-      // Update state
+      // Update reward list locally
       const updatedRewards = rewardsState.map(r =>
         r.id === selectedReward.id ? { ...r, quantity: r.quantity - 1 } : r
       );
@@ -163,6 +158,7 @@ export default function User_RewardPage() {
     }
   };
 
+  // Render each reward as a card
   const renderReward = ({ item }) => (
     <TouchableOpacity style={styles.rewardCard} onPress={() => handlePressReward(item)}>
       <Image source={item.image} style={styles.rewardImage} />
@@ -173,15 +169,13 @@ export default function User_RewardPage() {
 
   return (
     <View style={styles.container}>
+      {/* Top bar showing points */}
       <View style={styles.topBar}>
         <Text style={styles.topLabel}>Rewards</Text>
         <Text style={styles.points}>{points} pt</Text>
       </View>
 
-      <TouchableOpacity style={styles.testButton} onPress={addTestPoints}>
-        <Text style={styles.testButtonText}>+100 pt (Demo Purpose Only)</Text>
-      </TouchableOpacity>
-
+      {/* Grid of rewards */}
       <FlatList
         data={rewardsState}
         renderItem={renderReward}
@@ -190,6 +184,7 @@ export default function User_RewardPage() {
         contentContainerStyle={styles.grid}
       />
 
+      {/* Modal for reward details and redeeming */}
       <Modal
         visible={modalVisible}
         transparent
@@ -235,6 +230,7 @@ export default function User_RewardPage() {
   );
 }
 
+// Calculate width for reward cards dynamically
 const { width } = Dimensions.get('window');
 const rewardCardWidth = (width - 60) / 2;
 
@@ -243,8 +239,6 @@ const styles = StyleSheet.create({
   topBar: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 10 },
   topLabel: { fontSize: 24, fontWeight: 'bold' },
   points: { fontSize: 20, fontWeight: '600', color: '#000' },
-  testButton: { backgroundColor: '#4caf50', padding: 10, borderRadius: 8, alignItems: 'center', marginBottom: 15 },
-  testButtonText: { color: '#fff', fontWeight: 'bold', fontSize: 16 },
   grid: { justifyContent: 'space-between' },
   rewardCard: { width: rewardCardWidth, height: rewardCardWidth, backgroundColor: '#f2f2f2', margin: 5, borderRadius: 10, alignItems: 'center', justifyContent: 'center', padding: 10 },
   rewardImage: { width: '80%', height: '50%', resizeMode: 'contain', marginBottom: 5 },

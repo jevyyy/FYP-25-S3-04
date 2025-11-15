@@ -17,8 +17,10 @@ const db = getFirestore(app);
 export default function Developer_SettingsPage() {
   const navigation = useNavigation();
   const [showTrain, setShowTrain] = useState(false);
-  const [showDeployment, setShowDeployment] = useState(false);
   const [showAppInfo, setShowAppInfo] = useState(false);
+
+  // >>> ADDED
+  const [showTesting, setShowTesting] = useState(false);
 
   // --- Train Model modal state ---
   const [trainModalVisible, setTrainModalVisible] = useState(false);
@@ -58,8 +60,6 @@ export default function Developer_SettingsPage() {
       setLoadingImages(false);
     }
   };
-
-
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -101,21 +101,13 @@ export default function Developer_SettingsPage() {
   const handleCategorySelect = (category) => { setSelectedCategory(category); fetchImages(category); };
   
   const handleTrainConfirm = async () => {
-    // Ask if they want to delete images after training
     Alert.alert(
       'Retrain Model',
-      `Do you want to delete the uploaded images after successful training?\n\nNote: Deleting images means next training will only use newly uploaded images. Keeping them allows cumulative training.`,
+      `Do you want to delete the uploaded images after successful training?`,
       [
         { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Keep Images',
-          onPress: () => performRetraining(false)
-        },
-        {
-          text: 'Delete Images',
-          style: 'destructive',
-          onPress: () => performRetraining(true)
-        },
+        { text: 'Keep Images', onPress: () => performRetraining(false) },
+        { text: 'Delete Images', style: 'destructive', onPress: () => performRetraining(true) },
       ]
     );
   };
@@ -125,22 +117,15 @@ export default function Developer_SettingsPage() {
     setTrainingBuffer(true);
 
     try {
-      // Read API URL from environment variable
-      // Configure in .env file (copy from .env.example if needed)
       const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
       const API_URL = `${API_BASE_URL}/api/retrain`;
-      
-      console.log(`Attempting to connect to: ${API_URL}`);
-      
-      // Create an AbortController for timeout handling
+
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for initial connection
+      const timeoutId = setTimeout(() => controller.abort(), 300000);
       
       const response = await fetch(API_URL, {
         method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           category: selectedCategory,
           deleteImagesAfter: deleteImagesAfter,
@@ -150,101 +135,51 @@ export default function Developer_SettingsPage() {
 
       clearTimeout(timeoutId);
 
-      if (!response.ok) {
-        // Handle HTTP errors
-        const errorText = await response.text();
-        console.error(`HTTP Error ${response.status}:`, errorText);
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
+      if (!response.ok) throw new Error(`Server returned ${response.status}`);
 
       const result = await response.json();
-
       setTrainingBuffer(false);
 
       if (result.success) {
         Alert.alert(
           'Success',
-          `Model retraining completed successfully for ${selectedCategory}!\n\n${
-            deleteImagesAfter ? 'Training images have been deleted.' : 'Training images have been kept for future training.'
-          }`
+          `Model retraining completed for ${selectedCategory}!`
         );
         setSelectedCategory(null);
         setImages([]);
       } else {
-        Alert.alert('Error', result.error || 'Model retraining failed. Please try again.');
+        Alert.alert('Error', result.error || 'Model retraining failed.');
       }
     } catch (error) {
       setTrainingBuffer(false);
-      console.error('Retraining error:', error);
-      
-      // Provide more helpful error messages
-      let errorMessage = 'Failed to retrain model: ';
-      
-      if (error.name === 'AbortError') {
-        errorMessage += 'Request timeout. The server took too long to respond.';
-      } else if (error.message.includes('Network request failed')) {
-        const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
-        errorMessage += `Cannot connect to backend server.\n\n`;
-        errorMessage += `Current URL: ${API_BASE_URL}\n\n`;
-        errorMessage += `Troubleshooting:\n`;
-        errorMessage += `1. Check backend is running (python app.py)\n`;
-        errorMessage += `2. Verify EXPO_PUBLIC_API_URL in .env file\n`;
-        errorMessage += `3. For physical devices, use your computer's IP address\n`;
-        errorMessage += `4. Ensure phone and computer are on the same WiFi\n`;
-        errorMessage += `5. Check firewall allows port 5000`;
-      } else {
-        errorMessage += error.message;
-      }
-      
-      Alert.alert('Error', errorMessage);
+      Alert.alert('Error', error.message);
     }
   };
 
   const testConnection = async () => {
     const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
-    
+
     try {
-      Alert.alert('Testing Connection', `Attempting to connect to:\n${API_BASE_URL}/categories`);
+      Alert.alert('Testing Connection', `Connecting to:\n${API_BASE_URL}/categories`);
       
       const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for test
+      const timeoutId = setTimeout(() => controller.abort(), 10000);
       
       const response = await fetch(`${API_BASE_URL}/categories`, {
         method: 'GET',
         signal: controller.signal,
       });
-      
+
       clearTimeout(timeoutId);
-      
+
       if (response.ok) {
         const result = await response.json();
-        Alert.alert(
-          'Connection Success ✓', 
-          `Successfully connected to backend!\n\nURL: ${API_BASE_URL}\n\nAvailable categories: ${result.categories?.join(', ') || 'N/A'}`
-        );
+        Alert.alert('Connection Success ✓', `Connected successfully!`);
       } else {
-        Alert.alert(
-          'Connection Failed',
-          `Server responded with error ${response.status}\n\nURL: ${API_BASE_URL}\n\nThe backend is reachable but returned an error.`
-        );
+        Alert.alert('Connection Failed', `Server returned error ${response.status}`);
       }
     } catch (error) {
-      let message = `Cannot connect to backend.\n\nURL: ${API_BASE_URL}\n\n`;
-      
-      if (error.name === 'AbortError') {
-        message += 'Connection timeout. Server did not respond within 10 seconds.';
-      } else if (error.message.includes('Network request failed')) {
-        message += 'Network request failed. Please check:\n\n';
-        message += '1. Backend is running (python app.py)\n';
-        message += '2. .env file has correct EXPO_PUBLIC_API_URL\n';
-        message += '3. For physical devices, use computer IP (not localhost)\n';
-        message += '4. Phone and computer on same WiFi\n';
-        message += '5. Firewall allows port 5000';
-      } else {
-        message += `Error: ${error.message}`;
-      }
-      
-      Alert.alert('Connection Failed', message);
+      Alert.alert('Connection Failed', error.message);
     }
   };
 
@@ -269,7 +204,7 @@ export default function Developer_SettingsPage() {
           () => setShowTrain(!showTrain),
           <>
             <Text style={{ marginBottom: 10, fontSize: 14, color: '#666' }}>
-              Retrain the model with newly uploaded images. You can fine-tune existing class labels or add new ones.
+              Retrain the model with newly uploaded images.
             </Text>
             <View style={{ marginBottom: 10 }}>
               <TouchableOpacity 
@@ -279,23 +214,29 @@ export default function Developer_SettingsPage() {
                 <Text style={styles.buttonText}>Test Backend Connection</Text>
               </TouchableOpacity>
               <Text style={{ marginTop: 5, fontSize: 12, color: '#888', fontStyle: 'italic' }}>
-                Use this to verify your backend is accessible before retraining
+                Verify backend connection before retraining
               </Text>
             </View>
+
             <TouchableOpacity style={styles.greenButton} onPress={handleTrainPress}>
               <Text style={styles.buttonText}>Retrain Model</Text>
             </TouchableOpacity>
           </>
         )}
 
-        {/* Deployment */}
+        {/* >>> ADDED: Testing Section */}
         {renderOption(
-          'Deployment',
-          showDeployment,
-          () => setShowDeployment(!showDeployment),
-          <TouchableOpacity style={styles.greenButton} onPress={() => openURL("https://drive.google.com/your-folder-link")}>
-            <Text style={styles.buttonText}>Deploy Model</Text>
-          </TouchableOpacity>
+          'Testing',
+          showTesting,
+          () => setShowTesting(!showTesting),
+          <>
+            <TouchableOpacity 
+              style={styles.greenButton}
+              onPress={() => navigation.navigate('Developer_TestModelPage')}
+            >
+              <Text style={styles.buttonText}>Test Model</Text>
+            </TouchableOpacity>
+          </>
         )}
 
         {/* Rate Us */}
@@ -321,8 +262,8 @@ export default function Developer_SettingsPage() {
         </TouchableOpacity>
       </ScrollView>
 
-      {/* --- Train Modal --- */}
-      <Modal visible={trainModalVisible} transparent animationType="slide" onRequestClose={() => setTrainModalVisible(false)}>
+      {/* Train Modal */}
+      <Modal visible={trainModalVisible} transparent animationType="slide">
         <View style={styles.modalOverlay}>
           <View style={styles.modalBox}>
             {!selectedCategory ? (
@@ -370,15 +311,12 @@ export default function Developer_SettingsPage() {
         </View>
       </Modal>
 
-      {/* --- Training Buffer Overlay --- */}
+      {/* Training Buffer Overlay */}
       {trainingBuffer && (
         <View style={styles.bufferOverlay}>
           <View style={styles.bufferBox}>
             <Text style={{ fontSize: 16, marginBottom: 10, textAlign: 'center' }}>
               Retraining model for {selectedCategory}...
-            </Text>
-            <Text style={{ fontSize: 12, color: '#666', marginBottom: 10, textAlign: 'center' }}>
-              This may take several minutes. Please do not close the app.
             </Text>
             <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 10 }} />
           </View>
@@ -391,7 +329,7 @@ export default function Developer_SettingsPage() {
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#fff' },
   logoContainer: { flexDirection: 'row', alignItems: 'center', marginBottom: 15 },
-  logoImage: { width: 150, height: 50, resizeMode: 'contain', marginRight: 8, marginTop: 30 },
+  logoImage: { width: 150, height: 50, resizeMode: 'contain', marginTop: 30 },
   option: { paddingVertical: 15, borderBottomWidth: 1, borderBottomColor: '#ccc' },
   optionRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   optionText: { fontSize: 18, color: '#333' },
@@ -404,13 +342,10 @@ const styles = StyleSheet.create({
   imageCard: { width: '48%', marginBottom: 10, borderRadius: 8, overflow: 'hidden', backgroundColor: '#f0f0f0' },
   imageThumb: { width: '100%', height: 120 },
   imageName: { fontSize: 14, fontWeight: '600', textAlign: 'center', marginVertical: 4 },
-
-  // --- new grid styles ---
   categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginBottom: 15 },
   categoryButton: { flexBasis: '48%', backgroundColor: '#2E7D32', paddingVertical: 15, borderRadius: 8, marginBottom: 10, alignItems: 'center' },
   categoryButtonText: { color: '#fff', fontWeight: '600', fontSize: 16 },
 
-  // --- buffer overlay styles ---
   bufferOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.3)' },
   bufferBox: { padding: 20, backgroundColor: '#fff', borderRadius: 10, alignItems: 'center' },
 });

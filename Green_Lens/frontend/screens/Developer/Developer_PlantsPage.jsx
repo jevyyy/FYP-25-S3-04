@@ -1,74 +1,49 @@
-// ./screens/Developer/Developer_PlantsPage.jsx
 import React, { useState, useEffect, useRef } from 'react';
-import {
-  View,
-  Text,
-  StyleSheet,
-  TouchableOpacity,
-  TextInput,
-  Image,
-  ActivityIndicator,
-  FlatList,
-  Modal,
-  Alert,
-  KeyboardAvoidingView,
-  Platform,
-  TouchableWithoutFeedback,
-} from 'react-native';
+import { View, Text, StyleSheet, TouchableOpacity, TextInput, Image, ActivityIndicator, FlatList, Modal, Alert, KeyboardAvoidingView, Platform, TouchableWithoutFeedback } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useNavigation } from '@react-navigation/native';
-
-// Firebase
 import { app } from '../../firebaseConfig';
-import {
-  getFirestore,
-  collection,
-  doc,
-  addDoc,
-  deleteDoc,
-  onSnapshot,
-  query,
-  orderBy,
-  serverTimestamp,
-  getDoc,
-  updateDoc,
-} from 'firebase/firestore';
-import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject } from 'firebase/storage';
+import { getFirestore, collection, doc, addDoc, deleteDoc, onSnapshot, query, orderBy, serverTimestamp, getDoc, updateDoc, getDocs, where } from 'firebase/firestore';
+import { getStorage, ref, uploadBytes, getDownloadURL, deleteObject, getMetadata } from 'firebase/storage';
 import * as ImagePicker from 'expo-image-picker';
 import { getAuth } from 'firebase/auth';
-
-// Logo
 import LogoImage from '../../assets/Green_Lens_logo.png';
 
+// Initialize Firebase services
 const db = getFirestore(app);
 const storage = getStorage(app);
 const auth = getAuth(app);
 
 export default function Developer_PlantsPage() {
-  const navigation = useNavigation();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [plantImages, setPlantImages] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const navigation = useNavigation(); // Navigation object for moving between screens
+  const [searchQuery, setSearchQuery] = useState(''); // Search text
+  const [plantImages, setPlantImages] = useState([]); // Array of plant images
+  const [loading, setLoading] = useState(true); // Loading state
 
-  const [previewUri, setPreviewUri] = useState(null);
-  const [previewModalVisible, setPreviewModalVisible] = useState(false);
-  const [uploading, setUploading] = useState(false);
+  const [previewUri, setPreviewUri] = useState(null); // URI of selected/preview image
+  const [previewModalVisible, setPreviewModalVisible] = useState(false); // Controls preview modal visibility
+  const [uploading, setUploading] = useState(false); // Uploading state indicator
 
-  const [selectedPlant, setSelectedPlant] = useState(null);
-  const [plantName, setPlantName] = useState('');
+  const [selectedPlant, setSelectedPlant] = useState(null); // Currently selected plant object
+  const [plantName, setPlantName] = useState(''); // Name of plant being uploaded/edited
 
-  const isMounted = useRef(true);
+  const isMounted = useRef(true); // Ref to track component mount status
 
+  // Reference to the Firestore collection where plant images are stored
   const plantsImagesCollectionRef = () =>
     collection(doc(collection(db, 'modelPhotos'), 'plants'), 'images');
 
+  // Fetch plant images from Firestore and listen for updates
   useEffect(() => {
     isMounted.current = true;
-    const q = query(plantsImagesCollectionRef(), orderBy('createdAt', 'desc'));
+
+    const q = query(plantsImagesCollectionRef(), orderBy('createdAt', 'desc')); // Order by newest first
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         if (!isMounted.current) return;
+
+        // Map Firestore docs to plant image objects
         const items = snapshot.docs.map((d) => {
           const data = d.data();
           return {
@@ -77,9 +52,14 @@ export default function Developer_PlantsPage() {
             name: data.name || data.uploadedBy || 'User Upload',
             uploadedBy: data.uploadedBy || '',
             storagePath: data.storagePath || null,
-            createdAt: data.createdAt ? (data.createdAt.toDate ? data.createdAt.toDate() : data.createdAt) : null,
+            createdAt: data.createdAt
+              ? data.createdAt.toDate
+                ? data.createdAt.toDate()
+                : data.createdAt
+              : null,
           };
         });
+
         setPlantImages(items);
         setLoading(false);
       },
@@ -93,15 +73,16 @@ export default function Developer_PlantsPage() {
 
     return () => {
       isMounted.current = false;
-      unsubscribe();
+      unsubscribe(); // Clean up listener on unmount
     };
   }, []);
 
+  // Filter images based on search query
   const filteredImages = plantImages.filter((img) =>
     (img.name || '').toLowerCase().includes(searchQuery.toLowerCase())
   );
 
-  // --- Add new plant ---
+  // Open image picker to add a new plant
   const handleAddNewPlant = async () => {
     setSelectedPlant(null);
     setPlantName('');
@@ -109,6 +90,7 @@ export default function Developer_PlantsPage() {
     await handleSelectImage();
   };
 
+  // Handle when an image card is pressed
   const handleImagePress = (image) => {
     setSelectedPlant(image);
     setPlantName(image.name);
@@ -116,6 +98,7 @@ export default function Developer_PlantsPage() {
     setPreviewModalVisible(true);
   };
 
+  // Open image picker to select an image from the device
   const handleSelectImage = async () => {
     try {
       const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
@@ -141,21 +124,19 @@ export default function Developer_PlantsPage() {
     }
   };
 
+  // Confirm upload or update of plant image
   const handleConfirmUpload = () => {
     if (!selectedPlant) {
       performUploadOrUpdate();
     } else {
-      Alert.alert(
-        'Confirm Update',
-        'Are you sure you want to apply the changes?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Yes', onPress: () => performUploadOrUpdate() },
-        ]
-      );
+      Alert.alert('Confirm Update', 'Are you sure you want to apply the changes?', [
+        { text: 'Cancel', style: 'cancel' },
+        { text: 'Yes', onPress: () => performUploadOrUpdate() },
+      ]);
     }
   };
 
+  // Upload new image or update existing image
   const performUploadOrUpdate = async () => {
     if (!plantName.trim()) {
       Alert.alert('Validation', 'Please enter Plant Name.');
@@ -169,6 +150,7 @@ export default function Developer_PlantsPage() {
       const newStoragePath = `modelPhotos/plants/${cleanName}.jpg`;
       let newImageUrl = null;
 
+      // Get current user info
       const user = auth.currentUser;
       const uid = user?.uid || 'anonymous';
       let uploadedBy = 'Developer';
@@ -180,7 +162,38 @@ export default function Developer_PlantsPage() {
         else if (user?.email) uploadedBy = user.email.split('@')[0];
       } catch (e) {}
 
+      // Check for duplicate plant names in Firestore
+      const q = query(plantsImagesCollectionRef(), where('name', '==', cleanName));
+      const querySnapshot = await getDocs(q);
+      if (!querySnapshot.empty && (!selectedPlant || selectedPlant.name !== cleanName)) {
+        Alert.alert('Duplicate Name', 'A plant dataset image with this name already exists.');
+        setUploading(false);
+        return;
+      }
+
+      // Check for duplicate image in Firebase Storage
+      const storageRefCheck = ref(storage, newStoragePath);
+      try {
+        await getMetadata(storageRefCheck);
+        if (!selectedPlant || selectedPlant.storagePath !== newStoragePath) {
+          Alert.alert(
+            'Duplicate File',
+            'An image file with this name already exists in storage. Rename or delete the existing one first.'
+          );
+          setUploading(false);
+          return;
+        }
+      } catch (err) {
+        if (err.code !== 'storage/object-not-found') {
+          console.error('Error checking file existence:', err);
+          Alert.alert('Error', 'Could not verify file existence.');
+          setUploading(false);
+          return;
+        }
+      }
+
       if (!selectedPlant) {
+        // Upload new plant image
         if (!previewUri) {
           Alert.alert('Error', 'No image selected.');
           setUploading(false);
@@ -203,6 +216,7 @@ export default function Developer_PlantsPage() {
 
         Alert.alert('Success', 'Plant image added!');
       } else {
+        // Update existing plant image
         if (previewUri && previewUri.startsWith('file://')) {
           const response = await fetch(previewUri);
           const blob = await response.blob();
@@ -222,7 +236,7 @@ export default function Developer_PlantsPage() {
         if (selectedPlant.storagePath && selectedPlant.storagePath !== newStoragePath) {
           try {
             const oldRef = ref(storage, selectedPlant.storagePath);
-            await deleteObject(oldRef);
+            await deleteObject(oldRef); // Delete old image in Storage
           } catch (err) {
             console.warn('Failed to delete old image:', err);
           }
@@ -238,6 +252,7 @@ export default function Developer_PlantsPage() {
         Alert.alert('Success', 'Plant image updated!');
       }
 
+      // Reset modal and states
       setPreviewModalVisible(false);
       setPreviewUri(null);
       setPlantName('');
@@ -250,59 +265,63 @@ export default function Developer_PlantsPage() {
     }
   };
 
+  // Delete selected plant image
   const handleDeletePlant = () => {
     if (!selectedPlant) return;
 
-    Alert.alert(
-      'Confirm Delete',
-      'Are you sure you want to delete this image?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            setUploading(true);
-            try {
-              const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
-              await deleteDoc(plantDocRef);
+    Alert.alert('Confirm Delete', 'Are you sure you want to delete this image?', [
+      { text: 'Cancel', style: 'cancel' },
+      {
+        text: 'Delete',
+        style: 'destructive',
+        onPress: async () => {
+          setUploading(true);
+          try {
+            const plantDocRef = doc(plantsImagesCollectionRef(), selectedPlant.id);
+            await deleteDoc(plantDocRef);
 
-              if (selectedPlant.storagePath) {
-                const oldRef = ref(storage, selectedPlant.storagePath);
-                await deleteObject(oldRef);
-              }
-
-              Alert.alert('Success', 'Plant image deleted!');
-              setPreviewModalVisible(false);
-              setPreviewUri(null);
-              setPlantName('');
-              setSelectedPlant(null);
-            } catch (err) {
-              console.error('Delete error:', err);
-              Alert.alert('Error', 'Failed to delete plant image.');
-            } finally {
-              if (isMounted.current) setUploading(false);
+            if (selectedPlant.storagePath) {
+              const oldRef = ref(storage, selectedPlant.storagePath);
+              await deleteObject(oldRef); // Delete from Firebase Storage
             }
-          },
+
+            Alert.alert('Success', 'Plant image deleted!');
+            setPreviewModalVisible(false);
+            setPreviewUri(null);
+            setPlantName('');
+            setSelectedPlant(null);
+          } catch (err) {
+            console.error('Delete error:', err);
+            Alert.alert('Error', 'Failed to delete plant image.');
+          } finally {
+            if (isMounted.current) setUploading(false);
+          }
         },
-      ]
-    );
+      },
+    ]);
   };
 
+  // Render each plant image card
   const renderImageItem = ({ item }) => (
     <TouchableOpacity style={styles.imageCard} onPress={() => handleImagePress(item)}>
       <Image source={{ uri: item.uri }} style={styles.imageThumb} resizeMode="cover" />
       <View style={{ padding: 10 }}>
-        <Text style={styles.imageName} numberOfLines={1}>{item.name}</Text>
+        <Text style={styles.imageName} numberOfLines={1}>
+          {item.name}
+        </Text>
       </View>
     </TouchableOpacity>
   );
 
   return (
     <View style={styles.container}>
+      {/* Header with logo, title, search bar, and "New Plant" button */}
       <View style={styles.header}>
         <View style={styles.logoContainer}>
-          <Image source={LogoImage} style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }} />
+          <Image
+            source={LogoImage}
+            style={{ width: 150, height: 50, resizeMode: 'contain', marginRight: 8 }}
+          />
         </View>
         <Text style={styles.pageTitle}>Dataset Images</Text>
 
@@ -325,6 +344,7 @@ export default function Developer_PlantsPage() {
         </View>
       </View>
 
+      {/* Loading indicator */}
       {loading ? (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#2E7D32" />
@@ -350,6 +370,7 @@ export default function Developer_PlantsPage() {
         />
       )}
 
+      {/* Preview / Edit Modal */}
       <Modal
         visible={previewModalVisible}
         transparent
@@ -381,7 +402,14 @@ export default function Developer_PlantsPage() {
                   />
                 </View>
 
-                <View style={{ flexDirection: 'row', width: '100%', justifyContent: 'space-between', marginBottom: 12 }}>
+                <View
+                  style={{
+                    flexDirection: 'row',
+                    width: '100%',
+                    justifyContent: 'space-between',
+                    marginBottom: 12,
+                  }}
+                >
                   <TouchableOpacity
                     style={[styles.modalButton, { backgroundColor: '#ccc' }]}
                     onPress={() => {
@@ -413,7 +441,11 @@ export default function Developer_PlantsPage() {
                 </View>
 
                 {previewUri && (
-                  <TouchableOpacity style={{ marginTop: 8 }} onPress={handleSelectImage} disabled={uploading}>
+                  <TouchableOpacity
+                    style={{ marginTop: 8 }}
+                    onPress={handleSelectImage}
+                    disabled={uploading}
+                  >
                     <Text style={{ color: '#2E7D32', fontWeight: '600' }}>
                       {selectedPlant
                         ? 'Update image from Device Storage'
@@ -423,7 +455,11 @@ export default function Developer_PlantsPage() {
                 )}
 
                 {selectedPlant && (
-                  <TouchableOpacity style={{ marginTop: 8 }} onPress={handleDeletePlant} disabled={uploading}>
+                  <TouchableOpacity
+                    style={{ marginTop: 8 }}
+                    onPress={handleDeletePlant}
+                    disabled={uploading}
+                  >
                     <Text style={{ color: '#D32F2F', fontWeight: '600' }}>Delete</Text>
                   </TouchableOpacity>
                 )}

@@ -1,26 +1,34 @@
-// ./screens/User/SettingPage.jsx
 import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { useNavigation, CommonActions } from '@react-navigation/native';
 
 export default function SettingPage() {
   const navigation = useNavigation();
+
+  // State to control whether Support and App Info sections are visible
   const [showSupportInfo, setShowSupportInfo] = useState(false);
   const [showAppInfo, setShowAppInfo] = useState(false);
 
+  // Handle what happens when a settings option is pressed
   const handleOptionPress = (option) => {
     switch(option) {
       case 'Change Password':
-        // Navigate to User_ChangePasswordPage
+        // Navigate to the change password screen
         navigation.navigate('User_ChangePasswordPage');
         break;
+
       case 'Support':
+        // Toggle visibility of support info
         setShowSupportInfo(!showSupportInfo);
         break;
+
       case 'App Info':
+        // Toggle visibility of app information
         setShowAppInfo(!showAppInfo);
         break;
+
       case 'Logout':
+        // Confirm logout with an alert
         Alert.alert(
           'Logout',
           'Are you sure you want to logout?',
@@ -29,16 +37,16 @@ export default function SettingPage() {
             {
               text: 'Ok',
               onPress: () => {
-                // Reset navigation stack to Guest_HomePage
+                // Reset the navigation stack and redirect to the Guest Home Page
                 navigation.dispatch(
                   CommonActions.reset({
                     index: 0,
                     routes: [
                       {
-                        name: 'GuestFlow', // top-level stack in App.js
+                        name: 'GuestFlow',
                         state: {
                           routes: [
-                            { name: 'Guest_HomePage' } // navigate directly to guest home
+                            { name: 'Guest_HomePage' }
                           ]
                         }
                       }
@@ -50,20 +58,21 @@ export default function SettingPage() {
           ]
         );
         break;
+
       default:
+        // Default action for any other option
         Alert.alert(option, 'Option pressed.');
     }
   };
 
   return (
     <View style={styles.container}>
-
-      {/* Change Password */}
+      {/* Option to change password */}
       <TouchableOpacity style={styles.option} onPress={() => handleOptionPress('Change Password')}>
         <Text style={styles.optionText}>Change Password</Text>
       </TouchableOpacity>
 
-      {/* Support Dropdown */}
+      {/* Support option with expandable info */}
       <TouchableOpacity style={styles.option} onPress={() => handleOptionPress('Support')}>
         <View style={styles.optionRow}>
           <Text style={styles.optionText}>Support</Text>
@@ -78,7 +87,7 @@ export default function SettingPage() {
         </View>
       )}
 
-      {/* App Info Dropdown */}
+      {/* App Info option with expandable info */}
       <TouchableOpacity style={styles.option} onPress={() => handleOptionPress('App Info')}>
         <View style={styles.optionRow}>
           <Text style={styles.optionText}>App Info</Text>
@@ -93,7 +102,7 @@ export default function SettingPage() {
         </View>
       )}
 
-      {/* Logout */}
+      {/* Logout option */}
       <TouchableOpacity style={styles.option} onPress={() => handleOptionPress('Logout')}>
         <Text style={[styles.optionText, { color: 'red' }]}>Logout</Text>
       </TouchableOpacity>

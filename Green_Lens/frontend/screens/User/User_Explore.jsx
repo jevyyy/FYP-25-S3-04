@@ -1,4 +1,3 @@
-// ./screens/User/User_Explore.jsx
 import React, { useState, useEffect } from 'react';
 import { Ionicons } from '@expo/vector-icons';
 import { View, Text, StyleSheet, TouchableOpacity, Modal, Image, Alert, FlatList } from 'react-native';
@@ -6,12 +5,10 @@ import * as ImagePicker from 'expo-image-picker';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as MediaLibrary from 'expo-media-library';
 import { useNavigation } from '@react-navigation/native';
-import { 
-  getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, getDoc
-} from 'firebase/firestore';
+import { getFirestore, collection, addDoc, getDocs, updateDoc, doc, query, where, deleteDoc, getDoc, orderBy } from 'firebase/firestore';
 import { getStorage, ref, uploadBytes, getDownloadURL } from 'firebase/storage';
 import { getAuth } from 'firebase/auth';
-import { app } from '../../firebaseConfig'; 
+import { app } from '../../firebaseConfig';
 
 const db = getFirestore(app);
 const storage = getStorage(app);
@@ -19,24 +16,31 @@ const auth = getAuth(app);
 
 export default function User_Explore() {
   const navigation = useNavigation();
+
+  // State for modals and selected image
   const [modalPreviewVisible, setModalPreviewVisible] = useState(false);
   const [modalUploadSuccessVisible, setModalUploadSuccessVisible] = useState(false);
   const [selectedImage, setSelectedImage] = useState(null);
+
+  // State for posts and loading indicator
   const [posts, setPosts] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Track current logged-in user
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Listen for auth state changes to get current user
   useEffect(() => {
-    const unsubscribe = auth.onAuthStateChanged(u => {
-      setCurrentUser(u);
-      console.log("👤 Current user:", u?.email);
-    });
+    const unsubscribe = auth.onAuthStateChanged(u => setCurrentUser(u));
     return unsubscribe;
   }, []);
 
+  // Fetch posts from Firestore and order by latest
   const fetchPosts = async () => {
     try {
-      const snapshot = await getDocs(collection(db, 'posts'));
+      const postsRef = collection(db, 'posts');
+      const q = query(postsRef, orderBy('createdAt', 'desc'));
+      const snapshot = await getDocs(q);
       const data = snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
       setPosts(data);
     } catch (error) {
@@ -45,10 +49,12 @@ export default function User_Explore() {
     setLoading(false);
   };
 
+  // Fetch posts when component mounts
   useEffect(() => {
     fetchPosts();
   }, []);
 
+  // Open image picker to select photo from library
   const handleSelectPhoto = async () => {
     const { status } = await ImagePicker.requestMediaLibraryPermissionsAsync();
     if (status !== 'granted') {
@@ -63,19 +69,14 @@ export default function User_Explore() {
 
     if (!result.canceled && result.assets?.length > 0) {
       setSelectedImage(result.assets[0].uri);
-      setModalPreviewVisible(true);
+      setModalPreviewVisible(true); // Show preview modal
     }
   };
 
+  // Upload selected photo to Firebase Storage and create post in Firestore
   const handleUploadPhoto = async () => {
-    if (!selectedImage) {
-      Alert.alert('Error', 'No image selected.');
-      return;
-    }
-    if (!currentUser) {
-      Alert.alert('Error', 'User not ready yet. Try again.');
-      return;
-    }
+    if (!selectedImage) return Alert.alert('Error', 'No image selected.');
+    if (!currentUser) return Alert.alert('Error', 'User not ready yet. Try again.');
 
     try {
       const response = await fetch(selectedImage);
@@ -89,27 +90,29 @@ export default function User_Explore() {
 
       const userRef = doc(db, 'users', currentUser.uid);
       const userSnap = await getDoc(userRef);
-      const username = userSnap.exists() && userSnap.data().username
-        ? userSnap.data().username
-        : currentUser.email?.split('@')[0] || 'Anonymous';
+      const name = userSnap.exists() && userSnap.data().name
+        ? userSnap.data().name
+        : currentUser.displayName || 'Anonymous';
 
+      // Add post record to Firestore
       await addDoc(collection(db, 'posts'), {
         imageUrl: downloadUrl,
-        uploadedBy: username,
+        uploadedBy: name,
         createdAt: new Date(),
         votesUp: 0,
         votesDown: 0,
       });
 
       setModalPreviewVisible(false);
-      setModalUploadSuccessVisible(true);
-      fetchPosts();
+      setModalUploadSuccessVisible(true); // Show success modal
+      fetchPosts(); // Refresh posts
     } catch (error) {
       console.error('Upload error:', error);
       Alert.alert('Error', 'Failed to upload image');
     }
   };
 
+  // Handle upvote or downvote logic
   const handleVote = async (postId, type) => {
     if (!currentUser) return;
 
@@ -119,6 +122,7 @@ export default function User_Explore() {
       const post = posts.find(p => p.id === postId);
       if (!post) return;
 
+      // Check if user has already voted on this post
       const q = query(votesRef, where('postId', '==', postId), where('userId', '==', currentUser.uid));
       const snapshot = await getDocs(q);
 
@@ -128,12 +132,14 @@ export default function User_Explore() {
         const voteDocRef = doc(db, 'votes', existingVote.id);
 
         if (prevType === type) {
+          // Remove vote if same type clicked again
           await deleteDoc(voteDocRef);
           await updateDoc(postRef, {
             votesUp: type === 'up' ? post.votesUp - 1 : post.votesUp,
             votesDown: type === 'down' ? post.votesDown - 1 : post.votesDown,
           });
         } else {
+          // Change vote type
           await updateDoc(voteDocRef, { type });
           await updateDoc(postRef, {
             votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp - 1,
@@ -141,6 +147,7 @@ export default function User_Explore() {
           });
         }
       } else {
+        // First-time vote
         await addDoc(votesRef, { postId, userId: currentUser.uid, type });
         await updateDoc(postRef, {
           votesUp: type === 'up' ? post.votesUp + 1 : post.votesUp,
@@ -148,6 +155,7 @@ export default function User_Explore() {
         });
       }
 
+      // Update local post state to reflect vote change
       setPosts(prevPosts => prevPosts.map(p => {
         if (p.id !== postId) return p;
 
@@ -166,20 +174,17 @@ export default function User_Explore() {
 
         return { ...p, votesUp, votesDown };
       }));
-
     } catch (error) {
       console.error('Vote error:', error);
       Alert.alert('Error', 'Failed to vote');
     }
   };
 
+  // Download image to device library
   const handleDownload = async (imageUrl) => {
     try {
       const { status } = await MediaLibrary.requestPermissionsAsync(true);
-      if (status !== 'granted') {
-        Alert.alert('Permission Denied', 'Cannot save image without permission.');
-        return;
-      }
+      if (status !== 'granted') return Alert.alert('Permission Denied', 'Cannot save image without permission.');
 
       const fileUri = FileSystem.cacheDirectory + `${Date.now()}.jpg`;
       const download = await FileSystem.downloadAsync(imageUrl, fileUri);
@@ -191,6 +196,7 @@ export default function User_Explore() {
     }
   };
 
+  // Render individual post
   const renderPost = ({ item }) => (
     <View style={styles.postContainer}>
       <View style={styles.imagePlaceholder}>
@@ -198,9 +204,7 @@ export default function User_Explore() {
       </View>
 
       <View style={styles.postFooter}>
-        <Text style={styles.username}>
-          @{item.uploadedBy}
-        </Text>
+        <Text style={styles.name}>@{item.uploadedBy}</Text>
         <View style={styles.actions}>
           <TouchableOpacity style={styles.voteButton} onPress={() => handleVote(item.id, 'up')}>
             <Text style={styles.voteText}>👍 {item.votesUp}</Text>
@@ -218,13 +222,12 @@ export default function User_Explore() {
 
   return (
     <View style={styles.container}>
-      {/* Buttons */}
+      {/* Upload and Ranking Buttons */}
       <View style={styles.buttonContainer}>
         <TouchableOpacity style={[styles.actionButton, styles.uploadButton]} onPress={handleSelectPhoto}>
           <Ionicons name="cloud-upload-outline" size={18} color="#fff" style={{ marginRight: 6 }} />
           <Text style={[styles.buttonText, { color: '#fff' }]}>Upload</Text>
         </TouchableOpacity>
-        
         <TouchableOpacity style={[styles.actionButton, styles.rankingButton]} onPress={() => navigation.navigate('User_RankingPage')}>
           <Ionicons name="trophy-outline" size={18} color="#000" style={{ marginRight: 6 }} />
           <Text style={[styles.buttonText, { color: '#000' }]}>Ranking</Text>
@@ -275,51 +278,19 @@ export default function User_Explore() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, padding: 20, backgroundColor: '#f9f9f9' },
-
-  buttonContainer: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    alignItems: 'center',
-    marginBottom: 30,
-    gap: 12,
-  },
-
-  actionButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 10,
-    paddingVertical: 10,
-    paddingHorizontal: 18,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
-    elevation: 2,
-  },
-
+  buttonContainer: { flexDirection: 'row', justifyContent: 'flex-end', alignItems: 'center', marginBottom: 30, gap: 12 },
+  actionButton: { flexDirection: 'row', alignItems: 'center', borderRadius: 10, paddingVertical: 10, paddingHorizontal: 18, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 },
   uploadButton: { backgroundColor: '#000' },
   rankingButton: { backgroundColor: '#FFD43B' },
-
   buttonText: { fontSize: 15, fontWeight: '600' },
-
   recentLabel: { fontSize: 18, fontWeight: 'bold', color: '#333', marginBottom: 15 },
-
-  postContainer: {
-    marginBottom: 20,
-    backgroundColor: '#fff',
-    borderRadius: 10,
-    padding: 10,
-    shadowColor: '#000',
-    shadowOpacity: 0.1,
-    shadowRadius: 6,
-    elevation: 2,
-  },
+  postContainer: { marginBottom: 20, backgroundColor: '#fff', borderRadius: 10, padding: 10, shadowColor: '#000', shadowOpacity: 0.1, shadowRadius: 6, elevation: 2 },
   imagePlaceholder: { width: '100%', height: 200, backgroundColor: '#ddd', justifyContent: 'center', alignItems: 'center', borderRadius: 8 },
   postFooter: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 10 },
-  username: { fontSize: 16, fontWeight: '600', color: '#333', flex: 1 },
+  name: { fontSize: 16, fontWeight: '600', color: '#333', flex: 1 },
   actions: { flexDirection: 'row', alignItems: 'center' },
   voteButton: { marginHorizontal: 5, alignItems: 'center' },
   voteText: { fontSize: 18 },
-
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.4)', justifyContent: 'center', alignItems: 'center' },
   modalBox: { width: 300, backgroundColor: '#fff', borderRadius: 10, padding: 20, alignItems: 'center', position: 'relative' },
   modalText: { marginTop: 20, fontSize: 16, fontWeight: '600', color: '#333', textAlign: 'center' },

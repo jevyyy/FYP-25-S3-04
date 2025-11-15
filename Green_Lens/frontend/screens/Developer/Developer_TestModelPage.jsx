@@ -1,21 +1,20 @@
 import React, { useRef, useState, useEffect } from 'react';
-import { Button, Image, StyleSheet, Text, TouchableOpacity, View, Alert, Animated, ActivityIndicator, ScrollView } from 'react-native';
+import { Button, Image, StyleSheet, Text, TouchableOpacity, View, Alert, ActivityIndicator, ScrollView } from 'react-native';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import * as ImagePicker from 'expo-image-picker';
 import * as MediaLibrary from 'expo-media-library';
-import { useDrawerStatus } from '@react-navigation/drawer';
-import { useNavigation, useIsFocused } from '@react-navigation/native';
-import { Ionicons } from '@expo/vector-icons';
+import { useIsFocused } from '@react-navigation/native';
 import { predictPlant } from '../../services/plantRecognitionApi';
+import { doc, getDoc } from 'firebase/firestore';
+import { db } from '../../firebaseConfig';
 
-// Component to show the most recent photo from device library and allow selecting images
+// Component to show last photo and allow user to pick image from gallery
 function ImagePreview({ onSelectImage }) {
   const [lastPhotoUri, setLastPhotoUri] = useState(null);
 
-  // Fetch last photo from media library on mount
   useEffect(() => {
     (async () => {
-      const { status } = await MediaLibrary.requestPermissionsAsync();
+      const { status } = await MediaLibrary.requestPermissionsAsync(); // Request media library permission
       if (status === 'granted') {
         const assets = await MediaLibrary.getAssetsAsync({
           sortBy: ['creationTime'],
@@ -23,13 +22,12 @@ function ImagePreview({ onSelectImage }) {
           first: 1,
         });
         if (assets.assets.length > 0) {
-          setLastPhotoUri(assets.assets[0].uri);
+          setLastPhotoUri(assets.assets[0].uri); // Set last photo from gallery
         }
       }
     })();
   }, []);
 
-  // Open device gallery to pick a photo
   const openGallery = async () => {
     const result = await ImagePicker.launchImageLibraryAsync({
       mediaTypes: ['images'],
@@ -38,8 +36,8 @@ function ImagePreview({ onSelectImage }) {
 
     if (!result.canceled) {
       const uri = result.assets[0].uri;
-      setLastPhotoUri(uri);       // Update thumbnail
-      onSelectImage(uri);         // Send selected image to parent
+      setLastPhotoUri(uri); // Update last photo
+      onSelectImage(uri); // Pass selected image to parent
     }
   };
 
@@ -50,66 +48,37 @@ function ImagePreview({ onSelectImage }) {
   );
 }
 
-// Main user homepage with camera, tips, and category selector
-export default function User_HomePage() {
-  const navigation = useNavigation();
-  const isFocused = useIsFocused();
-  const [facing, setFacing] = useState('back'); // Front or back camera
-  const [permission, requestPermission] = useCameraPermissions(); // Camera permissions
+export default function Guest_HomePage() {
+  const isFocused = useIsFocused(); // Track if screen is focused
+  const [facing, setFacing] = useState('back'); // Camera facing state
+  const [permission, requestPermission] = useCameraPermissions(); // Camera permission
   const cameraRef = useRef(null); // Camera reference
-  const [selectedImageUri, setSelectedImageUri] = useState(null); // Captured/selected image
-  const [isProcessing, setIsProcessing] = useState(false); // Image processing state
-  const [selectedCategory, setSelectedCategory] = useState('flower'); // Selected category for recognition
-  const drawerStatus = useDrawerStatus();
-  const isDrawerOpen = drawerStatus === 'open';
+  const [selectedImageUri, setSelectedImageUri] = useState(null); // Selected photo URI
+  const [isProcessing, setIsProcessing] = useState(false); // Recognition loading state
+  const [selectedCategory, setSelectedCategory] = useState('flower'); // Selected category (flower/plant/architecture)
 
-  // Tip system with fade animation
-  const [showTips, setShowTips] = useState(false);
-  const [fadeAnim] = useState(new Animated.Value(0));
+  const [detectedObject, setDetectedObject] = useState(null); // Detected object name
+  const [confidence, setConfidence] = useState(null); // Detection confidence
+  const [summaryData, setSummaryData] = useState(null); // Fetched object info from Firestore
 
-  // Category configuration
   const categories = [
     { id: 'flower', label: 'Flower', icon: '🌸' },
     { id: 'plant', label: 'Plant', icon: '🌿' },
     { id: 'architecture', label: 'Architecture', icon: '🏛️' },
   ];
 
-  // Helpful tips to guide user for better recognition
-  const tips = [
-    '------------------------------Helpful Tips------------------------------',
-    '🌿 Make sure your plant is centered and in focus for better results.',
-    '☀️ Use natural lighting when possible to improve image recognition.',
-    '📷 Avoid blurry or shaky photos — hold your phone steady.',
-    '🍃 Try to capture only one plant in the frame for more accurate detection.',
-    '🌸 Make sure the background is clear and not too cluttered.',
-  ];
-
-  // Show tips and auto-hide after 5 seconds
-  const toggleTips = () => {
-    if (showTips) {
-      Animated.timing(fadeAnim, {
-        toValue: 0,
-        duration: 300,
-        useNativeDriver: true,
-      }).start(() => setShowTips(false));
-    } else {
-      setShowTips(true);
-      Animated.timing(fadeAnim, {
-        toValue: 1,
-        duration: 300,
-        useNativeDriver: true,
-      }).start();
-
-      setTimeout(() => {
-        Animated.timing(fadeAnim, {
-          toValue: 0,
-          duration: 300,
-          useNativeDriver: true,
-        }).start(() => setShowTips(false));
+  // Auto-hide detected object info after 5 seconds
+  useEffect(() => {
+    if (detectedObject) {
+      const timer = setTimeout(() => {
+        setDetectedObject(null);
+        setConfidence(null);
+        setSummaryData(null);
       }, 5000);
+      return () => clearTimeout(timer);
     }
-  };
-
+  }, [detectedObject]);
+  
   // Handle camera permission
   if (!permission) return <View />;
   if (!permission.granted) {
@@ -123,26 +92,44 @@ export default function User_HomePage() {
     );
   }
 
-  // Toggle camera between front and back
   const toggleCameraFacing = () =>
-    setFacing((current) => (current === 'back' ? 'front' : 'back'));
+    setFacing((current) => (current === 'back' ? 'front' : 'back')); // Switch camera
 
-  // Send image to plant recognition API
+  // Fetch object summary info from Firestore
+  const fetchSummary = async (objectName) => {
+    try {
+      const docRef = doc(db, 'objectInfo', objectName.toLowerCase());
+      const docSnap = await getDoc(docRef);
+      if (docSnap.exists()) {
+        setSummaryData(docSnap.data());
+      } else {
+        setSummaryData({ description: 'No information available yet.' });
+      }
+    } catch (error) {
+      console.error('Error fetching summary:', error);
+      setSummaryData({ description: 'Failed to load summary.' });
+    }
+  };
+
+  // Process image for plant recognition
   const processImage = async (photoUri) => {
     setIsProcessing(true);
     try {
       const result = await predictPlant(photoUri, selectedCategory);
       if (result.success) {
-        navigation.navigate('User_ViewSummary', {
-          photoUri,
-          predictionData: result.data,
-          category: selectedCategory,
-        });
+        const topPrediction = result.data?.top_prediction;
+        if (topPrediction) {
+          let name = topPrediction.name || 'Unknown';
+          if (selectedCategory === 'flower') name = topPrediction.flower_name || name;
+          if (selectedCategory === 'plant') name = topPrediction.plant_name || name;
+          if (selectedCategory === 'architecture') name = topPrediction.architecture_name || name;
+
+          setDetectedObject(name); // Set detected name
+          setConfidence(topPrediction.confidence_percentage); // Set confidence
+          await fetchSummary(name); // Fetch additional info
+        }
       } else {
-        Alert.alert(
-          'Recognition Failed',
-          result.error || `Unable to recognize the ${selectedCategory}. Please try again.`
-        );
+        Alert.alert('Recognition Failed', result.error || 'Unable to recognize. Try again.');
       }
     } catch (error) {
       Alert.alert('Error', 'Failed to process image: ' + error.message);
@@ -156,9 +143,9 @@ export default function User_HomePage() {
     if (cameraRef.current) {
       try {
         const photo = await cameraRef.current.takePictureAsync({ skipProcessing: true });
-        await MediaLibrary.saveToLibraryAsync(photo.uri); // Save to gallery
+        await MediaLibrary.saveToLibraryAsync(photo.uri); // Save to library
         setSelectedImageUri(photo.uri);
-        await processImage(photo.uri); // Send for recognition
+        await processImage(photo.uri); // Process captured image
       } catch (error) {
         Alert.alert('Error', 'Failed to take photo: ' + error.message);
       }
@@ -173,12 +160,35 @@ export default function User_HomePage() {
 
   return (
     <View style={styles.container}>
-      {/* Show camera view only if screen is focused and drawer is closed */}
-      {isFocused && !isDrawerOpen && (
-        <CameraView style={styles.camera} facing={facing} ref={cameraRef} />
+      {isFocused && <CameraView style={styles.camera} facing={facing} ref={cameraRef} />}
+
+      {detectedObject && (
+        <View style={styles.resultContainer}>
+          <Text style={styles.resultTitle}>Detected: {detectedObject}</Text>
+          {confidence && (
+            <Text style={styles.confidenceText}>Confidence: {confidence.toFixed(2)}%</Text>
+          )}
+          {summaryData ? (
+            <ScrollView style={styles.summaryBox}>
+              {summaryData.description && (
+                <Text style={styles.summaryText}>Description: {summaryData.description}</Text>
+              )}
+              {summaryData.characteristics && (
+                <Text style={styles.summaryText}>Characteristics: {summaryData.characteristics}</Text>
+              )}
+              {summaryData.healthTip && (
+                <Text style={styles.summaryText}>Health Tip: {summaryData.healthTip}</Text>
+              )}
+              {summaryData.funFact && (
+                <Text style={styles.summaryText}>Fun Fact: {summaryData.funFact}</Text>
+              )}
+            </ScrollView>
+          ) : (
+            <Text style={styles.summaryText}>Loading summary...</Text>
+          )}
+        </View>
       )}
 
-      {/* Loading overlay during recognition */}
       {isProcessing && (
         <View style={styles.loadingOverlay}>
           <ActivityIndicator size="large" color="#ffffff" />
@@ -186,7 +196,7 @@ export default function User_HomePage() {
         </View>
       )}
 
-      {/* Category selection buttons */}
+      {/* Category selector buttons */}
       <View style={styles.categorySelector}>
         {categories.map((category) => (
           <TouchableOpacity
@@ -211,25 +221,7 @@ export default function User_HomePage() {
         ))}
       </View>
 
-      {/* Help icon to show tips */}
-      <TouchableOpacity style={styles.helpIcon} onPress={toggleTips}>
-        <Ionicons name="help-circle-outline" size={32} color="white" />
-      </TouchableOpacity>
-
-      {/* Tip box */}
-      {showTips && (
-        <Animated.View style={[styles.tipBox, { opacity: fadeAnim }]}>
-          <ScrollView>
-            {tips.map((tip, index) => (
-              <Text key={index} style={styles.tipText}>
-                {tip}
-              </Text>
-            ))}
-          </ScrollView>
-        </Animated.View>
-      )}
-
-      {/* Camera controls: gallery thumbnail, take photo, switch camera */}
+      {/* Bottom overlay with camera controls */}
       <View style={styles.overlay}>
         <ImagePreview onSelectImage={handleImageSelected} />
         <TouchableOpacity
@@ -250,15 +242,17 @@ export default function User_HomePage() {
 const styles = StyleSheet.create({
   container: { flex: 1 },
   camera: { flex: 1 },
+  resultContainer: { position: 'absolute', top: 80, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.6)', borderRadius: 10, padding: 10, zIndex: 20 },
+  resultTitle: { color: '#fff', fontSize: 18, fontWeight: 'bold' },
+  confidenceText: { color: '#90ee90', fontSize: 16, marginTop: 4 },
+  summaryBox: { marginTop: 8, maxHeight: 120 },
+  summaryText: { color: '#fff', fontSize: 14, lineHeight: 20, marginBottom: 8 },
   overlay: { position: 'absolute', bottom: 30, width: '100%', flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 20 },
   button: { backgroundColor: '#00000080', padding: 12, borderRadius: 40 },
   buttonDisabled: { opacity: 0.5 },
   text: { color: 'white', fontSize: 20 },
   thumbnailContainer: { width: 60, height: 60, borderRadius: 30, overflow: 'hidden', borderWidth: 2, borderColor: '#fff' },
   thumbnail: { width: '100%', height: '100%' },
-  helpIcon: { position: 'absolute', top: 20, right: 10, backgroundColor: 'rgba(0,0,0,0.4)', borderRadius: 26, padding: 6 },
-  tipBox: { position: 'absolute', top: 70, left: 20, right: 20, backgroundColor: 'rgba(0,0,0,0.75)', padding: 16, borderRadius: 10, maxHeight: 400 },
-  tipText: { color: '#fff', fontSize: 15, textAlign: 'left', lineHeight: 22, marginBottom: 6 },
   loadingOverlay: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, backgroundColor: 'rgba(0,0,0,0.7)', justifyContent: 'center', alignItems: 'center', zIndex: 10 },
   loadingText: { color: '#ffffff', fontSize: 16, marginTop: 10 },
   categorySelector: { position: 'absolute', top: 20, left: 20, flexDirection: 'row', gap: 10 },

@@ -1,20 +1,19 @@
-// populateObjectInfo.js
 import admin from 'firebase-admin';
 import fs from 'fs';
 
-// Load service account JSON
+// Load Firebase service account credentials from JSON file
 const serviceAccount = JSON.parse(
   fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-9af6311d8b.json', 'utf8')
 );
 
-// Initialize Admin SDK
+// Initialize Firebase Admin SDK with the loaded credentials
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 });
 
 const db = admin.firestore();
 
-// 🌸 Flowers
+// List of flowers with details
 const flowerData = [
   {
     id: "blackberry lily",
@@ -786,18 +785,10 @@ const flowerData = [
   }
 ];
 
-// 🌿 Plants
+// List of plants with details
 const plantData = [
   {
-    id: "angsana",
-    name: "Angsana",
-    description: "A fast-growing tropical hardwood tree commonly found across Singapore's roads and parks. It is known for its broad umbrella-shaped canopy that provides excellent shade.",
-    characteristics: "Semi-deciduous tree that can reach up to 30 meters. Produces small yellow flowers in clusters and has a distinctive drooping branch structure.",
-    healthTip: "Prefers full sunlight and well-drained soil. Its fast growth requires regular trimming to maintain structural safety due to heavy branching.",
-    funFact: "During the 1900s, Angsana was one of the most widely planted roadside trees in Singapore before being affected by a fungal disease outbreak."
-  },
-  {
-    id: "bamboo",
+    id: "bamboo (giant bamboo)",
     name: "Bamboo",
     description: "A versatile fast-growing grass species that resembles a woody tree and is widely used in Asian landscaping, construction, and culture.",
     characteristics: "Tall, hollow, jointed stems that can grow several centimeters per day. Evergreen foliage and grows in tight clumping or running forms depending on species.",
@@ -805,15 +796,7 @@ const plantData = [
     funFact: "Some species of bamboo can grow up to 90 cm in a single day — making it one of the fastest-growing plants on Earth."
   },
   {
-    id: "foxtail palm",
-    name: "Foxtail Palm",
-    description: "An elegant ornamental palm native to Australia, named for its bushy fronds that resemble a fox's tail when swaying in the wind.",
-    characteristics: "Single slender trunk with large arching fronds. Produces bright orange-red fruit and is commonly used in tropical landscape designs.",
-    healthTip: "Prefers full sun exposure and sandy, well-drained soil. Generally low maintenance but sensitive to poor drainage or overwatering.",
-    funFact: "The Foxtail Palm was once endangered and unknown to science until discovered by an Indigenous Australian farmer in the 1970s."
-  },
-  {
-    id: "heliconia",
+    id: "heliconia (lobster claw)",
     name: "Heliconia",
     description: "A vibrant tropical flowering plant known for its bold, colorful bracts resembling lobster claws or bird beaks.",
     characteristics: "Grows in clumps with large banana-like leaves and produces bright red, orange, or yellow bracts that attract pollinators like hummingbirds.",
@@ -821,15 +804,7 @@ const plantData = [
     funFact: "Commonly called 'Lobster Claw' or 'False Bird of Paradise' due to its resemblance to the Bird of Paradise flower."
   },
   {
-    id: "kapok tree",
-    name: "Kapok Tree",
-    description: "A towering tropical tree known for its immense height and cotton-like seed fibers traditionally used as pillow and mattress stuffing.",
-    characteristics: "Can grow over 60 meters tall with buttress roots at the base. Produces large seed pods containing fluffy kapok fiber.",
-    healthTip: "Thrives in full sunlight and deep, well-drained soil. Its size requires wide open space to accommodate root expansion.",
-    funFact: "Kapok fibers are naturally water-resistant and buoyant, historically used in life jackets before synthetic materials were invented."
-  },
-  {
-    id: "monstera",
+    id: "monstera (swiss cheese plant)",
     name: "Monstera",
     description: "A popular tropical climbing plant recognized for its large, glossy leaves with natural holes or splits, often used as indoor décor.",
     characteristics: "Epiphytic plant that grows by climbing trees with aerial roots. Leaves develop fenestrations as the plant matures.",
@@ -853,55 +828,15 @@ const plantData = [
     funFact: "Also known as Samanea saman, its leaves mimic rainfall behavior, hence the name 'Rain Tree'."
   },
   {
-    id: "rattan palm",
-    name: "Rattan Palm",
-    description: "A climbing palm species valued for its flexible stems, commonly used in furniture and handicrafts.",
-    characteristics: "Long, spiny climbing stems with jointed segments. Thrives in tropical forest understories.",
-    healthTip: "Prefers partial shade and high humidity. Support may be needed for climbing in cultivation.",
-    funFact: "Rattan is a major source of material for traditional baskets, mats, and furniture in Southeast Asia."
-  },
-  {
-    id: "saga tree",
-    name: "Saga Tree",
-    description: "A medium-sized tropical tree with broad leaves and a dense canopy, known for its decorative and timber value.",
-    characteristics: "Evergreen, can grow up to 15–20 meters. Produces small yellowish flowers and woody seed pods.",
-    healthTip: "Prefers full sun and well-drained soil. Young trees require regular watering.",
-    funFact: "Saga wood is traditionally used for small carvings and local crafts."
-  },
-  {
-    id: "syzygium grande",
-    name: "Syzygium Grande",
-    description: "A tropical tree commonly planted along streets and parks, known for its large size and dense shade.",
-    characteristics: "Evergreen, can grow up to 30 meters. Produces white flowers followed by edible fruits.",
-    healthTip: "Needs full sunlight and moist soil. Regular pruning helps maintain shape and canopy density.",
-    funFact: "Also called 'Sea Apple', it is valued for its timber and aesthetic shade."
-  },
-  {
-    id: "tembusu",
-    name: "Tembusu",
-    description: "A large, long-lived tropical tree native to Southeast Asia, notable for its wide canopy and durable timber.",
-    characteristics: "Evergreen, grows slowly, with rough bark and fragrant yellowish flowers. Can live for hundreds of years.",
-    healthTip: "Thrives in well-drained soil and full sun. Minimal care needed once established.",
-    funFact: "The Tembusu is featured on the Singapore five-dollar note due to its cultural and historical significance."
-  },
-  {
-    id: "traveler's palm",
-    name: "Traveler's Palm",
+    id: "travelers palm",
+    name: "Travelers Palm",
     description: "A striking tropical plant with fan-shaped leaves resembling a hand-held palm, native to Madagascar.",
     characteristics: "Produces large paddle-shaped leaves and occasionally fragrant flowers. Can reach 10–15 meters in height.",
     healthTip: "Requires full sun and regular watering. Protect from frost and strong winds.",
     funFact: "Leaves of this plant can collect rainwater at the base, historically used by travelers as a water source."
   },
   {
-    id: "yellow flame tree",
-    name: "Yellow Flame Tree",
-    description: "A deciduous tropical tree celebrated for its bright yellow blossoms during flowering season.",
-    characteristics: "Medium-sized, umbrella-shaped canopy, produces small elongated pods after flowering.",
-    healthTip: "Thrives in full sunlight and well-drained soil. Remove fallen flowers and deadwood to maintain tree health.",
-    funFact: "Also called 'Peltophorum pterocarpum', it is commonly planted as an ornamental street tree in tropical cities."
-  },
-  {
-    id: "caladium",
+    id: "caladium (angel wings)",
     name: "Caladium",
     description: "A tropical ornamental plant known for its heart-shaped colorful leaves rather than flowers.",
     characteristics: "Low-growing, produces red, pink, green, and white variegated foliage. Grows from tubers.",
@@ -934,7 +869,7 @@ const plantData = [
   }
 ];
 
-// 🏛️ Architecture
+// List of architecture objects with details
 const architectureData = [
   {
     id: "bandstand",
@@ -951,8 +886,8 @@ const architectureData = [
     funFact: "Botany centres often host workshops, plant identification courses, and citizen science programs."
   },
   {
-    id: "centre of ethnobotany",
-    name: "Centre of Ethnobotany",
+    id: "centre for ethnobotany",
+    name: "Centre for Ethnobotany",
     description: "A specialized research and exhibition centre dedicated to the study of how humans use and interact with plants.",
     characteristics: "Displays traditional medicines, cultural artifacts, and plants of ethnobotanical significance. Combines education with scientific research.",
     funFact: "Ethnobotany combines anthropology and botany, exploring the cultural and medicinal significance of plants."
@@ -970,22 +905,35 @@ const architectureData = [
     description: "A large outdoor performance venue designed for symphonies, concerts, and cultural events.",
     characteristics: "Open-air amphitheatre with tiered seating, elevated stage, and acoustic design to project sound to large audiences.",
     funFact: "Named after philanthropist Shaw Foundation, it is a hub for cultural performances and community gatherings in botanical gardens."
+  },
+  {
+  id: "forest discovery center",
+  name: "Forest Discovery Center",
+  description: "An immersive educational hub within the Singapore Botanic Gardens dedicated to rainforest conservation and biodiversity awareness.",
+  characteristics: "Features interactive exhibits, informative displays, and elevated walkways surrounded by lush canopy trees showcasing native forest ecosystems.",
+  funFact: "The centre highlights Singapore’s reforestation efforts and offers a bird’s-eye view of the surrounding treetops from the OCBC Arboretum."
   }
 ];
 
+// Function to populate Firestore with the object data
 async function populateObjectInfo() {
   try {
     console.log("🌿 Starting Firestore population...");
 
+    // Combine all objects (flowers, plants, architecture) into a single array
     const allObjects = [...flowerData, ...plantData, ...architectureData];
 
+    // Loop through each object and add it to Firestore if it doesn't exist
     for (const obj of allObjects) {
       const docRef = db.doc(`objectInfo/${obj.id}`);
       const docSnap = await docRef.get();
+
       if (!docSnap.exists) {
+        // Add the object with a createdAt timestamp
         await docRef.set({ ...obj, createdAt: new Date() });
         console.log(`✅ Added object: ${obj.name}`);
       } else {
+        // Skip objects that already exist
         console.log(`⚠️ Skipped existing object: ${obj.name}`);
       }
     }
@@ -996,4 +944,5 @@ async function populateObjectInfo() {
   }
 }
 
+// Run the function to populate Firestore
 populateObjectInfo();

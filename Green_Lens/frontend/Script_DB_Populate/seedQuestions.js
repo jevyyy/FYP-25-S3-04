@@ -1,22 +1,20 @@
-// seedQuestions.js
 import admin from 'firebase-admin';
 import fs from 'fs';
 
-// Load service account JSON
+// Load the Firebase service account key from JSON file
 const serviceAccount = JSON.parse(
-  fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-9af6311d8b.json', 'utf8')
+  fs.readFileSync('./green-lens-47e9b-firebase-adminsdk-fbsvc-0ffeb0f206.json', 'utf8')
 );
 
-// Initialize Admin SDK
+// Initialize Firebase Admin SDK with credentials
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount),
 }); 
 
 const db = admin.firestore();
 
-// Sample questions
+// Array of quiz questions, each with category, question text, multiple options, correct answer, and an image
 const questions = [
-  // Flower
   {
     category: 'Flower',
     question: 'Which flower is Singapore national flower?',
@@ -66,8 +64,62 @@ const questions = [
     correctAnswer: 'Foxglove',
     imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/foxglove.jpg',
   },
-
-  // Plant
+  {
+    category: 'Flower',
+    question: 'Which bright yellow flower is often seen as a symbol of friendship and joy?',
+    options: ['Yellow Iris', 'Orchid', 'Foxglove', 'Marigold'],
+    correctAnswer: 'Marigold',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/marigold.jpg',
+  },
+  {
+    category: 'Flower',
+    question: 'Which bright yellow flower is often seen as a symbol of friendship and joy?',
+    options: ['Yellow Iris', 'Morning Glory', 'Moon Orchid', 'Marigold'],
+    correctAnswer: 'Moon Orchid',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/moon-orchid.JPG',
+  },
+  {
+    category: 'Flower',
+    question: 'Which flower is known for its trumpet-shaped blossoms and comes in many colors like purple, pink, and white?',
+    options: ['Canna Lily', 'Dahlia', 'Petunia', 'Marigold'],
+    correctAnswer: 'Petunia',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/petunia.jpg',
+  },
+  {
+    category: 'Flower',
+    question: 'Which water flower has circular leaves that rest on the surface of ponds?',
+    options: ['Lotus', 'Dahlia', 'Petunia', 'Jasmine'],
+    correctAnswer: 'Lotus',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/lotus.jpg',
+  },
+  {
+    category: 'Flower',
+    question: 'What flower floats beautifully on water and is often seen in the Botanic Gardens ponds?',
+    options: ['Lotus', 'Water Lily', 'Petunia', 'Jasmine'],
+    correctAnswer: 'Lotus',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/lotus.jpg',
+  },
+  {
+    category: 'Flower',
+    question: 'Which small yellow flower is known as the "Singapore Daisy"?',
+    options: ['Sphagneticola trilobata', 'Osteospermum', 'Petunia', 'Jasmine'],
+    correctAnswer: 'Sphagneticola trilobata',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/sphagneticola-trilobata.jpg',
+  },
+  {
+    category: 'Flower',
+    question: 'Which flower is often used in garlands and religious offerings in Southeast Asia?',
+    options: ['Jasmine', 'Lily', 'Petunia', 'Daisy'],
+    correctAnswer: 'Jasmine',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/jasmine.jpg',
+  },
+  {
+    category: 'Flower',
+    question: 'The Heliconia flower attracts which animal for pollination?',
+    options: ['Butterflies', 'Hummingbirds', 'Bees', 'Moths'],
+    correctAnswer: 'Hummingbirds',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/flower/heliconia.jpg',
+  },
   {
     category: 'Plant',
     question: 'Which tree is known for its bright red seeds often used in traditional games?',
@@ -89,8 +141,41 @@ const questions = [
     correctAnswer: 'Angsana',
     imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/plant/angsana.jpg',
   },
-
-  // Architecture
+  {
+    category: 'Plant',
+    question: 'Which tropical tree is known for its wide canopy and is commonly seen in the Botanic Gardens?',
+    options: ['Rain Tree', 'Kapok Tree', 'Saga Tree', 'Bamboo'],
+    correctAnswer: 'Rain Tree',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/plant/rain-tree.jpg',
+  },
+  {
+    category: 'Plant',
+    question: 'Which plant is famous for its sweet fragrance and long, blade-like leaves often used in cooking?',
+    options: ['Rain Tree', 'Foxtail Palm', 'Saga Tree', 'Pandan Plan'],
+    correctAnswer: 'Pandan Plant',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/plant/pandan.jpg',
+  },
+  {
+    category: 'Plant',
+    question: 'Which tree is featured on the Singapore $5 note?',
+    options: ['Rain Tree', 'Foxtail Palm', 'Tembusu', 'Kapok Tree'],
+    correctAnswer: 'Tembusu',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/plant/tembusu.jpg',
+  },
+  {
+    category: 'Plant',
+    question: 'What is the national tree of Singapore?',
+    options: ['Rain Tree', 'Foxtail Palm', 'Tembusu', 'Kapok Tree'],
+    correctAnswer: 'Tembusu',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/plant/tembusu.jpg',
+  },
+  {
+    category: 'Plant',
+    question: 'The Syzygium Grande is also known as:',
+    options: ['Rain Tree', 'Foxtail Palm', 'Sea Apple', 'Kapok Tree'],
+    correctAnswer: 'Sea Apple',
+    imageUrl: 'gs://green-lens-47e9b.firebasestorage.app/quizPhotos/plant/sea-apple.JPG',
+  },
   {
     category: 'Architecture',
     question: 'Where can visitors find nature-inspired artwork and exhibitions?',
@@ -121,22 +206,24 @@ const questions = [
   },
 ];
 
+// Function to add all questions to Firestore
 async function seedQuestions() {
   try {
-    const batch = db.batch();
-    const collectionRef = db.collection('quizQuestions');
+    const batch = db.batch(); // Use batch to add all documents efficiently
+    const collectionRef = db.collection('quizQuestions'); // Reference to the collection where questions will be stored
 
     for (const q of questions) {
-      const docRef = collectionRef.doc(); // auto ID
-      batch.set(docRef, q);
-      console.log('Queued:', q.question);
+      const docRef = collectionRef.doc(); // Generate a new document ID automatically
+      batch.set(docRef, q); // Queue the question to be written to Firestore
+      console.log('Queued:', q.question); // Log which question was queued
     }
 
-    await batch.commit();
+    await batch.commit(); // Execute all queued writes at once
     console.log('✅ All questions added successfully!');
   } catch (err) {
-    console.error('❌ Error adding questions:', err);
+    console.error('❌ Error adding questions:', err); // Handle errors
   }
 }
 
+// Run the function to populate Firestore
 seedQuestions();

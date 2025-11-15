@@ -1,17 +1,5 @@
 import React, { useEffect, useState, useRef, useCallback } from 'react';
-import {
-  View,
-  Text,
-  Image,
-  StyleSheet,
-  TouchableOpacity,
-  Alert,
-  ScrollView,
-  ActivityIndicator,
-  Share,
-  Linking,
-  Platform,
-} from 'react-native';
+import { View, Text, Image, StyleSheet, TouchableOpacity, Alert, ScrollView, ActivityIndicator, Share, Linking, Platform } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../firebaseConfig';
@@ -21,52 +9,47 @@ import { useFocusEffect } from '@react-navigation/native';
 import * as FileSystem from 'expo-file-system/legacy';
 
 export default function User_ViewSummaryPage({ route }) {
+  // Extract parameters passed from previous screen
   const { photoUri, predictionData, category = 'flower' } = route.params || {};
   const topPrediction = predictionData?.top_prediction || null;
   
-  // Get object name based on category
+  // Determine object name based on category and prediction
   let objectName = 'Unknown Object';
   if (topPrediction) {
-    if (category === 'flower') {
-      objectName = topPrediction.flower_name || topPrediction.name || 'Unknown Flower';
-    } else if (category === 'plant') {
-      objectName = topPrediction.plant_name || topPrediction.name || 'Unknown Plant';
-    } else if (category === 'architecture') {
-      objectName = topPrediction.architecture_name || topPrediction.name || 'Unknown Architecture';
-    }
+    if (category === 'flower') objectName = topPrediction.flower_name || topPrediction.name || 'Unknown Flower';
+    else if (category === 'plant') objectName = topPrediction.plant_name || topPrediction.name || 'Unknown Plant';
+    else if (category === 'architecture') objectName = topPrediction.architecture_name || topPrediction.name || 'Unknown Architecture';
   }
-  
+
   const confidence = topPrediction?.confidence_percentage || 0;
 
+  // State to hold fetched object info, loading state, and sharing state
   const [summaryData, setSummaryData] = useState(null);
   const [loading, setLoading] = useState(true);
   const [sharing, setSharing] = useState(false);
 
+  // References to the view and scroll for capturing and resetting
   const viewRef = useRef();
   const scrollRef = useRef();
 
-  // Reset scroll to top when leaving the page
+  // Reset scroll position when leaving the page
   useFocusEffect(
     useCallback(() => {
       return () => {
-        if (scrollRef.current) {
-          scrollRef.current.scrollTo({ y: 0, animated: false });
-        }
+        if (scrollRef.current) scrollRef.current.scrollTo({ y: 0, animated: false });
       };
     }, [])
   );
 
+  // Fetch additional information about the object from Firestore
   useEffect(() => {
     const fetchSummary = async () => {
       try {
         const docRef = doc(db, 'objectInfo', objectName.toLowerCase());
         const docSnap = await getDoc(docRef);
 
-        if (docSnap.exists()) {
-          setSummaryData(docSnap.data());
-        } else {
-          setSummaryData({ description: 'No information available yet.' });
-        }
+        if (docSnap.exists()) setSummaryData(docSnap.data());
+        else setSummaryData({ description: 'No information available yet.' });
       } catch (error) {
         console.error('Error fetching object:', error);
         setSummaryData({ description: 'Failed to load object info.' });
@@ -78,6 +61,7 @@ export default function User_ViewSummaryPage({ route }) {
     fetchSummary();
   }, [objectName]);
 
+  // Handle sharing the captured view image
   const handleShare = async () => {
     if (!viewRef.current) return Alert.alert('Error', 'Unable to capture view');
 
@@ -86,10 +70,9 @@ export default function User_ViewSummaryPage({ route }) {
       const uri = await captureRef(viewRef, { format: 'jpg', quality: 0.9 });
       const isAvailable = await Sharing.isAvailableAsync();
 
-      if (isAvailable) {
-        // Share only the captured image
-        await Sharing.shareAsync(uri, { mimeType: 'image/jpeg' });
-      } else {
+      if (isAvailable) await Sharing.shareAsync(uri, { mimeType: 'image/jpeg' });
+      else {
+        // Fallback for Android if the share module isn't available
         let shareUri = uri;
         if (Platform.OS === 'android' && !uri.startsWith(FileSystem.cacheDirectory)) {
           const fileName = uri.split('/').pop();
@@ -97,7 +80,6 @@ export default function User_ViewSummaryPage({ route }) {
           await FileSystem.copyAsync({ from: uri, to: cacheUri });
           shareUri = cacheUri;
         }
-        // Fallback share only includes the image URL
         await Share.share({ url: shareUri });
       }
     } catch (error) {
@@ -108,14 +90,14 @@ export default function User_ViewSummaryPage({ route }) {
     }
   };
 
+  // Open Google search for the object name
   const handleGoogleSearch = () => {
     const query = encodeURIComponent(objectName);
     const url = `https://www.google.com/search?q=${query}`;
-    Linking.openURL(url).catch(err =>
-      Alert.alert('Error', 'Failed to open browser: ' + err.message)
-    );
+    Linking.openURL(url).catch(err => Alert.alert('Error', 'Failed to open browser: ' + err.message));
   };
 
+  // Show a loading spinner while fetching data
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -132,18 +114,22 @@ export default function User_ViewSummaryPage({ route }) {
         contentContainerStyle={{ paddingBottom: 150 }}
       >
         <View ref={viewRef} style={styles.captureView} collapsable={false}>
+          {/* Display the captured photo */}
           {photoUri ? (
             <Image source={{ uri: photoUri }} style={styles.image} />
           ) : (
             <Text style={styles.noPhotoText}>No photo available</Text>
           )}
 
+          {/* Display confidence score */}
           {confidence > 0 && (
             <Text style={styles.confidence}>Confidence: {confidence.toFixed(2)}%</Text>
           )}
 
+          {/* Display object name */}
           <Text style={styles.title}>{summaryData?.name || objectName}</Text>
 
+          {/* Display summary info */}
           <View style={styles.labelColumn}>
             {summaryData ? (
               <>
@@ -181,6 +167,7 @@ export default function User_ViewSummaryPage({ route }) {
         </View>
       </ScrollView>
 
+      {/* Floating action buttons for sharing and searching */}
       <View style={styles.floatingButtons}>
         <TouchableOpacity style={styles.seeMoreButton} onPress={handleGoogleSearch}>
           <Text style={styles.seeMoreText}>See More</Text>
@@ -214,19 +201,10 @@ const styles = StyleSheet.create({
   placeholderText: { fontSize: 16, color: '#555', marginBottom: 8, textAlign: 'left' },
   characteristicsTitle: { fontSize: 16, fontWeight: '600', marginBottom: 4, alignSelf: 'flex-start', marginTop: 8 },
   characteristics: { fontSize: 16, color: '#555', marginBottom: 5, width: '100%' },
-
-  floatingButtons: {
-    position: 'absolute',
-    bottom: 60,
-    right: 20,
-    alignItems: 'center',
-    zIndex: 999,
-    elevation: 10,
-  },
+  floatingButtons: { position: 'absolute', bottom: 60, right: 20, alignItems: 'center', zIndex: 999, elevation: 10 },
   seeMoreButton: { paddingVertical: 10, paddingHorizontal: 18, borderRadius: 8, backgroundColor: '#1E90FF', marginBottom: 12 },
   seeMoreText: { fontSize: 16, color: '#fff', fontWeight: '600' },
   shareButton: { width: 46, height: 46, borderRadius: 23, backgroundColor: '#000', justifyContent: 'center', alignItems: 'center' },
   shareButtonDisabled: { opacity: 0.6 },
-
   loadingContainer: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

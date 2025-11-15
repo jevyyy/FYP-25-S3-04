@@ -3,18 +3,21 @@ import { View, Text, TextInput, TouchableOpacity, StyleSheet, Alert } from 'reac
 import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { getAuth } from 'firebase/auth';
 import { app } from '../firebaseConfig';
-import { useNavigation } from '@react-navigation/native'; // <-- Import
+import { useNavigation } from '@react-navigation/native';
 
 const db = getFirestore(app);
 const auth = getAuth(app);
 
 export default function FeedbackPage() {
-  const navigation = useNavigation(); // <-- Add navigation hook
+  const navigation = useNavigation();
+  
+  // State to hold star rating, user input, error message, and current user info
   const [rating, setRating] = useState(1); 
   const [suggestion, setSuggestion] = useState('');
   const [error, setError] = useState('');
   const [currentUser, setCurrentUser] = useState(null);
 
+  // Listen for Firebase auth state changes to get current user
   useEffect(() => {
     const unsubscribe = auth.onAuthStateChanged(user => {
       setCurrentUser(user);
@@ -22,6 +25,7 @@ export default function FeedbackPage() {
     return unsubscribe;
   }, []);
 
+  // Handle feedback submission
   const handleSubmit = async () => {
     if (!suggestion.trim()) {
       setError('*This Box Cannot Be Empty.');
@@ -34,6 +38,7 @@ export default function FeedbackPage() {
     }
 
     try {
+      // Add feedback to Firestore with user info, rating, suggestion, and timestamp
       await addDoc(collection(db, 'feedback'), {
         userId: currentUser.uid,
         username: currentUser.displayName || currentUser.email || 'Anonymous',
@@ -43,13 +48,15 @@ export default function FeedbackPage() {
         createdAt: serverTimestamp(),
       });
 
+      // Show confirmation and navigate back after submission
       Alert.alert('Thank You!', 'Your feedback has been submitted.', [
         {
           text: 'OK',
-          onPress: () => navigation.goBack(), // <-- Navigate back after submission
+          onPress: () => navigation.goBack(),
         },
       ]);
 
+      // Reset form
       setRating(1);
       setSuggestion('');
       setError('');
@@ -101,17 +108,7 @@ const styles = StyleSheet.create({
   label: { fontSize: 16, fontWeight: '600', marginVertical: 8, color: '#333' },
   starContainer: { flexDirection: 'row', justifyContent: 'flex-start', marginBottom: 20 },
   star: { fontSize: 32, color: '#FFD700', marginHorizontal: 6 },
-  textInput: {
-    borderWidth: 1,
-    borderColor: '#ccc',
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 16,
-    textAlignVertical: 'top',
-    marginBottom: 5,
-    color: '#000',
-    minHeight: 250,
-  },
+  textInput: { borderWidth: 1, borderColor: '#ccc', borderRadius: 10, padding: 12, fontSize: 16, textAlignVertical: 'top', marginBottom: 5, color: '#000', minHeight: 250 },
   errorText: { color: 'red', fontSize: 14, marginBottom: 15, marginLeft: 5 },
   button: { backgroundColor: '#000', paddingVertical: 14, borderRadius: 8, alignItems: 'center', elevation: 2 },
   buttonText: { color: '#fff', fontSize: 16, fontWeight: '600' },
