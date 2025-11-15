@@ -378,9 +378,20 @@ class ModelRetrainer:
         # Fine-tuning
         print("\n--- Preparing for Fine-Tuning ---")
         
-        # Find the base model by its name
-        base_model = model.get_layer('mobilenetv2_base')
-        
+        # Find the base model by its name (new way) or default name (old way)
+        base_model = None
+        try:
+            # Try to get the layer by the new, explicit name
+            base_model = model.get_layer('mobilenetv2_base')
+        except ValueError:
+            print("Could not find layer 'mobilenetv2_base'. Looking for default name...")
+            try:
+                # Fallback to the default name for older models
+                base_model = model.get_layer('mobilenetv2_1.00_224')
+                print("Found base model with default name: 'mobilenetv2_1.00_224'")
+            except ValueError:
+                print("ERROR: Could not find the MobileNetV2 base model layer by name.")
+
         if base_model:
             base_model.trainable = True
             # Fine-tune the top 50 layers
@@ -422,18 +433,20 @@ class ModelRetrainer:
         print("="*80 + "\n")
         
         # Save model
-        model_save_path = self.output_dir / f'{self.category}_img_classifier.keras'
+        # Use singular category name for file path
+        category_singular = self.category.rstrip('s')
+        model_save_path = self.output_dir / f'{category_singular}_img_classifier.keras'
         model.save(str(model_save_path))
         print(f"Model saved to: {model_save_path}")
         
         # Save .h5 format
-        h5_model_path = self.output_dir / f'{self.category}_img_classifier.h5'
+        h5_model_path = self.output_dir / f'{category_singular}_img_classifier.h5'
         model.save(str(h5_model_path))
         print(f"Model saved in .h5 format to: {h5_model_path}")
         
         # Save class mapping
         class_names_map = {str(v): k for k, v in class_indices.items()}
-        class_names_path = self.output_dir / f'{self.category}_class_names.json'
+        class_names_path = self.output_dir / f'{category_singular}_class_names.json'
         with open(class_names_path, 'w') as f:
             json.dump(class_names_map, f, indent=4)
         print(f"Class mapping saved to: {class_names_path}")
@@ -448,15 +461,18 @@ class ModelRetrainer:
         print("Uploading to Firebase Storage")
         print("="*80 + "\n")
         
+        # Ensure singular category name for Firebase path
+        category_singular = self.category.rstrip('s')
+        
         # Upload model
-        model_blob = self.bucket.blob(f'{self.category}_best_model.keras')
+        model_blob = self.bucket.blob(f'{category_singular}_best_model.keras')
         model_blob.upload_from_filename(str(model_path))
-        print(f"Uploaded model to: {self.category}_best_model.keras")
+        print(f"Uploaded model to: {category_singular}_best_model.keras")
         
         # Upload class names
-        class_names_blob = self.bucket.blob(f'{self.category}_class_names.json')
+        class_names_blob = self.bucket.blob(f'{category_singular}_class_names.json')
         class_names_blob.upload_from_filename(str(class_names_path))
-        print(f"Uploaded class names to: {self.category}_class_names.json")
+        print(f"Uploaded class names to: {category_singular}_class_names.json")
         
         print("\nUpload complete!")
     
