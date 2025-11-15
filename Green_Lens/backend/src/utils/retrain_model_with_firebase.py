@@ -290,20 +290,32 @@ class ModelRetrainer:
                 else:
                     print(f"Class {class_name} already exists at index {merged_class_mapping[class_name]}")
             
-            # Note: We'll manually override the class_indices after creating the generators
-            classes_list = sorted(new_classes_found)  # flow_from_directory sorts classes alphabetically
+            # CRITICAL FIX: Create a classes list that matches the merged mapping order
+            # This ensures the generator's class_indices align with the model's output neurons
+            # Sort by index to get correct order: ["rose", "tulip", "daisy", "lily", "sunflower"]
+            classes_list = [name for name, idx in sorted(merged_class_mapping.items(), key=lambda x: x[1])]
+            print(f"Creating generators with class order: {classes_list}")
+            
+            # Create placeholder directories for existing classes that don't have new training images
+            # This is necessary so flow_from_directory recognizes all classes
+            for class_name in classes_list:
+                class_dir = self.temp_dataset_dir / class_name
+                if not class_dir.exists():
+                    class_dir.mkdir(parents=True)
+                    print(f"Created placeholder directory for existing class: {class_name}")
         else:
             classes_list = None
             merged_class_mapping = None
         
-        # Create generators
+        # Create generators with explicit class ordering to match merged mapping
         train_generator = train_datagen.flow_from_directory(
             str(self.temp_dataset_dir),
             target_size=self.input_size,
             batch_size=self.batch_size,
             class_mode='categorical',
             subset='training',
-            shuffle=True
+            shuffle=True,
+            classes=classes_list  # CRITICAL: Explicit class ordering
         )
         
         validation_generator = train_datagen.flow_from_directory(
@@ -312,7 +324,8 @@ class ModelRetrainer:
             batch_size=self.batch_size,
             class_mode='categorical',
             subset='validation',
-            shuffle=False
+            shuffle=False,
+            classes=classes_list  # CRITICAL: Explicit class ordering
         )
         
         # If we have a merged class mapping, store it for later use
@@ -322,11 +335,18 @@ class ModelRetrainer:
             train_generator.merged_class_indices = merged_class_mapping
             num_classes = len(merged_class_mapping)
             print(f"Total classes (existing + new): {num_classes}")
+            print(f"Generator class_indices after fix: {train_generator.class_indices}")
+            
+            # Verify the mapping is correct
+            for class_name, expected_idx in merged_class_mapping.items():
+                actual_idx = train_generator.class_indices.get(class_name, -1)
+                if actual_idx != expected_idx:
+                    print(f"⚠️  WARNING: Class '{class_name}' has index {actual_idx} in generator but should be {expected_idx}")
         else:
             train_generator.merged_class_indices = train_generator.class_indices
             num_classes = len(train_generator.class_indices)
         
-        print(f"Found {train_generator.samples} training images belonging to {len(train_generator.class_indices)} new classes.")
+        print(f"Found {train_generator.samples} training images belonging to {len(train_generator.class_indices)} classes.")
         print(f"Found {validation_generator.samples} validation images")
         print(f"Class Mapping for training data: {train_generator.class_indices}")
         
