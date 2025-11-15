@@ -5,68 +5,60 @@ import { app } from "../../firebaseConfig";
 import GreenLensLogo from "../../assets/Green_Lens_logo.png";
 
 export default function Admin_Reports() {
-  const db = getFirestore(app); // Firestore database reference
+  const db = getFirestore(app);
 
-  // State variables
-  const [feedbacks, setFeedbacks] = useState([]); // Stores all user feedback documents
-  const [ratingsCount, setRatingsCount] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }); // Stores count of each star rating
+  const [feedbacks, setFeedbacks] = useState([]);
+  const [ratingsCount, setRatingsCount] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
 
-  // Fetch feedback from Firestore and listen for real-time updates
   useEffect(() => {
-    const feedbackRef = collection(db, "feedback"); // Reference to feedback collection
-    const q = query(feedbackRef, orderBy("createdAt", "desc")); // Order feedback by newest first
+    const feedbackRef = collection(db, "feedback");
+    const q = query(feedbackRef, orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(q, (snapshot) => {
-      // Map Firestore documents to an array
       const list = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
       setFeedbacks(list);
 
-      // Count the number of feedbacks for each star rating
       const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
       list.forEach((f) => {
-        if (f.rating >= 1 && f.rating <= 5) counts[f.rating]++;
+        const rating = Number(f.rating);
+        if (rating >= 1 && rating <= 5) counts[rating]++;
       });
       setRatingsCount(counts);
     });
 
-    return () => unsubscribe(); // Cleanup listener on component unmount
+    return () => unsubscribe();
   }, []);
 
-  // Function to render each rating bar in the chart
   const renderBar = (stars) => {
-    const total = Object.values(ratingsCount).reduce((a, b) => a + b, 0) || 1; // Total feedbacks
-    const percentage = (ratingsCount[stars] / total) * 100; // Percentage width of the bar
+    const total = Object.values(ratingsCount).reduce((a, b) => a + b, 0) || 1;
+    const percentage = (ratingsCount[stars] / total) * 100;
 
     return (
       <View style={styles.barRow} key={stars}>
-        <Text style={styles.starLabel}>{stars}★</Text>
+        <Text style={styles.starLabel}>{String(stars)}★</Text>
         <View style={styles.barBackground}>
           <View style={[styles.barFill, { width: `${percentage}%` }]} />
         </View>
-        <Text style={styles.count}>{ratingsCount[stars]}</Text>
+        <Text style={styles.count}>{String(ratingsCount[stars])}</Text>
       </View>
     );
   };
 
   return (
     <View style={styles.container}>
-      {/* App Logo */}
       <View style={styles.logoContainer}>
-        <Image source={GreenLensLogo} style={styles.logoImage} />
+        {GreenLensLogo && <Image source={GreenLensLogo} style={styles.logoImage} />}
       </View>
 
-      {/* Page Title */}
       <Text style={styles.title}>Review Summary</Text>
 
-      {/* Ratings Chart */}
       <View style={styles.chartContainer}>
-        {[5, 4, 3, 2, 1].map((stars) => renderBar(stars))} {/* Render rating bars from 5★ to 1★ */}
+        {[5, 4, 3, 2, 1].map((stars) => renderBar(stars))}
       </View>
 
-      {/* User Feedback List */}
       <Text style={styles.subtitle}>User Feedback</Text>
       <FlatList
         data={feedbacks}
@@ -74,9 +66,9 @@ export default function Admin_Reports() {
         contentContainerStyle={{ paddingBottom: 20 }}
         renderItem={({ item }) => (
           <View style={styles.feedbackCard}>
-            <Text style={styles.feedbackRating}>Rating: {item.rating}★</Text> {/* Show rating */}
-            <Text style={styles.feedbackText}>{item.suggestion}</Text> {/* Show feedback text */}
-            <Text style={styles.feedbackUser}>By: {item.username || "Anonymous"}</Text> {/* Show user */}
+            <Text style={styles.feedbackRating}>Rating: {String(item.rating)}★</Text>
+            <Text style={styles.feedbackText}>{String(item.suggestion || "")}</Text>
+            <Text style={styles.feedbackUser}>By: {String(item.username || "Anonymous")}</Text>
           </View>
         )}
       />

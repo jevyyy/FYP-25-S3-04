@@ -37,7 +37,7 @@ BACKEND_DIR = SRC_DIR.parent
 #   - Windows: Path('C:\\Users\\User\\Downloads\\botanics_plants')
 #   - Linux/Mac: Path('/home/user/datasets/botanics_plants')
 #   - Relative: Path('../datasets/botanics_plants')
-DATASET_BASE = Path('C:\\Users\\User\\Downloads\\botanics_plants')
+DATASET_BASE = Path('C:\\Users\\GF63\\Downloads\\botanics_plants')
 
 # For plant dataset, the root contains folders with actual plant names
 train_data_path = DATASET_BASE
