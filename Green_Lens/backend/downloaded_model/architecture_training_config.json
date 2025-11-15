@@ -8,7 +8,7 @@
     "epoch_finetune": 15,
     "learning_rate_head": 0.0005,
     "learning_rate_finetune": 1e-05,
-    "num_classes": 6,
+    "num_classes": 5,
     "model_architecture": "MobileNetV2 + Custom Head",
     "dataset_type": "architecture",
     "augmentation": {
