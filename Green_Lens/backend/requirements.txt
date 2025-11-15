@@ -2,6 +2,9 @@
 flask==3.1.0
 flask-cors==5.0.0
 
+# Environment variables
+python-dotenv==1.0.0
+
 # Firebase for model storage
 firebase-admin==6.5.0
 
@@ -14,3 +17,6 @@ pillow==11.3.0
 
 # Numerical computing
 numpy==1.26.4
+
+# HTTP requests for downloading images
+requests==2.31.0
