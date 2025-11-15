@@ -10,48 +10,14 @@ from tensorflow.keras.models import load_model
 from tensorflow.keras.applications.mobilenet_v2 import preprocess_input
 import firebase_admin
 from firebase_admin import credentials, storage
-from dotenv import load_dotenv
-
-# Load environment variables
-load_dotenv()
 
 app = Flask(__name__)
 CORS(app)
 
 # Firebase configuration
 BUCKET_NAME = 'green-lens-47e9b.firebasestorage.app'
-
-# Use environment variables for Firebase credentials
-# Falls back to service-account.json if env vars not set
-def get_firebase_credentials():
-    """Get Firebase credentials from environment variables or JSON file"""
-    # First, try to load from environment variables
-    if os.getenv('FIREBASE_PROJECT_ID') and os.getenv('FIREBASE_PRIVATE_KEY'):
-        print("Loading Firebase credentials from environment variables...")
-        return credentials.Certificate({
-            "type": "service_account",
-            "project_id": os.getenv('FIREBASE_PROJECT_ID'),
-            "private_key_id": os.getenv('FIREBASE_PRIVATE_KEY_ID'),
-            "private_key": os.getenv('FIREBASE_PRIVATE_KEY').replace('\\n', '\n'),
-            "client_email": os.getenv('FIREBASE_CLIENT_EMAIL'),
-            "client_id": os.getenv('FIREBASE_CLIENT_ID'),
-            "auth_uri": os.getenv('FIREBASE_AUTH_URI', 'https://accounts.google.com/o/oauth2/auth'),
-            "token_uri": os.getenv('FIREBASE_TOKEN_URI', 'https://oauth2.googleapis.com/token'),
-            "auth_provider_x509_cert_url": os.getenv('FIREBASE_AUTH_PROVIDER_CERT_URL', 'https://www.googleapis.com/oauth2/v1/certs'),
-            "client_x509_cert_url": os.getenv('FIREBASE_CLIENT_CERT_URL')
-        })
-    else:
-        # Fallback to service-account.json file
-        print("Loading Firebase credentials from service-account.json file...")
-        SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), 'service-account.json')
-        if not os.path.exists(SERVICE_ACCOUNT_PATH):
-            raise FileNotFoundError(
-                "Firebase credentials not found. Please either:\n"
-                "1. Set Firebase environment variables in .env file, OR\n"
-                "2. Place service-account.json in Green_Lens/backend/\n"
-                "See .env.example for required environment variables."
-            )
-        return credentials.Certificate(SERVICE_ACCOUNT_PATH)
+# Use dynamic path resolution that works from any location
+SERVICE_ACCOUNT_PATH = os.path.join(os.path.dirname(__file__), 'service-account.json')
 
 # Local paths for downloaded files
 LOCAL_MODEL_DIR = os.path.join(os.path.dirname(__file__), 'downloaded_model')
@@ -102,7 +68,7 @@ def initialize_firebase():
     
     try:
         print("Initializing Firebase Admin SDK...")
-        cred = get_firebase_credentials()
+        cred = credentials.Certificate(SERVICE_ACCOUNT_PATH)
         firebase_admin.initialize_app(cred, {
             'storageBucket': BUCKET_NAME
         })
@@ -387,103 +353,6 @@ def get_categories():
         'categories': list(CATEGORIES.keys()),
         'loaded_categories': list(models.keys())
     })
-
-@app.route('/api/retrain', methods=['POST'])
-def retrain_model():
-    """
-    Trigger model retraining for a specific category
-    Expects JSON body: { "category": "flowers|plants|architecture", "deleteImagesAfter": true|false }
-    """
-    try:
-        data = request.get_json()
-        category = data.get('category')
-        delete_images_after = data.get('deleteImagesAfter', True)
-        
-        if not category:
-            return jsonify({
-                'success': False,
-                'error': 'Category is required'
-            }), 400
-        
-        # Map frontend category names to backend category names
-        category_map = {
-            'flowers': 'flowers',
-            'plants': 'plants',
-            'architecture': 'architecture'
-        }
-        
-        if category not in category_map:
-            return jsonify({
-                'success': False,
-                'error': f'Invalid category. Must be one of: {list(category_map.keys())}'
-            }), 400
-        
-        backend_category = category_map[category]
-        
-        # Import the retrainer
-        import sys
-        sys.path.append(os.path.join(os.path.dirname(__file__), 'src', 'utils'))
-        from retrain_model_with_firebase import ModelRetrainer
-        
-        # Get Firebase credentials (from env or file)
-        firebase_cred = get_firebase_credentials()
-        
-        # Initialize retrainer
-        retrainer = ModelRetrainer(
-            category=backend_category,
-            firebase_credentials=firebase_cred,
-            bucket_name=BUCKET_NAME
-        )
-        
-        # Run retraining
-        print(f"\n{'='*80}")
-        print(f"Starting retraining for category: {backend_category}")
-        print(f"Delete images after training: {delete_images_after}")
-        print(f"{'='*80}\n")
-        
-        success = retrainer.retrain(delete_images_after=delete_images_after)
-        
-        if success:
-            # Reload the model for this category
-            try:
-                # Map back to the category key used in CATEGORIES
-                category_key = 'flower' if category == 'flowers' else category.rstrip('s')
-                load_model_and_classes_for_category(category_key)
-                print(f"Reloaded {category} model successfully")
-            except Exception as e:
-                print(f"Warning: Failed to reload model: {str(e)}")
-            
-            return jsonify({
-                'success': True,
-                'message': f'Model retraining completed successfully for {category}',
-                'category': category,
-                'images_deleted': delete_images_after
-            })
-        else:
-            return jsonify({
-                'success': False,
-                'error': 'Model retraining failed. Check server logs for details.'
-            }), 500
-            
-    except Exception as e:
-        error_str = str(e)
-        print(f"Error in retrain_model endpoint: {error_str}")
-        import traceback
-        traceback.print_exc()
-        
-        # Provide more helpful error messages for common issues
-        if "invalid_grant" in error_str.lower() or "invalid jwt signature" in error_str.lower():
-            error_message = "Firebase authentication failed. The service account credentials are invalid or expired. Please regenerate the service-account.json file from Firebase Console. See FIREBASE_AUTH_TROUBLESHOOTING.md for detailed instructions."
-        elif "503" in error_str or "ServiceUnavailable" in error_str:
-            error_message = "Unable to connect to Firebase services. This may be due to invalid credentials or temporary service issues. Check server logs and see FIREBASE_AUTH_TROUBLESHOOTING.md."
-        else:
-            # Don't expose internal error details to clients for security
-            error_message = "An error occurred during model retraining. Please check server logs for details."
-        
-        return jsonify({
-            'success': False,
-            'error': error_message
-        }), 500
 
 if __name__ == '__main__':
     # Load all models on startup

@@ -16,6 +16,7 @@ const db = getFirestore(app);
 
 export default function Developer_SettingsPage() {
   const navigation = useNavigation();
+  const [showPretrain, setShowPretrain] = useState(false);
   const [showTrain, setShowTrain] = useState(false);
   const [showDeployment, setShowDeployment] = useState(false);
   const [showAppInfo, setShowAppInfo] = useState(false);
@@ -26,8 +27,15 @@ export default function Developer_SettingsPage() {
   const [images, setImages] = useState([]);
   const [loadingImages, setLoadingImages] = useState(false);
 
-  // --- Silent buffer overlay ---
+  // --- Pretrain Model modal state ---
+  const [pretrainModalVisible, setPretrainModalVisible] = useState(false);
+  const [pretrainCategory, setPretrainCategory] = useState(null);
+  const [pretrainImages, setPretrainImages] = useState([]);
+  const [loadingPretrainImages, setLoadingPretrainImages] = useState(false);
+
+  // --- Silent buffer overlays ---
   const [trainingBuffer, setTrainingBuffer] = useState(false);
+  const [pretrainingBuffer, setPretrainingBuffer] = useState(false);
 
   const isMounted = useRef(true);
 
@@ -59,7 +67,27 @@ export default function Developer_SettingsPage() {
     }
   };
 
-
+  const fetchPretrainImages = async (category) => {
+    setLoadingPretrainImages(true);
+    setPretrainImages([]);
+    try {
+      const collectionRef = collection(doc(collection(db, 'modelPhotos'), category), 'images');
+      const q = query(collectionRef, orderBy('createdAt', 'desc'));
+      const unsubscribe = onSnapshot(q, (snapshot) => {
+        const items = snapshot.docs.map((d) => ({
+          id: d.id,
+          uri: d.data().imageUrl,
+          name: d.data().name || d.data().uploadedBy || 'User Upload',
+        }));
+        setPretrainImages(items);
+        setLoadingPretrainImages(false);
+      });
+      return unsubscribe;
+    } catch (err) {
+      console.error('Fetch pretrain images error:', err);
+      setLoadingPretrainImages(false);
+    }
+  };
 
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
@@ -97,155 +125,32 @@ export default function Developer_SettingsPage() {
     </>
   );
 
+  //Terence, your Script i think can put here
   const handleTrainPress = () => setTrainModalVisible(true);
   const handleCategorySelect = (category) => { setSelectedCategory(category); fetchImages(category); };
-  
-  const handleTrainConfirm = async () => {
-    // Ask if they want to delete images after training
-    Alert.alert(
-      'Retrain Model',
-      `Do you want to delete the uploaded images after successful training?\n\nNote: Deleting images means next training will only use newly uploaded images. Keeping them allows cumulative training.`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Keep Images',
-          onPress: () => performRetraining(false)
-        },
-        {
-          text: 'Delete Images',
-          style: 'destructive',
-          onPress: () => performRetraining(true)
-        },
-      ]
-    );
-  };
-
-  const performRetraining = async (deleteImagesAfter) => {
+  const handleTrainConfirm = () => {
     setTrainModalVisible(false);
-    setTrainingBuffer(true);
+    setTrainingBuffer(true); // show overlay
 
-    try {
-      // Read API URL from environment variable
-      // Configure in .env file (copy from .env.example if needed)
-      const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
-      const API_URL = `${API_BASE_URL}/api/retrain`;
-      
-      console.log(`Attempting to connect to: ${API_URL}`);
-      
-      // Create an AbortController for timeout handling
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 300000); // 5 minute timeout for initial connection
-      
-      const response = await fetch(API_URL, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          category: selectedCategory,
-          deleteImagesAfter: deleteImagesAfter,
-        }),
-        signal: controller.signal,
-      });
-
-      clearTimeout(timeoutId);
-
-      if (!response.ok) {
-        // Handle HTTP errors
-        const errorText = await response.text();
-        console.error(`HTTP Error ${response.status}:`, errorText);
-        throw new Error(`Server returned ${response.status}: ${response.statusText}`);
-      }
-
-      const result = await response.json();
-
-      setTrainingBuffer(false);
-
-      if (result.success) {
-        Alert.alert(
-          'Success',
-          `Model retraining completed successfully for ${selectedCategory}!\n\n${
-            deleteImagesAfter ? 'Training images have been deleted.' : 'Training images have been kept for future training.'
-          }`
-        );
-        setSelectedCategory(null);
-        setImages([]);
-      } else {
-        Alert.alert('Error', result.error || 'Model retraining failed. Please try again.');
-      }
-    } catch (error) {
-      setTrainingBuffer(false);
-      console.error('Retraining error:', error);
-      
-      // Provide more helpful error messages
-      let errorMessage = 'Failed to retrain model: ';
-      
-      if (error.name === 'AbortError') {
-        errorMessage += 'Request timeout. The server took too long to respond.';
-      } else if (error.message.includes('Network request failed')) {
-        const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
-        errorMessage += `Cannot connect to backend server.\n\n`;
-        errorMessage += `Current URL: ${API_BASE_URL}\n\n`;
-        errorMessage += `Troubleshooting:\n`;
-        errorMessage += `1. Check backend is running (python app.py)\n`;
-        errorMessage += `2. Verify EXPO_PUBLIC_API_URL in .env file\n`;
-        errorMessage += `3. For physical devices, use your computer's IP address\n`;
-        errorMessage += `4. Ensure phone and computer are on the same WiFi\n`;
-        errorMessage += `5. Check firewall allows port 5000`;
-      } else {
-        errorMessage += error.message;
-      }
-      
-      Alert.alert('Error', errorMessage);
-    }
+    setTimeout(() => {
+      setTrainingBuffer(false); // hide overlay
+      Alert.alert('Done', `Training Model Completed!`);
+      setSelectedCategory(null);
+    }, 5000); // buffer 5s
   };
+  
+  //Terence, your Script i think can put here
+  const handlePretrainPress = () => setPretrainModalVisible(true);
+  const handlePretrainCategorySelect = (category) => { setPretrainCategory(category); fetchPretrainImages(category); };
+  const handlePretrainConfirm = () => {
+    setPretrainModalVisible(false);
+    setPretrainingBuffer(true); // show overlay
 
-  const testConnection = async () => {
-    const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'http://localhost:5000';
-    
-    try {
-      Alert.alert('Testing Connection', `Attempting to connect to:\n${API_BASE_URL}/categories`);
-      
-      const controller = new AbortController();
-      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10 second timeout for test
-      
-      const response = await fetch(`${API_BASE_URL}/categories`, {
-        method: 'GET',
-        signal: controller.signal,
-      });
-      
-      clearTimeout(timeoutId);
-      
-      if (response.ok) {
-        const result = await response.json();
-        Alert.alert(
-          'Connection Success ✓', 
-          `Successfully connected to backend!\n\nURL: ${API_BASE_URL}\n\nAvailable categories: ${result.categories?.join(', ') || 'N/A'}`
-        );
-      } else {
-        Alert.alert(
-          'Connection Failed',
-          `Server responded with error ${response.status}\n\nURL: ${API_BASE_URL}\n\nThe backend is reachable but returned an error.`
-        );
-      }
-    } catch (error) {
-      let message = `Cannot connect to backend.\n\nURL: ${API_BASE_URL}\n\n`;
-      
-      if (error.name === 'AbortError') {
-        message += 'Connection timeout. Server did not respond within 10 seconds.';
-      } else if (error.message.includes('Network request failed')) {
-        message += 'Network request failed. Please check:\n\n';
-        message += '1. Backend is running (python app.py)\n';
-        message += '2. .env file has correct EXPO_PUBLIC_API_URL\n';
-        message += '3. For physical devices, use computer IP (not localhost)\n';
-        message += '4. Phone and computer on same WiFi\n';
-        message += '5. Firewall allows port 5000';
-      } else {
-        message += `Error: ${error.message}`;
-      }
-      
-      Alert.alert('Connection Failed', message);
-    }
+    setTimeout(() => {
+      setPretrainingBuffer(false); // hide overlay
+      Alert.alert('Done', `Pre-Training Model Completed!`);
+      setPretrainCategory(null);
+    }, 5000); // buffer 5s
   };
 
   const renderImageItem = ({ item }) => (
@@ -262,30 +167,24 @@ export default function Developer_SettingsPage() {
           <Image source={GreenLensLogo} style={styles.logoImage} />
         </View>
 
-        {/* Retrain Model */}
+        {/* Pre-train Model */}
         {renderOption(
-          'Retrain Model',
+          'Pre-train Model',
+          showPretrain,
+          () => setShowPretrain(!showPretrain),
+          <TouchableOpacity style={styles.greenButton} onPress={handlePretrainPress}>
+            <Text style={styles.buttonText}>Pre-Train Model</Text>
+          </TouchableOpacity>
+        )}
+
+        {/* Train Model */}
+        {renderOption(
+          'Train Model',
           showTrain,
           () => setShowTrain(!showTrain),
-          <>
-            <Text style={{ marginBottom: 10, fontSize: 14, color: '#666' }}>
-              Retrain the model with newly uploaded images. You can fine-tune existing class labels or add new ones.
-            </Text>
-            <View style={{ marginBottom: 10 }}>
-              <TouchableOpacity 
-                style={[styles.greenButton, { backgroundColor: '#4CAF50' }]} 
-                onPress={testConnection}
-              >
-                <Text style={styles.buttonText}>Test Backend Connection</Text>
-              </TouchableOpacity>
-              <Text style={{ marginTop: 5, fontSize: 12, color: '#888', fontStyle: 'italic' }}>
-                Use this to verify your backend is accessible before retraining
-              </Text>
-            </View>
-            <TouchableOpacity style={styles.greenButton} onPress={handleTrainPress}>
-              <Text style={styles.buttonText}>Retrain Model</Text>
-            </TouchableOpacity>
-          </>
+          <TouchableOpacity style={styles.greenButton} onPress={handleTrainPress}>
+            <Text style={styles.buttonText}>Train Model</Text>
+          </TouchableOpacity>
         )}
 
         {/* Deployment */}
@@ -358,10 +257,10 @@ export default function Developer_SettingsPage() {
                 )}
                 <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 }}>
                   <TouchableOpacity style={[styles.greenButton, { flex: 1, marginRight: 5, backgroundColor: '#ccc' }]} onPress={() => { setSelectedCategory(null); setImages([]); }}>
-                    <Text style={[styles.buttonText, { color: '#000' }]}>Back</Text>
+                    <Text style={[styles.buttonText, { color: '#000' }]}>Cancel</Text>
                   </TouchableOpacity>
                   <TouchableOpacity style={[styles.greenButton, { flex: 1, marginLeft: 5 }]} onPress={handleTrainConfirm}>
-                    <Text style={styles.buttonText}>Retrain</Text>
+                    <Text style={styles.buttonText}>Train</Text>
                   </TouchableOpacity>
                 </View>
               </>
@@ -370,16 +269,69 @@ export default function Developer_SettingsPage() {
         </View>
       </Modal>
 
-      {/* --- Training Buffer Overlay --- */}
+      {/* --- Pretrain Modal --- */}
+      <Modal visible={pretrainModalVisible} transparent animationType="slide" onRequestClose={() => setPretrainModalVisible(false)}>
+        <View style={styles.modalOverlay}>
+          <View style={styles.modalBox}>
+            {!pretrainCategory ? (
+              <>
+                <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15 }}>Select Category</Text>
+                <View style={styles.categoryGrid}>
+                  {['plants', 'flowers', 'architecture'].map((cat) => (
+                    <TouchableOpacity key={cat} style={styles.categoryButton} onPress={() => handlePretrainCategorySelect(cat)}>
+                      <Text style={styles.categoryButtonText}>{cat.charAt(0).toUpperCase() + cat.slice(1)}</Text>
+                    </TouchableOpacity>
+                  ))}
+                </View>
+                <TouchableOpacity style={[styles.greenButton, { backgroundColor: '#ccc' }]} onPress={() => setPretrainModalVisible(false)}>
+                  <Text style={[styles.buttonText, { color: '#000' }]}>Cancel</Text>
+                </TouchableOpacity>
+              </>
+            ) : (
+              <>
+                <Text style={{ fontSize: 18, fontWeight: '600', marginBottom: 15 }}>
+                  {pretrainCategory.charAt(0).toUpperCase() + pretrainCategory.slice(1)} Dataset Images
+                </Text>
+                {loadingPretrainImages ? (
+                  <ActivityIndicator size="large" color="#2E7D32" />
+                ) : (
+                  <FlatList
+                    data={pretrainImages}
+                    keyExtractor={(item) => item.id}
+                    renderItem={renderImageItem}
+                    numColumns={2}
+                    contentContainerStyle={{ paddingBottom: 10 }}
+                    columnWrapperStyle={{ justifyContent: 'space-between', marginBottom: 10 }}
+                  />
+                )}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', marginTop: 15 }}>
+                  <TouchableOpacity style={[styles.greenButton, { flex: 1, marginRight: 5, backgroundColor: '#ccc' }]} onPress={() => { setPretrainCategory(null); setPretrainImages([]); }}>
+                    <Text style={[styles.buttonText, { color: '#000' }]}>Cancel</Text>
+                  </TouchableOpacity>
+                  <TouchableOpacity style={[styles.greenButton, { flex: 1, marginLeft: 5 }]} onPress={handlePretrainConfirm}>
+                    <Text style={styles.buttonText}>Pre-Train</Text>
+                  </TouchableOpacity>
+                </View>
+              </>
+            )}
+          </View>
+        </View>
+      </Modal>
+
+      {/* --- Silent Buffer Overlays --- */}
       {trainingBuffer && (
         <View style={styles.bufferOverlay}>
           <View style={styles.bufferBox}>
-            <Text style={{ fontSize: 16, marginBottom: 10, textAlign: 'center' }}>
-              Retraining model for {selectedCategory}...
-            </Text>
-            <Text style={{ fontSize: 12, color: '#666', marginBottom: 10, textAlign: 'center' }}>
-              This may take several minutes. Please do not close the app.
-            </Text>
+            <Text style={{ fontSize: 16 }}>Training model for {selectedCategory}...</Text>
+            <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 10 }} />
+          </View>
+        </View>
+      )}
+
+      {pretrainingBuffer && (
+        <View style={styles.bufferOverlay}>
+          <View style={styles.bufferBox}>
+            <Text style={{ fontSize: 16 }}>Pre-training model for {pretrainCategory}...</Text>
             <ActivityIndicator size="large" color="#2E7D32" style={{ marginTop: 10 }} />
           </View>
         </View>
