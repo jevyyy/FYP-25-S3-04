@@ -6,30 +6,33 @@ import { app } from "../../firebaseConfig";
 import GreenLensLogo from "../../assets/Green_Lens_logo.png";
 
 export default function Admin_HomePage() {
-  const [totalUsers, setTotalUsers] = useState(0);
-  const [activeUsers, setActiveUsers] = useState(0);
-  const [inactiveUsers, setInactiveUsers] = useState(0);
-  const [feedbackCount, setFeedbackCount] = useState(0);
-  const [username, setUsername] = useState("Admin");
+  const [totalUsers, setTotalUsers] = useState(0); // Total users count
+  const [activeUsers, setActiveUsers] = useState(0); // Active users count
+  const [inactiveUsers, setInactiveUsers] = useState(0); // Inactive users count
+  const [feedbackCount, setFeedbackCount] = useState(0); // Total feedbacks count
+  const [username, setUsername] = useState("Admin"); // Current admin's username
 
-  const db = getFirestore(app);
-  const auth = getAuth(app);
+  const db = getFirestore(app); // Firestore database reference
+  const auth = getAuth(app); // Firebase authentication reference
 
   useEffect(() => {
+    // Get the currently logged-in admin user
     const currentUser = auth.currentUser;
 
+    // Fetch the admin's username from Firestore
     if (currentUser) {
       const userDocRef = doc(db, "users", currentUser.uid);
       getDoc(userDocRef)
         .then((docSnap) => {
           if (docSnap.exists()) {
             const name = docSnap.data().username;
-            setUsername(name ? String(name) : "Admin");
+            setUsername(name ? String(name) : "Admin"); // Update state with username
           }
         })
         .catch((err) => console.log("Error fetching username:", err));
     }
 
+    // Listen to the "users" collection for real-time updates
     const usersCol = collection(db, "users");
     const unsubscribeUsers = onSnapshot(
       usersCol,
@@ -37,26 +40,29 @@ export default function Admin_HomePage() {
         let active = 0;
         let inactive = 0;
 
+        // Count how many users are active vs inactive
         snapshot.forEach((doc) => {
           const data = doc.data();
           if (data.status === "active") active++;
           else if (data.status === "inactive") inactive++;
         });
 
-        setTotalUsers(snapshot.size);
-        setActiveUsers(active);
-        setInactiveUsers(inactive);
+        setTotalUsers(snapshot.size); // Total users
+        setActiveUsers(active); // Active users
+        setInactiveUsers(inactive); // Inactive users
       },
       (error) => console.error("Error fetching users:", error)
     );
 
+    // Listen to the "feedback" collection for real-time updates
     const feedbackCol = collection(db, "feedback");
     const unsubscribeFeedback = onSnapshot(
       feedbackCol,
-      (snapshot) => setFeedbackCount(snapshot.size),
+      (snapshot) => setFeedbackCount(snapshot.size), // Update total feedback count
       (error) => console.error("Error fetching feedback:", error)
     );
 
+    // Clean up listeners when component unmounts
     return () => {
       unsubscribeUsers();
       unsubscribeFeedback();

@@ -5,33 +5,38 @@ import { app } from "../../firebaseConfig";
 import GreenLensLogo from "../../assets/Green_Lens_logo.png";
 
 export default function Admin_Reports() {
-  const db = getFirestore(app);
+  const db = getFirestore(app); // Reference to Firestore database
 
-  const [feedbacks, setFeedbacks] = useState([]);
-  const [ratingsCount, setRatingsCount] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 });
+  const [feedbacks, setFeedbacks] = useState([]); // Store all feedback documents
+  const [ratingsCount, setRatingsCount] = useState({ 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 }); // Count of each star rating
 
   useEffect(() => {
+    // Reference to the feedback collection, ordered by newest first
     const feedbackRef = collection(db, "feedback");
     const q = query(feedbackRef, orderBy("createdAt", "desc"));
 
+    // Listen to the feedback collection in real-time
     const unsubscribe = onSnapshot(q, (snapshot) => {
       const list = snapshot.docs.map((doc) => ({
         id: doc.id,
         ...doc.data(),
       }));
-      setFeedbacks(list);
+      setFeedbacks(list); // Update feedbacks state
 
+      // Count how many feedbacks each star rating has
       const counts = { 5: 0, 4: 0, 3: 0, 2: 0, 1: 0 };
       list.forEach((f) => {
         const rating = Number(f.rating);
         if (rating >= 1 && rating <= 5) counts[rating]++;
       });
-      setRatingsCount(counts);
+      setRatingsCount(counts); // Update ratings count
     });
 
+    // Remove listener when component unmounts
     return () => unsubscribe();
   }, []);
 
+  // Render a horizontal bar for each star rating in the chart
   const renderBar = (stars) => {
     const total = Object.values(ratingsCount).reduce((a, b) => a + b, 0) || 1;
     const percentage = (ratingsCount[stars] / total) * 100;
@@ -49,17 +54,21 @@ export default function Admin_Reports() {
 
   return (
     <View style={styles.container}>
+      {/* Display app logo */}
       <View style={styles.logoContainer}>
         {GreenLensLogo && <Image source={GreenLensLogo} style={styles.logoImage} />}
       </View>
 
       <Text style={styles.title}>Review Summary</Text>
 
+      {/* Ratings chart */}
       <View style={styles.chartContainer}>
-        {[5, 4, 3, 2, 1].map((stars) => renderBar(stars))}
+        {[5, 4, 3, 2, 1].map((stars) => renderBar(stars))} 
       </View>
 
       <Text style={styles.subtitle}>User Feedback</Text>
+
+      {/* List all user feedback */}
       <FlatList
         data={feedbacks}
         keyExtractor={(item) => item.id}
