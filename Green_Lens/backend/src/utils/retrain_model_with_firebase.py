@@ -217,11 +217,38 @@ class ModelRetrainer:
             print(f"  - {class_name}: {count} images")
         print(f"{'='*80}\n")
     
-    def prepare_data_generators(self):
+    def load_existing_class_names(self):
+        """
+        Load existing class names from the saved JSON file
+        Returns a dictionary mapping class names to indices, or empty dict if file doesn't exist
+        """
+        category_singular = self.category.rstrip('s')
+        class_names_path = self.output_dir / f'{category_singular}_class_names.json'
+        
+        if class_names_path.exists():
+            print(f"Loading existing class names from: {class_names_path}")
+            with open(class_names_path, 'r') as f:
+                # Load the existing mapping (format: {"0": "class_name1", "1": "class_name2", ...})
+                existing_map = json.load(f)
+                # Convert to {class_name: index} format for easier use
+                class_name_to_index = {v: int(k) for k, v in existing_map.items()}
+                print(f"Found {len(class_name_to_index)} existing classes: {list(class_name_to_index.keys())}")
+                return class_name_to_index
+        else:
+            print("No existing class names file found. Starting fresh.")
+            return {}
+    
+    def prepare_data_generators(self, existing_class_mapping=None):
         """
         Prepare training and validation data generators
+        
+        Args:
+            existing_class_mapping: Optional dict mapping class names to indices from previous training
         """
         print("Preparing data generators...")
+        
+        if existing_class_mapping:
+            print(f"Using existing class mapping with {len(existing_class_mapping)} classes")
         
         # Training data generator with augmentation
         train_datagen = ImageDataGenerator(
@@ -242,14 +269,53 @@ class ModelRetrainer:
             preprocessing_function=preprocess_input
         )
         
-        # Create generators
+        # If we have existing classes, we need to ensure the class indices align
+        # Create generators with custom classes parameter if available
+        if existing_class_mapping:
+            # Get the classes found in the downloaded training data
+            import os
+            new_classes_found = sorted([d for d in os.listdir(self.temp_dataset_dir) 
+                                       if os.path.isdir(os.path.join(self.temp_dataset_dir, d))])
+            print(f"New classes found in training data: {new_classes_found}")
+            
+            # Merge existing and new classes
+            merged_class_mapping = existing_class_mapping.copy()
+            next_index = max(existing_class_mapping.values()) + 1 if existing_class_mapping else 0
+            
+            for class_name in new_classes_found:
+                if class_name not in merged_class_mapping:
+                    merged_class_mapping[class_name] = next_index
+                    print(f"Adding new class: {class_name} -> index {next_index}")
+                    next_index += 1
+                else:
+                    print(f"Class {class_name} already exists at index {merged_class_mapping[class_name]}")
+            
+            # CRITICAL FIX: Create a classes list that matches the merged mapping order
+            # This ensures the generator's class_indices align with the model's output neurons
+            # Sort by index to get correct order: ["rose", "tulip", "daisy", "lily", "sunflower"]
+            classes_list = [name for name, idx in sorted(merged_class_mapping.items(), key=lambda x: x[1])]
+            print(f"Creating generators with class order: {classes_list}")
+            
+            # Create placeholder directories for existing classes that don't have new training images
+            # This is necessary so flow_from_directory recognizes all classes
+            for class_name in classes_list:
+                class_dir = self.temp_dataset_dir / class_name
+                if not class_dir.exists():
+                    class_dir.mkdir(parents=True)
+                    print(f"Created placeholder directory for existing class: {class_name}")
+        else:
+            classes_list = None
+            merged_class_mapping = None
+        
+        # Create generators with explicit class ordering to match merged mapping
         train_generator = train_datagen.flow_from_directory(
             str(self.temp_dataset_dir),
             target_size=self.input_size,
             batch_size=self.batch_size,
             class_mode='categorical',
             subset='training',
-            shuffle=True
+            shuffle=True,
+            classes=classes_list  # CRITICAL: Explicit class ordering
         )
         
         validation_generator = train_datagen.flow_from_directory(
@@ -258,13 +324,31 @@ class ModelRetrainer:
             batch_size=self.batch_size,
             class_mode='categorical',
             subset='validation',
-            shuffle=False
+            shuffle=False,
+            classes=classes_list  # CRITICAL: Explicit class ordering
         )
         
-        num_classes = len(train_generator.class_indices)
-        print(f"Found {train_generator.samples} training images belonging to {num_classes} classes.")
+        # If we have a merged class mapping, store it for later use
+        # We need to return this so it can be used when saving
+        if merged_class_mapping:
+            # Store the merged mapping for saving later
+            train_generator.merged_class_indices = merged_class_mapping
+            num_classes = len(merged_class_mapping)
+            print(f"Total classes (existing + new): {num_classes}")
+            print(f"Generator class_indices after fix: {train_generator.class_indices}")
+            
+            # Verify the mapping is correct
+            for class_name, expected_idx in merged_class_mapping.items():
+                actual_idx = train_generator.class_indices.get(class_name, -1)
+                if actual_idx != expected_idx:
+                    print(f"⚠️  WARNING: Class '{class_name}' has index {actual_idx} in generator but should be {expected_idx}")
+        else:
+            train_generator.merged_class_indices = train_generator.class_indices
+            num_classes = len(train_generator.class_indices)
+        
+        print(f"Found {train_generator.samples} training images belonging to {len(train_generator.class_indices)} classes.")
         print(f"Found {validation_generator.samples} validation images")
-        print(f"Class Mapping: {train_generator.class_indices}")
+        print(f"Class Mapping for training data: {train_generator.class_indices}")
         
         return train_generator, validation_generator, num_classes
     
@@ -424,9 +508,14 @@ class ModelRetrainer:
         
         return model
     
-    def save_model_and_metadata(self, model, class_indices):
+    def save_model_and_metadata(self, model, class_indices, merged_class_indices=None):
         """
         Save model and class mapping to local directory
+        
+        Args:
+            model: The trained model
+            class_indices: The class indices from the training generator (only new classes)
+            merged_class_indices: The merged class indices including existing classes (optional)
         """
         print("\n" + "="*80)
         print("Saving Model and Metadata")
@@ -444,12 +533,21 @@ class ModelRetrainer:
         model.save(str(h5_model_path))
         print(f"Model saved in .h5 format to: {h5_model_path}")
         
-        # Save class mapping
-        class_names_map = {str(v): k for k, v in class_indices.items()}
+        # Save class mapping - use merged mapping if available to preserve existing classes
+        if merged_class_indices:
+            print("Using merged class indices (preserving existing classes)")
+            class_names_map = {str(v): k for k, v in merged_class_indices.items()}
+        else:
+            print("Using class indices from training data only")
+            class_names_map = {str(v): k for k, v in class_indices.items()}
+        
         class_names_path = self.output_dir / f'{category_singular}_class_names.json'
         with open(class_names_path, 'w') as f:
             json.dump(class_names_map, f, indent=4)
         print(f"Class mapping saved to: {class_names_path}")
+        print(f"Total classes saved: {len(class_names_map)}")
+        for idx, name in sorted([(int(k), v) for k, v in class_names_map.items()]):
+            print(f"  {idx}: {name}")
         
         return model_save_path, class_names_path
     
@@ -579,6 +677,9 @@ class ModelRetrainer:
             delete_images_after: Whether to delete training images after successful training
         """
         try:
+            # Load existing class names to preserve them
+            existing_class_mapping = self.load_existing_class_names()
+            
             # Download images
             image_count = self.download_images_from_firebase()
             
@@ -586,11 +687,13 @@ class ModelRetrainer:
                 print("No images found in Firebase. Aborting training.")
                 return False
             
-            # Prepare data
-            train_gen, val_gen, num_classes = self.prepare_data_generators()
+            # Prepare data with existing class mapping
+            train_gen, val_gen, num_classes = self.prepare_data_generators(existing_class_mapping)
             
             # Check if existing model exists for fine-tuning
-            existing_model_path = self.output_dir / f'{self.category}_best_model.keras'
+            # Use singular form for model filename
+            category_singular = self.category.rstrip('s')
+            existing_model_path = self.output_dir / f'{category_singular}_img_classifier.keras'
             
             # Build model
             model = self.build_model(num_classes, existing_model_path if existing_model_path.exists() else None)
@@ -598,8 +701,14 @@ class ModelRetrainer:
             # Train model
             model = self.train_model(model, train_gen, val_gen)
             
-            # Save model and metadata
-            model_path, class_names_path = self.save_model_and_metadata(model, train_gen.class_indices)
+            # Save model and metadata with merged class mapping
+            # The merged_class_indices was stored in the train_generator during prepare_data_generators
+            merged_class_indices = getattr(train_gen, 'merged_class_indices', train_gen.class_indices)
+            model_path, class_names_path = self.save_model_and_metadata(
+                model, 
+                train_gen.class_indices,
+                merged_class_indices
+            )
             
             # Upload to Firebase
             self.upload_to_firebase(model_path, class_names_path)
