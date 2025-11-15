@@ -532,12 +532,18 @@ class ModelRetrainer:
         
         # Save model
         # Use singular category name for file path
+        # CRITICAL: Use _best_model.keras to match what app.py expects
         category_singular = self.category.rstrip('s')
-        model_save_path = self.output_dir / f'{category_singular}_img_classifier.keras'
+        model_save_path = self.output_dir / f'{category_singular}_best_model.keras'
         model.save(str(model_save_path))
         print(f"Model saved to: {model_save_path}")
         
-        # Save .h5 format
+        # Also save with _img_classifier name for backward compatibility
+        img_classifier_path = self.output_dir / f'{category_singular}_img_classifier.keras'
+        model.save(str(img_classifier_path))
+        print(f"Model also saved to: {img_classifier_path}")
+        
+        # Save .h5 format for backward compatibility
         h5_model_path = self.output_dir / f'{category_singular}_img_classifier.h5'
         model.save(str(h5_model_path))
         print(f"Model saved in .h5 format to: {h5_model_path}")

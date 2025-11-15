@@ -126,8 +126,13 @@ def download_file_from_firebase(firebase_path, local_path):
         print(f"Error downloading {firebase_path}: {str(e)}")
         raise e
 
-def load_model_and_classes_for_category(category):
-    """Load the trained model and class mappings for a specific category"""
+def load_model_and_classes_for_category(category, force_reload=False):
+    """Load the trained model and class mappings for a specific category
+    
+    Args:
+        category: Category to load ('flower', 'plant', or 'architecture')
+        force_reload: If True, reload the model from disk even if already loaded
+    """
     global models, class_names_dict, class_dict_dict
     
     if category not in CATEGORIES:
@@ -148,6 +153,7 @@ def load_model_and_classes_for_category(category):
             files_exist = files_exist and os.path.exists(local_class_dict_path)
         
         # Download from Firebase if files don't exist locally
+        # When force_reload is True, we still use local files (which were just updated by retraining)
         if not files_exist:
             print(f"Downloading {category} model files from Firebase Storage...")
             initialize_firebase()
@@ -157,9 +163,12 @@ def load_model_and_classes_for_category(category):
             if config['use_class_dict']:
                 download_file_from_firebase(config['firebase_class_dict'], local_class_dict_path)
         else:
-            print(f"Using existing local files for {category} model")
+            if force_reload:
+                print(f"Force reloading {category} model from local files (after retraining)")
+            else:
+                print(f"Using existing local files for {category} model")
         
-        # Load the model
+        # Load the model (force reload will load the newly trained model from disk)
         print(f"Loading {category} model from: {local_model_path}")
         models[category] = load_model(local_model_path)
         print(f"{category.capitalize()} model loaded successfully")
@@ -448,7 +457,8 @@ def retrain_model():
             try:
                 # Map back to the category key used in CATEGORIES
                 category_key = 'flower' if category == 'flowers' else category.rstrip('s')
-                load_model_and_classes_for_category(category_key)
+                # Force reload to get the newly trained model
+                load_model_and_classes_for_category(category_key, force_reload=True)
                 print(f"Reloaded {category} model successfully")
             except Exception as e:
                 print(f"Warning: Failed to reload model: {str(e)}")
